@@ -1,0 +1,398 @@
+{
+  "builds": {
+    "HEXIWEAR-GCC_ARM": {
+      "binary_type": "bootable", 
+      "tests": {
+        "mbed-os-tests-mbedmicro-rtos-mbed-malloc": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/TESTS/mbedmicro-rtos-mbed/malloc/malloc.bin"
+            }
+          ]
+        }, 
+        "mbed-os-features-frameworks-utest-tests-unit_tests-minimal_scheduler": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/features/frameworks/utest/TESTS/unit_tests/minimal_scheduler/minimal_scheduler.bin"
+            }
+          ]
+        }, 
+        "mbed-os-rtos-rtx5-target_cortex_m-tests-memory-heap_and_stack": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/rtos/rtx5/TARGET_CORTEX_M/TESTS/memory/heap_and_stack/heap_and_stack.bin"
+            }
+          ]
+        }, 
+        "mbed-os-tests-mbed_drivers-stl_features": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/TESTS/mbed_drivers/stl_features/stl_features.bin"
+            }
+          ]
+        }, 
+        "mbed-os-features-frameworks-utest-tests-unit_tests-control_type": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/features/frameworks/utest/TESTS/unit_tests/control_type/control_type.bin"
+            }
+          ]
+        }, 
+        "mbed-os-tests-events-queue": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/TESTS/events/queue/queue.bin"
+            }
+          ]
+        }, 
+        "mbed-os-features-tests-filesystem-mbr_block_device": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/features/TESTS/filesystem/mbr_block_device/mbr_block_device.bin"
+            }
+          ]
+        }, 
+        "mbed-os-tests-mbed_drivers-race_test": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/TESTS/mbed_drivers/race_test/race_test.bin"
+            }
+          ]
+        }, 
+        "mbed-os-tests-mbed_drivers-generic_tests": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/TESTS/mbed_drivers/generic_tests/generic_tests.bin"
+            }
+          ]
+        }, 
+        "mbed-os-tests-mbed_functional-callback_small": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/TESTS/mbed_functional/callback_small/callback_small.bin"
+            }
+          ]
+        }, 
+        "mbed-os-features-frameworks-utest-tests-unit_tests-case_control_repeat": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/features/frameworks/utest/TESTS/unit_tests/case_control_repeat/case_control_repeat.bin"
+            }
+          ]
+        }, 
+        "mbed-os-features-frameworks-utest-tests-unit_tests-case_setup_failure": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/features/frameworks/utest/TESTS/unit_tests/case_setup_failure/case_setup_failure.bin"
+            }
+          ]
+        }, 
+        "mbed-os-tests-mbed_drivers-rtc": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/TESTS/mbed_drivers/rtc/rtc.bin"
+            }
+          ]
+        }, 
+        "mbed-os-features-frameworks-utest-tests-unit_tests-case_selection": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/features/frameworks/utest/TESTS/unit_tests/case_selection/case_selection.bin"
+            }
+          ]
+        }, 
+        "mbed-os-features-tests-filesystem-util_block_device": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/features/TESTS/filesystem/util_block_device/util_block_device.bin"
+            }
+          ]
+        }, 
+        "mbed-os-tests-mbed_drivers-c_strings": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/TESTS/mbed_drivers/c_strings/c_strings.bin"
+            }
+          ]
+        }, 
+        "mbed-os-tests-mbed_drivers-echo": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/TESTS/mbed_drivers/echo/echo.bin"
+            }
+          ]
+        }, 
+        "mbed-os-tests-mbedmicro-mbed-div": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/TESTS/mbedmicro-mbed/div/div.bin"
+            }
+          ]
+        }, 
+        "mbed-os-tests-mbed_drivers-ticker": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/TESTS/mbed_drivers/ticker/ticker.bin"
+            }
+          ]
+        }, 
+        "mbed-os-tests-events-timing": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/TESTS/events/timing/timing.bin"
+            }
+          ]
+        }, 
+        "mbed-os-features-frameworks-utest-tests-unit_tests-minimal_async_scheduler": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/features/frameworks/utest/TESTS/unit_tests/minimal_async_scheduler/minimal_async_scheduler.bin"
+            }
+          ]
+        }, 
+        "mbed-os-tests-mbedmicro-rtos-mbed-isr": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/TESTS/mbedmicro-rtos-mbed/isr/isr.bin"
+            }
+          ]
+        }, 
+        "mbed-os-tests-mbed_drivers-flashiap": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/TESTS/mbed_drivers/flashiap/flashiap.bin"
+            }
+          ]
+        }, 
+        "mbed-os-tests-mbed_hal-flash": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/TESTS/mbed_hal/flash/flash.bin"
+            }
+          ]
+        }, 
+        "mbed-os-tests-mbedmicro-mbed-static_assert": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/TESTS/mbedmicro-mbed/static_assert/static_assert.bin"
+            }
+          ]
+        }, 
+        "mbed-os-tests-mbedtls-multi": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/TESTS/mbedtls/multi/multi.bin"
+            }
+          ]
+        }, 
+        "mbed-os-features-tests-filesystem-heap_block_device": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/features/TESTS/filesystem/heap_block_device/heap_block_device.bin"
+            }
+          ]
+        }, 
+        "mbed-os-features-frameworks-utest-tests-unit_tests-case_teardown_failure": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/features/frameworks/utest/TESTS/unit_tests/case_teardown_failure/case_teardown_failure.bin"
+            }
+          ]
+        }, 
+        "mbed-os-tests-integration-basic": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/TESTS/integration/basic/basic.bin"
+            }
+          ]
+        }, 
+        "mbed-os-features-frameworks-utest-tests-unit_tests-case_control_async": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/features/frameworks/utest/TESTS/unit_tests/case_control_async/case_control_async.bin"
+            }
+          ]
+        }, 
+        "mbed-os-tests-mbedmicro-mbed-cpp": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/TESTS/mbedmicro-mbed/cpp/cpp.bin"
+            }
+          ]
+        }, 
+        "mbed-os-tests-mbed_drivers-timeout": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/TESTS/mbed_drivers/timeout/timeout.bin"
+            }
+          ]
+        }, 
+        "mbed-os-tests-mbed_functional-callback_big": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/TESTS/mbed_functional/callback_big/callback_big.bin"
+            }
+          ]
+        }, 
+        "mbed-os-tests-mbedmicro-mbed-call_before_main": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/TESTS/mbedmicro-mbed/call_before_main/call_before_main.bin"
+            }
+          ]
+        }, 
+        "mbed-os-features-frameworks-utest-tests-unit_tests-test_setup_failure": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/features/frameworks/utest/TESTS/unit_tests/test_setup_failure/test_setup_failure.bin"
+            }
+          ]
+        }, 
+        "mbed-os-tests-mbed_hal-ticker": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/TESTS/mbed_hal/ticker/ticker.bin"
+            }
+          ]
+        }, 
+        "mbed-os-features-frameworks-utest-tests-unit_tests-basic_test_default": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/features/frameworks/utest/TESTS/unit_tests/basic_test_default/basic_test_default.bin"
+            }
+          ]
+        }, 
+        "mbed-os-tests-mbedmicro-rtos-mbed-mutex": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/TESTS/mbedmicro-rtos-mbed/mutex/mutex.bin"
+            }
+          ]
+        }, 
+        "mbed-os-features-frameworks-utest-tests-unit_tests-test_setup_case_selection_failure": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/features/frameworks/utest/TESTS/unit_tests/test_setup_case_selection_failure/test_setup_case_selection_failure.bin"
+            }
+          ]
+        }, 
+        "mbed-os-tests-mbedmicro-rtos-mbed-threads": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/TESTS/mbedmicro-rtos-mbed/threads/threads.bin"
+            }
+          ]
+        }, 
+        "mbed-os-features-frameworks-utest-tests-unit_tests-test_assertion_failure_test_setup": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/features/frameworks/utest/TESTS/unit_tests/test_assertion_failure_test_setup/test_assertion_failure_test_setup.bin"
+            }
+          ]
+        }, 
+        "mbed-os-tests-mbedmicro-mbed-attributes": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/TESTS/mbedmicro-mbed/attributes/attributes.bin"
+            }
+          ]
+        }, 
+        "mbed-os-tests-netsocket-ip_parsing": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/TESTS/netsocket/ip_parsing/ip_parsing.bin"
+            }
+          ]
+        }, 
+        "mbed-os-tests-mbedmicro-rtos-mbed-basic": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/TESTS/mbedmicro-rtos-mbed/basic/basic.bin"
+            }
+          ]
+        }, 
+        "mbed-os-tests-mbed_functional-functionpointer": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/TESTS/mbed_functional/functionpointer/functionpointer.bin"
+            }
+          ]
+        }, 
+        "mbed-os-tests-mbedtls-selftest": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/TESTS/mbedtls/selftest/selftest.bin"
+            }
+          ]
+        }, 
+        "mbed-os-tests-mbedmicro-rtos-mbed-signals": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/TESTS/mbedmicro-rtos-mbed/signals/signals.bin"
+            }
+          ]
+        }, 
+        "mbed-os-tests-mbed_hal-rtc_time": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/TESTS/mbed_hal/rtc_time/rtc_time.bin"
+            }
+          ]
+        }, 
+        "mbed-os-tests-mbedmicro-rtos-mbed-queue": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/TESTS/mbedmicro-rtos-mbed/queue/queue.bin"
+            }
+          ]
+        }, 
+        "mbed-os-tests-mbedmicro-rtos-mbed-mail": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/TESTS/mbedmicro-rtos-mbed/mail/mail.bin"
+            }
+          ]
+        }, 
+        "mbed-os-features-frameworks-utest-tests-unit_tests-case_async_validate": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/features/frameworks/utest/TESTS/unit_tests/case_async_validate/case_async_validate.bin"
+            }
+          ]
+        }, 
+        "mbed-os-tests-mbed_functional-callback": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/TESTS/mbed_functional/callback/callback.bin"
+            }
+          ]
+        }, 
+        "mbed-os-features-frameworks-utest-tests-unit_tests-basic_test": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/features/frameworks/utest/TESTS/unit_tests/basic_test/basic_test.bin"
+            }
+          ]
+        }, 
+        "mbed-os-tests-mbed_drivers-dev_null": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/TESTS/mbed_drivers/dev_null/dev_null.bin"
+            }
+          ]
+        }, 
+        "mbed-os-tests-mbedmicro-rtos-mbed-semaphore": {
+          "binaries": [
+            {
+              "path": "BUILD/tests/hexiwear/GCC_ARM/mbed-os/TESTS/mbedmicro-rtos-mbed/semaphore/semaphore.bin"
+            }
+          ]
+        }
+      }, 
+      "toolchain": "GCC_ARM", 
+      "base_path": "BUILD/tests/hexiwear/GCC_ARM", 
+      "baud_rate": 9600, 
+      "platform": "HEXIWEAR"
+    }
+  }
+}
