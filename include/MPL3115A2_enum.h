@@ -54,7 +54,7 @@ enum MPL3315A2_Mode
     BAROMETER    = 0
 };
 
-enum MPL3315A2_Oversample_Ratio
+enum MPL3315A2_Os_Ratio
 {
     OS_6_MS     = 0,       // 6 ms
     OS_10_MS    = 1,       // 10 ms
@@ -65,4 +65,5 @@ enum MPL3315A2_Oversample_Ratio
     OS_258_MS   = 6,       // 258 ms
     OS_512_MS   = 7        // 512 ms
 };
+
 #endif
