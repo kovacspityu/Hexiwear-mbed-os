@@ -10,10 +10,10 @@ MPL3115A2::MPL3115A2(MPL3315A2_Mode mode, MPL3315A2_Oversample_Ratio ratio) : mI
 
 int MPL3115A2::write(MPL3115A2_Register address, uint8_t *data){
     const char bigData[2] = {(char) address, (char) *data};
-    mI2C.write(mAddress, &bigData, 2); 
+    return mI2C.write(mAddress, &bigData, 2); 
 }
 
-uint8_t MPL3115A2::read(MPL3115A2_Register address, uint8_t *data, int length){
+void MPL3115A2::read(MPL3115A2_Register address, uint8_t *data, int length){
     mI2C.write(mAddress, &address, 1, true);
     mI2C.read(mAddress,  &data, length);
 }

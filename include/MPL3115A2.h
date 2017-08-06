@@ -23,7 +23,7 @@ private:
 
 I2C mI2C;
 uint8_t mAddress;
-uint8_t read(MPL3115A2_Register address, uint8_t *data, int length);
+void read(MPL3115A2_Register address, uint8_t *data, int length);
 int write(MPL3115A2_Register address, uint8_t *data);
 
 
