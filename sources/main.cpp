@@ -8,7 +8,7 @@ int main(){
     while(1){
         pressure = sensor.getData();
         pc.baud(19200);
-        pc.printf("Pressure = %f\n", pressure);
-        Thread::wait(500);
+        pc.printf("Pressure = %f\n\r", pressure);
+        Thread::wait(250);
     }
 }
