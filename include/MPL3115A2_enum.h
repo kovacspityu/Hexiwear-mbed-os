@@ -1,6 +1,6 @@
 #ifndef _MPL3115A2_enum_
 #define _MPL3115A2_enum_
-enum MPL3115A2_Register
+enum MPL3115A2_Address
 {
     STATUS                      = 0x00,
     PRESSURE_MSB                = 0x01,             ALTITUDE_MSB                = 0x01,
