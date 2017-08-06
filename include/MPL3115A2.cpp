@@ -14,9 +14,9 @@ int MPL3115A2::write(MPL3115A2_Address address, uint8_t *data){
 }
 
 void MPL3115A2::read(MPL3115A2_Address address, uint8_t *data, int length){
-    char* pAddress = (*char) &address;
-    mI2C.write(mAddress, pAddress, 1, true);
-    mI2C.read(mAddress, static_cast<char> data, length);
+    const char cAddress =  address;
+    mI2C.write(mAddress, &cAddress, 1, true);
+    mI2C.read(mAddress, (char*) data, length);
 }
 
 int MPL3115A2::getOsR(){
@@ -67,8 +67,8 @@ double MPL3115A2::getTemperature(){
     double returnValue;
     read(TEMPERATURE_MSB, data, 2);
     returnValue =        (
-                            (((uint16_t) data[3]) << 8) |
-                            ((uint16_t) data[4])
+                            (((uint16_t) data[0]) << 8) |
+                            ((uint16_t) data[1])
                             ) / 256;
     return returnValue;
 }
@@ -99,8 +99,8 @@ double MPL3115A2::getTemperatureDelta(){
     double returnValue;
     read(TEMPERATURE_DELTA_MSB, data, 2);
     returnValue =        (
-                            (((uint16_t) data[3]) << 8) |
-                            ((uint16_t) data[4])
+                            (((uint16_t) data[0]) << 8) |
+                            ((uint16_t) data[1])
                             ) / 256;
     return returnValue;
 }
@@ -130,8 +130,8 @@ double MPL3115A2::getMaxTemperature(){
     double returnValue;
     read(MAX_TEMPERATURE_MSB, data, 2);
     returnValue =        (
-                            (((uint16_t) data[3]) << 8) |
-                            ((uint16_t) data[4])
+                            (((uint16_t) data[0]) << 8) |
+                            ((uint16_t) data[1])
                             ) / 256;
     return returnValue;
 }
@@ -160,8 +160,8 @@ double MPL3115A2::getMinTemperature(){
     double returnValue;
     read(MAX_TEMPERATURE_MSB, data, 2);
     returnValue =        (
-                            (((uint16_t) data[3]) << 8) |
-                            ((uint16_t) data[4])
+                            (((uint16_t) data[0]) << 8) |
+                            ((uint16_t) data[1])
                             ) / 256;
     return returnValue;
 }
