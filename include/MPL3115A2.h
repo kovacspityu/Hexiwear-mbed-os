@@ -5,7 +5,7 @@
 
 class MPL3115A2{
 public:
-MPL3115A2(MPL3315A2_Mode mode = BAROMETER, MPL3315A2_Oversample_Ratio ratio = OS_6MS);
+MPL3115A2(MPL3315A2_Mode mode = BAROMETER, MPL3315A2_Oversample_Ratio ratio = OS_6_MS);
 double getData();
 double getTemperature();
 double getDataDelta();
@@ -23,8 +23,8 @@ private:
 
 I2C mI2C;
 uint8_t mAddress;
-uint8_t read(MPL3115A2_register address, uint8_t *data, int length);
-int write(MPL3115A2_register address, uint8_t *data);
+uint8_t read(MPL3115A2_Register address, uint8_t *data, int length);
+int write(MPL3115A2_Register address, uint8_t *data);
 
 
 

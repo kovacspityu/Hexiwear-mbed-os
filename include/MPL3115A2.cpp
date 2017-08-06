@@ -2,18 +2,18 @@
 #include "MPL3115A2.h"
 #include "mbed.h"
 
-MPL3115A2::MPL3115A2(MPL3115A2_Mode mode, MPL3115A2_Oversample_Ratio ratio) : mI2C(PTC11, PTC10), mAddress = 0xC0
+MPL3115A2::MPL3115A2(MPL3315A2_Mode mode, MPL3315A2_Oversample_Ratio ratio) : mI2C(PTC11, PTC10), mAddress(0xC0)
 {
     uint8_t data = 1  + ratio<<3 + mode<<7;
     write(CTRL_REG_1, &data);
 }
 
-int MPL3115A2::write(MPL3115A2_register address, uint8_t *data){
+int MPL3115A2::write(MPL3115A2_Register address, uint8_t *data){
     const char bigData[2] = {(char) address, (char) *data};
     mI2C.write(mAddress, &bigData, 2); 
 }
 
-uint8_t MPL3115A2::read(MPL3115A2_register address, uint8_t *data, int length){
+uint8_t MPL3115A2::read(MPL3115A2_Register address, uint8_t *data, int length){
     mI2C.write(mAddress, &address, 1, true);
     mI2C.read(mAddress,  &data, length);
 }
@@ -41,7 +41,7 @@ bool MPL3115A2::isAltimeter(){
 }
 
 double MPL3115A2::getData(){
-    uint8_t data[] = new uint8_t[3];
+    uint8_t data[3];
     double returnValue;
     read(PRESSURE_MSB, &data, 3);
     if (isAltimeter()){
@@ -62,7 +62,7 @@ double MPL3115A2::getData(){
 }
 
 double MPL3115A2::getTemperature(){
-    uint8_t data[] = new uint8_t[2];
+    uint8_t data[2];
     double returnValue;
     read(TEMPERATURE_MSB, &data, 2);
     returnValue =        (
@@ -73,7 +73,7 @@ double MPL3115A2::getTemperature(){
 }
 
 double MPL3115A2::getDataDelta(){
-    uint8_t data[] = new uint8_t[3];
+    uint8_t data[3];
     double returnValue;
     read(PRESSURE_DELTA_MSB, &data, 3);
     if (isAltimeter()){
@@ -94,7 +94,7 @@ double MPL3115A2::getDataDelta(){
 }
 
 double MPL3115A2::getTemperatureDelta(){
-    uint8_t data[] = new uint8_t[2];
+    uint8_t data[2];
     double returnValue;
     read(TEMPERATURE_DELTA_MSB, &data, 2);
     returnValue =        (
@@ -105,7 +105,7 @@ double MPL3115A2::getTemperatureDelta(){
 }
 
 double MPL3115A2::getMaxData(){
-    uint8_t data[] = new uint8_t[3];
+    uint8_t data[3];
     double returnValue;
     read(MAX_PRESSURE_MSB, &data, 3);
     if (isAltimeter()){
@@ -125,7 +125,7 @@ double MPL3115A2::getMaxData(){
     return returnValue;
 }
 double MPL3115A2::getMaxTemperature(){
-    uint8_t data[] = new uint8_t[2];
+    uint8_t data[2];
     double returnValue;
     read(MAX_TEMPERATURE_MSB, &data, 2);
     returnValue =        (
@@ -135,7 +135,7 @@ double MPL3115A2::getMaxTemperature(){
     return returnValue;
 }
 double MPL3115A2::getMinData(){
-    uint8_t data[] = new uint8_t[3];
+    uint8_t data[3];
     double returnValue;
     read(MIN_PRESSURE_MSB, &data, 3);
     if (isAltimeter()){
@@ -155,7 +155,7 @@ double MPL3115A2::getMinData(){
     return returnValue;
 }
 double MPL3115A2::getMinTemperature(){
-    uint8_t data[] = new uint8_t[2];
+    uint8_t data[2];
     double returnValue;
     read(MAX_TEMPERATURE_MSB, &data, 2);
     returnValue =        (
