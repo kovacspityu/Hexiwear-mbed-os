@@ -47,7 +47,6 @@ enum MPL3115A2_Register
     PRESSURE_OFFSET             = 0X2B,
     TEMPERATURE_OFFSET          = 0X2C,
     ALTITUDE_OFFSET             = 0X2D
-    
 };
 enum MPL3315A2_Mode
 {

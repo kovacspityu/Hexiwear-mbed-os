@@ -59,7 +59,8 @@
                 "${workspaceRoot}\\mbed-os\\targets\\TARGET_Freescale\\TARGET_MCUXpresso_MCUS\\TARGET_MCU_K64F\\device\\TOOLCHAIN_GCC_ARM\\*",
                 "${workspaceRoot}\\mbed-os\\targets\\TARGET_Freescale\\TARGET_MCUXpresso_MCUS\\TARGET_MCU_K64F\\drivers\\*",
                 "${workspaceRoot}\\mbed-os\\targets\\TARGET_Freescale\\TARGET_MCUXpresso_MCUS\\TARGET_MCU_K64F\\TARGET_HEXIWEAR\\*",
-                "${workspaceRoot}\\sources\\*"
+                "${workspaceRoot}\\sources\\*",
+                "\\usr\\include"
             ],
             "name": "Windows",
             "intelliSenseMode": "clang-x64",
@@ -185,7 +186,8 @@
                 "${workspaceRoot}/mbed-os/targets/TARGET_Freescale/TARGET_MCUXpresso_MCUS/TARGET_MCU_K64F/device/TOOLCHAIN_GCC_ARM/*",
                 "${workspaceRoot}/mbed-os/targets/TARGET_Freescale/TARGET_MCUXpresso_MCUS/TARGET_MCU_K64F/drivers/*",
                 "${workspaceRoot}/mbed-os/targets/TARGET_Freescale/TARGET_MCUXpresso_MCUS/TARGET_MCU_K64F/TARGET_HEXIWEAR/*",
-                "${workspaceRoot}/sources/*"
+                "${workspaceRoot}/sources/*",
+                "/usr/include"
             ],
             "name": "Mac",
             "intelliSenseMode": "clang-x64",
@@ -248,7 +250,8 @@
                     "${workspaceRoot}/mbed-os/targets/TARGET_Freescale/TARGET_MCUXpresso_MCUS/TARGET_MCU_K64F/device/TOOLCHAIN_GCC_ARM/*",
                     "${workspaceRoot}/mbed-os/targets/TARGET_Freescale/TARGET_MCUXpresso_MCUS/TARGET_MCU_K64F/drivers/*",
                     "${workspaceRoot}/mbed-os/targets/TARGET_Freescale/TARGET_MCUXpresso_MCUS/TARGET_MCU_K64F/TARGET_HEXIWEAR/*",
-                    "${workspaceRoot}/sources/*"
+                    "${workspaceRoot}/sources/*",
+                    "/usr/include"
                 ]
             }
         },
@@ -311,7 +314,8 @@
                 "${workspaceRoot}/mbed-os/targets/TARGET_Freescale/TARGET_MCUXpresso_MCUS/TARGET_MCU_K64F/device/TOOLCHAIN_GCC_ARM/*",
                 "${workspaceRoot}/mbed-os/targets/TARGET_Freescale/TARGET_MCUXpresso_MCUS/TARGET_MCU_K64F/drivers/*",
                 "${workspaceRoot}/mbed-os/targets/TARGET_Freescale/TARGET_MCUXpresso_MCUS/TARGET_MCU_K64F/TARGET_HEXIWEAR/*",
-                "${workspaceRoot}/sources/*"
+                "${workspaceRoot}/sources/*",
+                "usr/include"
             ],
             "name": "Linux",
             "intelliSenseMode": "clang-x64",
