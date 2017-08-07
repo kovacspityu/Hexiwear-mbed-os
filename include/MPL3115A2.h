@@ -6,7 +6,7 @@
 class MPL3115A2
 {
     public:
-    MPL3115A2(MPL3315A2_Mode mode = BAROMETER, MPL3315A2_Os_Ratio ratio = OS_6_MS);
+    MPL3115A2(MPL3315A2_Mode mode = BAROMETER, MPL3315A2_Os_Ratio ratio = OS_512_MS);
     double getData();
     double getTemperature();
     double getDataDelta();
