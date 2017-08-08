@@ -1,2 +1,6 @@
 BUILD/
 .vscode/
+launch.json
+mbed-os.lib
+settings.json
+tasks.json
