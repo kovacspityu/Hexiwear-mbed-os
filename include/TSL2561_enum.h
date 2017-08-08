@@ -1,3 +1,6 @@
+#ifndef _TSL2561_ENUM_
+#define _TSL2561_ENUM_
+
 enum TSL2561_Address
 {
     CONTROL     = 0x00,
@@ -26,3 +29,5 @@ enum TSL2561_GAIN
     LOW_GAIN    = 0,    // x1  gain 
     HIGH_GAIN   = 1     // x16 gain
 };
+
+#endif
