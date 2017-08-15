@@ -38,8 +38,8 @@ class TSL2561{
         void (*mInterruptFunction)();
         void clearInterrupt();
         void dispatchInterruptData();
-        void dispatchWrongGain();
-        void autoAdjustGain();
+        //void dispatchWrongSensitivity();
+        //void autoAdjustGain();
 
 
         void read(TSL2561_Address address, uint8_t *data, int length = 1);

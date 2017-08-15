@@ -5,13 +5,12 @@
 
 
 TSL2561::TSL2561(TSL2561_GAIN gain, TSL2561_OS_RATE rate) : 
-mI2C(I2C_SDA, I2C_SCL), interrupt(PTC0), mAddress(0x29 << 1), mGain(gain), mRate(rate)
+mI2C(I2C_SDA, I2C_SCL), mInterrupt(PTC0), mAddress(0x29 << 1), mGain(gain), mRate(rate)
 {
     powerUp();
     uint8_t data = (gain<<4) | rate;
     write(TIMING, &data);
-    setInterrupt(0, 128, FIFTEEN_CYCLES, &autoAdjustGain);
-    mInterrupt.rise(callback(this, &TSL2561::dispatchWrongSensitivity));
+    mInterrupt.rise(callback(this, &TSL2561::dispatchInterruptData));
 }
 
 bool TSL2561::isActive(){
@@ -68,13 +67,13 @@ void TSL2561::setOSRate(TSL2561_OS_RATE rate){
 }*/
 
 void TSL2561::setInterrupt(int lowPercentage, int highPercentage, TSL2561_Interrupt_Length persistance, void (*function)()){
-    uint8_t data[4] = getRawLux();
+    uint8_t data[4];
+    getRawLux(data);
     data[2] = uint8_t(lround(((data[0] / 100) * highPercentage)));
     data[3] = uint8_t(lround(((data[1] / 100) * highPercentage)));
     data[0] = uint8_t(lround(((data[0] / 100) * lowPercentage)));
     data[1] = uint8_t(lround(((data[1] / 100) * lowPercentage)));
     write(LOW_THRESHOLD_LSB, data, 4);
-    delete[] data;
     uint8_t dummy = persistance | (1<<4);
     mThread.start(*function);
     write(INTERRUPT, &dummy);
@@ -85,12 +84,12 @@ void TSL2561::removeInterrupt(){
     uint8_t dummy = 0;
     mThread.terminate();
     write(INTERRUPT, &dummy);
-    mInterruptFunction = null;
+    mInterruptFunction = NULL;
 }
 
 void TSL2561::clearInterrupt(){
     uint8_t commandByte = 0b11000000;
-    mI2C.write(mAddress, &commandByte, 1);
+    mI2C.write(mAddress, (char*) &commandByte, 1);
 }
 
 void TSL2561::setDebugInterrupt(void (*function)()){
@@ -101,11 +100,11 @@ void TSL2561::setDebugInterrupt(void (*function)()){
 }
 
 
-void MPL3115A2::getRawLux(uint8_t *rawLight){
+void TSL2561::getRawLux(uint8_t *rawLight){
     read(WHOLE_DATA_LSB, rawLight, 4);
 }
 
-double MPL3115A2::formatLux(uint8_t *light){
+double TSL2561::formatLux(uint8_t *light){
     uint16_t allLight = (light[1]<<8) + light[0];
     uint16_t irLight = (light[3]<<8) + light[2];
     delete[] light;
@@ -155,6 +154,8 @@ void TSL2561::dispatchInterruptData(){
     mThread.signal_set(0x01);
 }
 
+/* TODO Find how to attach autoAdjustGain to the interrupt,
+as it is a TSL2561::void* instead of void*
 void TSL2561::dispatchWrongSensitivity(){
     uint8_t data[4];
     getRawLux(data);
@@ -166,19 +167,19 @@ void TSL2561::dispatchWrongSensitivity(){
 void TSL2561::autoAdjustGain(){
     if(mFix){setGain(LOW_GAIN);}
     else{setGain(HIGH_GAIN);}
-}
+}*/
 
 void TSL2561::read(TSL2561_Address address, uint8_t *data, int length){
     uint8_t commandByte = 0b10010000 | address;
-    mI2C.write(mAddress, &commandByte, 1);
-    mI2C.read(mAddress, data, length);
+    mI2C.write(mAddress, (char*) &commandByte, 1);
+    mI2C.read(mAddress, (char*) data, length);
 }
 
 bool TSL2561::write(TSL2561_Address address, uint8_t *data, int length){
     uint8_t bigData[length+1];
     bigData[0] = 0b10100000 | address;
-    for(int i = 0, i < length, i++){
+    for(int i = 0; i < length; i++){
         bigData[i+1] = data[i];
     }
-    return mI2C.write(mAddress, bigData, length+1);
+    return mI2C.write(mAddress, (char*) bigData, length+1);
 }

@@ -47,7 +47,7 @@ int main(){
     sensorL.setInterrupt(80, 120, ONE_CYCLE, &interruptDummyL);
     wait(2);
     double barometer = sensorM.getData();
-    pc.printf("Current pressure, directly requested, is %f\n", barometer);
+    pc.printf("Current pressure, directly requested, is %f Pa\n", barometer);
     while(1){    
         wait(5);
     }
