@@ -107,20 +107,20 @@ void TSL2561::getRawLux(uint8_t *rawLight){
 double TSL2561::formatLux(uint8_t *light){
     uint16_t allLight = (light[1]<<8) + light[0];
     uint16_t irLight = (light[3]<<8) + light[2];
-    delete[] light;
+    double allLightF, irLightF;
     if(mGain){
         allLight<<=4;
         irLight<<=4;
     }
     switch(mRate){
         case OS_14MS :{
-            allLight*=0.034;
-            irLight*=0.034;
+            allLightF = ((double) allLight) * 0.034;
+            irLightF = ((double) irLight) * 0.034;
             break;
         }
         case OS_100MS :{
-            allLight*=0.252;
-            irLight*=0.252;
+            allLightF = ((double) allLight) * 0.252;
+            irLightF = ((double ) irLight) * 0.252;
             break;
         }
         case OS_400MS :{
@@ -128,18 +128,18 @@ double TSL2561::formatLux(uint8_t *light){
         }
     }
     if(!allLight){return 0.0f;}
-    double ratio = irLight/allLight;
+    double ratio = irLightF/allLightF;
     if(ratio >= 0 && ratio <= 0.5){
-        return 0.0304 * allLight - 0.062 * allLight * pow(ratio, 1.4);
+        return 0.0304 * allLightF - 0.062 * allLightF * pow(ratio, 1.4);
     }
     else if(ratio > 0.5 && ratio <= 0.61){
-        return 0.0224 * allLight - 0.031 * irLight;
+        return 0.0224 * allLightF - 0.031 * irLightF;
     }
     else if(ratio > 0.61 && ratio <= 0.8){
-        return 0.0128 * allLight - 0.0153 * irLight;
+        return 0.0128 * allLightF - 0.0153 * irLightF;
     }
     else if(ratio > 0.8 && ratio <= 1.3){
-        return 0.00146 * allLight - 0.00112 * irLight;
+        return 0.00146 * allLightF - 0.00112 * irLightF;
     }
     else{
         return 0.0f;
@@ -176,10 +176,12 @@ void TSL2561::read(TSL2561_Address address, uint8_t *data, int length){
 }
 
 bool TSL2561::write(TSL2561_Address address, uint8_t *data, int length){
-    uint8_t bigData[length+1];
-    bigData[0] = 0b10100000 | address;
+    uint8_t *bigData = new uint8_t[length+1];
+    *bigData = address;
     for(int i = 0; i < length; i++){
-        bigData[i+1] = data[i];
+        *(bigData+i+1) = data[i];
     }
-    return mI2C.write(mAddress, (char*) bigData, length+1);
+    bool result = mI2C.write(mAddress, (char*) bigData, length + 1);
+    delete[] bigData;
+    return result; 
 }

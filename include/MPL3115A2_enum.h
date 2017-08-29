@@ -27,8 +27,8 @@ enum MPL3115A2_Address
     PRESSURE_TARGET_MSB         = 0x16,             ALTITUDE_TARGET_MSB         = 0x16,
     PRESSURE_TARGET_LSB         = 0x17,             ALTITUDE_TARGET_LSB         = 0x17,
     TEMPERATURE_TARGET          = 0x18,
-    PRESSURE_WINDOW_MSB         = 0x19,             ALTITUDE_WINDOW_MSB  = 0x19,
-    PRESSURE_WINDOW_LSB         = 0x1A,             ALTITUDE_WINDOW_LSB  = 0x1A,
+    PRESSURE_WINDOW_MSB         = 0x19,             ALTITUDE_WINDOW_MSB         = 0x19,
+    PRESSURE_WINDOW_LSB         = 0x1A,             ALTITUDE_WINDOW_LSB         = 0x1A,
     TEMPERATURE_WINDOW          = 0x1B,
     MIN_PRESSURE_MSB            = 0x1C,             MIN_ALTITUDE_MSB            = 0x1C,
     MIN_PRESSURE_CSB            = 0x1D,             MIN_ALTITUDE_CSB            = 0x1D,
@@ -51,58 +51,58 @@ enum MPL3115A2_Address
 };
 enum MPL3315A2_Mode
 {
-    ALTIMETER     = 1,
-    BAROMETER    = 0
+    ALTIMETER    = 0x01,
+    BAROMETER    = 0x00
 };
 
 enum MPL3315A2_Os_Ratio
 {
-    OS_6_MS     = 0,       // 6 ms
-    OS_10_MS    = 1,       // 10 ms
-    OS_18_MS    = 2,       // 18 ms
-    OS_34_MS    = 3,       // 34 ms
-    OS_66_MS    = 4,       // 66 ms
-    OS_130_MS   = 5,       // 130 ms
-    OS_258_MS   = 6,       // 258 ms
-    OS_512_MS   = 7        // 512 ms
+    OS_6_MS     = 0x00,       // 6 ms
+    OS_10_MS    = 0x01,       // 10 ms
+    OS_18_MS    = 0x02,       // 18 ms
+    OS_34_MS    = 0x03,       // 34 ms
+    OS_66_MS    = 0x04,       // 66 ms
+    OS_130_MS   = 0x05,       // 130 ms
+    OS_258_MS   = 0x06,       // 258 ms
+    OS_512_MS   = 0x07        // 512 ms
 };
 
 enum MPL3115A2_Interrupt
 {
-    I_NEW_DATA                  = 128,
-    I_FIFO                      = 64,
-    I_PRESSURE_THRESHOLD        = 32,   I_ALTITUDE_THRESHOLD    = 32,
-    I_TEMPERATURE_THRESHOLD     = 16,
-    I_PRESSURE_WINDOW           = 8,    I_ALTITUDE_WINDOW       = 8,  
-    I_TEMPERATURE_WINDOW        = 4,
-    I_PRESSURE_CHANGE           = 2,    I_ALTITUDE_CHANGE       = 2,
-    I_TEMPERATURE_CHANGE        = 1
+    I_NEW_DATA                  = 0x80,
+    I_FIFO                      = 0x40,
+    I_PRESSURE_THRESHOLD        = 0x20,     I_ALTITUDE_THRESHOLD    = 0x20,
+    I_TEMPERATURE_THRESHOLD     = 0x0F,
+    I_PRESSURE_WINDOW           = 0x08,     I_ALTITUDE_WINDOW       = 0x08,  
+    I_TEMPERATURE_WINDOW        = 0x04,
+    I_PRESSURE_CHANGE           = 0x02,     I_ALTITUDE_CHANGE       = 0x02,
+    I_TEMPERATURE_CHANGE        = 0x01
 };
 
 enum MPL3115A2_Time_Step
 {
 //It's just 2 to the power of the byte value, the names are for avoiding to do mental math
-    TS_1S       = 0,
-    TS_2S       = 1,
-    TS_4S       = 2,
-    TS_8S       = 3,
-    TS_16S      = 4,
-    TS_32S      = 5,
-    TS_1M       = 6,
-    TS_2M_8S    = 7,
-    TS_4M_16S   = 8,
-    TS_8M_30S   = 9,
-    TS_17M      = 10,
-    TS_34M      = 11,
-    TS_1H_8M    = 12,
-    TS_2H_16M   = 13,
-    TS_4H_23M   = 14,
-    TS_9H_46M   = 15
+    TS_1S       = 0x00,
+    TS_2S       = 0x01,
+    TS_4S       = 0x02,
+    TS_8S       = 0x03,
+    TS_16S      = 0x04,
+    TS_32S      = 0x05,
+    TS_1M       = 0x06,
+    TS_2M_8S    = 0x07,
+    TS_4M_16S   = 0x08,
+    TS_8M_30S   = 0x09,
+    TS_17M      = 0x0A,
+    TS_34M      = 0x0B,
+    TS_1H_8M    = 0x0C,
+    TS_2H_16M   = 0x0D,
+    TS_4H_23M   = 0x0E,
+    TS_9H_46M   = 0x0F
 };
 
 enum MPL3115A2_Interrupt_Pin{
-PIN_ONE = 1,
-PIN_TWO = 0
+PIN_ONE = 0x01,
+PIN_TWO = 0x00
 };
 
 enum MPL3115A2_Data_Type{
