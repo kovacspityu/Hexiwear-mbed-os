@@ -9,7 +9,7 @@ TSL2561 sensorL;
 
 void interruptDummyM(){
     pc.printf("Currently in context %p\n", Thread::gettid());
-    for(int i=0;i<2;i++){
+    for(int i=0;i<32;i++){
         osEvent evt = sensorM.mailBox.get();
         if (evt.status == osEventMail) {
             MPL3115A2::mail_t *mail = (MPL3115A2::mail_t*)evt.value.p;
@@ -50,7 +50,7 @@ void interruptDummyL(){
 
 int main(){
     pc.baud(19200);
-    sensorM.setInterrupt(PIN_ONE, I_NEW_DATA, &interruptDummyM);
+    sensorM.setInterrupt(PIN_ONE, I_FIFO, &interruptDummyM, true);
     //sensorL.setInterrupt(80, 120, ONE_CYCLE, &interruptDummyL);
     float barometer;
     float temperature;

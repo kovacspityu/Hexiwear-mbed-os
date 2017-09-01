@@ -12,7 +12,10 @@ class MPL3115A2
         MPL3115A2_Data_Type type;
         float value;
     } mail_t;
-    Mail<mail_t, 16> mailBox;
+    Mail<mail_t, 48> mailBox;
+    
+    static bool visAltimeter;
+    static bool visFIFO;
     
     void setActive();
     void standby();
@@ -35,8 +38,10 @@ class MPL3115A2
     int getTimeStep();
     void setTimeStep(MPL3115A2_Time_Step timeStep);
     void setInterrupt(MPL3115A2_Interrupt_Pin pin, MPL3115A2_Interrupt name, void (*function)(), float target = 0);    
+    void setInterrupt(MPL3115A2_Interrupt_Pin pin, MPL3115A2_Interrupt name, void (*function)(), bool overflow, uint8_t watermark = 0);
     void removeInterrupt(MPL3115A2_Interrupt name);
     bool isAltimeter();
+    bool isFIFO();
     void setMode(MPL3315A2_Mode mode);
     void setSeaLevelPressure(float pressure = 0);
     void setPressureOffset(uint8_t pressure);
@@ -46,10 +51,6 @@ class MPL3115A2
 
     float convertAltitudeI2D(uint8_t* altitude);
     float convertPressureI2D(uint8_t* pressure);
-
-    MPL3115A2_Interrupt identifyInterrupt(MPL3115A2_Interrupt_Pin pin);
-    void dispatchInterruptDataOne();
-    void dispatchInterruptDataTwo();
 
     private:
 
@@ -68,6 +69,9 @@ class MPL3115A2
     void read(MPL3115A2_Address address, uint8_t *data, int length = 1);
     int write(MPL3115A2_Address address, uint8_t *data, int length = 1);
     void dispatchInterruptData(MPL3115A2_Interrupt_Pin pin);
+    MPL3115A2_Interrupt identifyInterrupt(MPL3115A2_Interrupt_Pin pin);
+    void dispatchInterruptDataOne();
+    void dispatchInterruptDataTwo();
 
     void convertPressureD2I(float pressure, uint8_t* out);
     void convertAltitudeD2I(float altitude, uint8_t* out);

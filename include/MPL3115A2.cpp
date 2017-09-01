@@ -1,8 +1,9 @@
 #include "MPL3115A2_enum.h"
 #include "MPL3115A2.h"
 #include "mbed.h"
-#include "rtos.h"
-#include <cmath>
+
+bool MPL3115A2::visAltimeter = false;
+bool MPL3115A2::visFIFO = false;
 
 MPL3115A2::MPL3115A2(MPL3315A2_Mode mode, MPL3315A2_Os_Ratio ratio) : 
 mI2C(I2C_SDA, I2C_SCL), mAddress(0xC0), mInterruptOne(PTD12), mInterruptTwo(PTD10),
@@ -12,6 +13,9 @@ activeInterruptsOne(0), activeInterruptsTwo(0)
     standby();
     uint8_t data = (1<<1) | (ratio<<3) | (mode<<7);
     write(CTRL_REG_1, &data);
+    if(mode==ALTIMETER){visAltimeter = true;}
+    else{visAltimeter = false;}
+    visFIFO = false;
     data = 0b00000111;
     write(EVENT_CONFIG, &data);
     setActive();
@@ -117,22 +121,36 @@ void MPL3115A2::setTimeStep(MPL3115A2_Time_Step timeStep){
 }
 
 bool MPL3115A2::isAltimeter(){
-    uint8_t data;
-    read(CTRL_REG_1, &data, 1);
-    return (data&(1<<7));
+    return visAltimeter;
+}
+bool MPL3115A2::isFIFO(){
+    return visFIFO;
 }
 
 float MPL3115A2::getData(){
-    uint8_t data[3];
-    read(PRESSURE_MSB, data, 3);
+    uint8_t dataLength;
+    if(isFIFO()){dataLength = 5;}
+    else{dataLength = 3;}
+    uint8_t *data = new uint8_t[dataLength];
+    read(PRESSURE_MSB, data, dataLength);
     if (isAltimeter()){return convertAltitudeI2D(data);}
     else{return convertPressureI2D(data);}
 }
 
 float MPL3115A2::getTemperature(){
-    uint8_t data[2];
-    read(TEMPERATURE_MSB, data, 2);
-    return convertTemperatureI2D(data);
+    uint8_t offset;
+    MPL3115A2_Address address;
+    if(isFIFO()){
+        offset=3;
+        address = PRESSURE_MSB;
+    }
+    else{
+        offset = 0;
+        address = TEMPERATURE_MSB; 
+    }
+    uint8_t *data = new uint8_t[2+offset];
+    read(address, data, 2+offset);
+    return convertTemperatureI2D(data+offset);
 }
 
 float MPL3115A2::getDataDelta(){
@@ -218,8 +236,7 @@ void MPL3115A2::setInterrupt(MPL3115A2_Interrupt_Pin pin, MPL3115A2_Interrupt na
     write(CTRL_REG_5, &data);
     switch(name){
         case I_FIFO : {
-//TODO Need to correctly change the execution mode to FIFO, maybe with user provided options.
-//The associated register is called FIFO_SETUP
+            visFIFO = true;
             break;
         }
         case I_NEW_DATA : {
@@ -363,12 +380,28 @@ void MPL3115A2::setInterrupt(MPL3115A2_Interrupt_Pin pin, MPL3115A2_Interrupt na
     }
     setInterruptFunction(function, pin);
     setActive();
-}  
+}
+void MPL3115A2::setInterrupt(MPL3115A2_Interrupt_Pin pin, MPL3115A2_Interrupt name, void (*function)(), bool overflow, uint8_t watermark){
+    if(name==I_FIFO){
+        standby();
+        uint8_t data=0;
+        write(FIFO_SETUP, &data);
+        watermark%=64;
+        data = watermark|1<<(7 - (uint8_t)overflow);
+        write(FIFO_SETUP, &data);
+        setInterrupt(pin, name, function);
+    }
+    //TODO Maybe send a warning if the user tries to setup an interrupt using unrelated parameters.
+}
 
 
 void MPL3115A2::removeInterrupt(MPL3115A2_Interrupt name){
     uint8_t data;
-    //TODO Specific code for FIFO interrupt
+    if(name==I_FIFO){
+        data = 0;
+        write(FIFO_SETUP, &data);
+        visFIFO = false;
+    }
     read(CTRL_REG_4, &data);
     data &= ~name;
     write(CTRL_REG_4, &data);
@@ -413,14 +446,12 @@ void MPL3115A2::interruptWrapper(MPL3115A2_Interrupt_Pin pin){
             case I_ALTITUDE_WINDOW : {
                 if(isAltimeter()){
                     mail->type = TYPE_ALTITUDE;
-                    mail->value = getData();
-                    mailBox.put(mail);
                     }
                 else{
                     mail->type = TYPE_PRESSURE;
-                    mail->value = getData();
-                    mailBox.put(mail);
                     }
+                mail->value = getData();
+                mailBox.put(mail);
                 break;
             }
             case I_TEMPERATURE_CHANGE : ;
@@ -432,7 +463,30 @@ void MPL3115A2::interruptWrapper(MPL3115A2_Interrupt_Pin pin){
                 break;
             }
             case I_FIFO : {
-                //TODO
+                mailBox.free(mail);
+                uint8_t samplesNumber;
+                read(FIFO_STATUS, &samplesNumber);
+                samplesNumber&=0x3F;
+                mail_t **mailArray = new mail_t*[2*samplesNumber];
+                for(int i=0;i<2*samplesNumber;i++){
+                    *(mailArray+i)= mailBox.alloc();
+                }
+                uint8_t *samples = new uint8_t[5*samplesNumber];
+                read(FIFO_DATA, samples, 5*samplesNumber);
+                for(int i=0;i<lround(samplesNumber/2);i++){
+                    if(isAltimeter()){
+                        (*(mailArray+2*i))->type = TYPE_ALTITUDE;
+                        (*(mailArray+2*i))->value = convertAltitudeI2D(samples+5*i);
+                    }
+                    else{
+                        (*(mailArray+2*i))->type = TYPE_PRESSURE;
+                        (*(mailArray+2*i))->value = convertPressureI2D(samples+5*i);
+                    }
+                    (*(mailArray+2*i+1))->type = TYPE_TEMPERATURE;
+                    (*(mailArray+2*i+1))->value = convertTemperatureI2D(samples+5*i+3);
+                    mailBox.put(*(mailArray+2*i));
+                    mailBox.put(*(mailArray+2*i+1));
+                }
                 break;
             }
             case I_NEW_DATA : {
@@ -486,9 +540,11 @@ void MPL3115A2::setMode(MPL3315A2_Mode mode){
     data&=~(1);
     if(mode==ALTIMETER){
         data|=(1<<7);
+        visAltimeter = true;
     }
     else{
         data&=~(1<<7);
+        visAltimeter = false;
     }
     write(CTRL_REG_1, &data);
     setActive();
