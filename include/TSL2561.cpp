@@ -4,13 +4,15 @@
 #include "rtos.h"
 
 
-TSL2561::TSL2561(TSL2561_GAIN gain, TSL2561_OS_RATE rate) : 
-mI2C(I2C_SDA, I2C_SCL), mInterrupt(PTC0), mAddress(0x29 << 1), mGain(gain), mRate(rate)
+TSL2561::TSL2561(TSL2561_Gain gain, TSL2561_Os_Rate rate) : mPower(PTB12),
+mI2C(PTB1, PTB0), mInterrupt(PTC0), mAddress(0x52), mGain(gain), mRate(rate)
 {
+    mPower = 0;
+    mI2C.frequency(400000);
     powerUp();
     uint8_t data = (gain<<4) | rate;
     write(TIMING, &data);
-    mInterrupt.rise(callback(this, &TSL2561::dispatchInterruptData));
+    wait();
 }
 
 bool TSL2561::isActive(){
@@ -19,7 +21,7 @@ bool TSL2561::isActive(){
     return data;
 }
 
-double TSL2561::getLux(){
+float TSL2561::getLux(){
     uint8_t light[4];
     getRawLux(light);
     return formatLux(light);
@@ -44,7 +46,7 @@ void TSL2561::reset(){
     powerUp();
 }
 
-void TSL2561::setGain(TSL2561_GAIN gain){
+void TSL2561::setGain(TSL2561_Gain gain){
     uint8_t data;
     read(TIMING, &data);
     if(gain){data |= (gain<<4);}
@@ -53,13 +55,14 @@ void TSL2561::setGain(TSL2561_GAIN gain){
     mGain = gain;
 }
 
-void TSL2561::setOSRate(TSL2561_OS_RATE rate){
+void TSL2561::setOSRate(TSL2561_Os_Rate rate){
     uint8_t data;
     read(TIMING, &data);
     data &= ~(3);
     data |= rate;
     write(TIMING, &data);
     mRate = rate;
+    wait();
 }
 
 /*void TSL2561::setInterrupt(float lowThreshold, float highThreshold, TSL2561_Interrupt_Length persistence){
@@ -75,9 +78,9 @@ void TSL2561::setInterrupt(int lowPercentage, int highPercentage, TSL2561_Interr
     data[1] = uint8_t(lround(((data[1] / 100) * lowPercentage)));
     write(LOW_THRESHOLD_LSB, data, 4);
     uint8_t dummy = persistance | (1<<4);
-    mThread.start(*function);
+    mInterrupt.rise(callback(this, &TSL2561::dispatchInterruptData));
     write(INTERRUPT, &dummy);
-    mInterruptFunction = function;
+    setInterruptFunction(function);
 }
 
 void TSL2561::removeInterrupt(){
@@ -93,10 +96,27 @@ void TSL2561::clearInterrupt(){
 }
 
 void TSL2561::setDebugInterrupt(void (*function)()){
-    mThread.start(*function);
+    mInterrupt.rise(callback(this, &TSL2561::dispatchInterruptData));
     uint8_t data = 3<<4;
     write(INTERRUPT, &data);
+    setInterruptFunction(function);
+}
+
+void TSL2561::setInterruptFunction(void(*function)()){
     mInterruptFunction = function;
+    mThread.start(callback(this, &TSL2561::interruptWrapper));
+}
+
+void TSL2561::interruptWrapper(){
+    while(1){
+        Thread::signal_wait(0x01);
+        float *mail = mailBox.alloc();
+        *mail = getLux();
+        mailBox.put(mail);
+        clearInterrupt();
+        dispatchWrongSensitivity(*mail);
+        mInterruptFunction();
+    }
 }
 
 
@@ -104,31 +124,33 @@ void TSL2561::getRawLux(uint8_t *rawLight){
     read(WHOLE_DATA_LSB, rawLight, 4);
 }
 
-double TSL2561::formatLux(uint8_t *light){
+float TSL2561::formatLux(uint8_t *light){
     uint16_t allLight = (light[1]<<8) + light[0];
     uint16_t irLight = (light[3]<<8) + light[2];
-    double allLightF, irLightF;
+    float allLightF, irLightF;
     if(mGain){
         allLight<<=4;
         irLight<<=4;
     }
     switch(mRate){
         case OS_14MS :{
-            allLightF = ((double) allLight) * 0.034;
-            irLightF = ((double) irLight) * 0.034;
+            allLightF = ((float) allLight) * 0.034;
+            irLightF = ((float) irLight) * 0.034;
             break;
         }
         case OS_100MS :{
-            allLightF = ((double) allLight) * 0.252;
-            irLightF = ((double ) irLight) * 0.252;
+            allLightF = ((float) allLight) * 0.252;
+            irLightF = ((float ) irLight) * 0.252;
             break;
         }
         case OS_400MS :{
+            allLightF = (float) allLight;
+            irLightF = (float) irLight;
             break;
         }
     }
     if(!allLight){return 0.0f;}
-    double ratio = irLightF/allLightF;
+    float ratio = irLightF/allLightF;
     if(ratio >= 0 && ratio <= 0.5){
         return 0.0304 * allLightF - 0.062 * allLightF * pow(ratio, 1.4);
     }
@@ -147,41 +169,52 @@ double TSL2561::formatLux(uint8_t *light){
 }
 
 void TSL2561::dispatchInterruptData(){
-    double *mail = mailBox.alloc();
-    *mail = getLux();
-    mailBox.put(mail);
-    clearInterrupt();
     mThread.signal_set(0x01);
 }
 
-/* TODO Find how to attach autoAdjustGain to the interrupt,
-as it is a TSL2561::void* instead of void*
-void TSL2561::dispatchWrongSensitivity(){
-    uint8_t data[4];
-    getRawLux(data);
-    //TODO Actually implement it using the OS intervals too.
-    if(data[0] && data[1]){mFix = 0;}
-    else{mFix = 1;}
+void TSL2561::dispatchWrongSensitivity(float lux){
+    if(lux<0.1f){
+        if(mGain == LOW_GAIN){setGain(HIGH_GAIN);}
+        else{if(mRate!=OS_400MS){setOSRate((TSL2561_Os_Rate)(mRate+1));}}
+        return;
+    }
+    if(lux>=20500){
+            if((mRate==OS_14MS)&&(mGain==HIGH_GAIN)){setGain(LOW_GAIN);}
+            else if(mRate!=OS_14MS){setOSRate((TSL2561_Os_Rate)(mRate-1));}
+    }
 }
 
-void TSL2561::autoAdjustGain(){
-    if(mFix){setGain(LOW_GAIN);}
-    else{setGain(HIGH_GAIN);}
-}*/
+void TSL2561::wait(){
+    int waitingTime;
+    switch(mRate){
+        case OS_14MS: {
+            waitingTime = 14;
+            break;
+        }
+        case OS_100MS: {
+            waitingTime = 101;
+            break;
+        }
+        case OS_400MS: {
+            waitingTime = 402;
+            break;
+        }
+    }
+    wait_us(waitingTime);
+}
 
 void TSL2561::read(TSL2561_Address address, uint8_t *data, int length){
-    uint8_t commandByte = 0b10010000 | address;
-    mI2C.write(mAddress, (char*) &commandByte, 1);
+    mI2C.write(mAddress, (char*) &address, 1);
     mI2C.read(mAddress, (char*) data, length);
 }
 
-bool TSL2561::write(TSL2561_Address address, uint8_t *data, int length){
+int TSL2561::write(TSL2561_Address address, uint8_t *data, int length){
     uint8_t *bigData = new uint8_t[length+1];
     *bigData = address;
     for(int i = 0; i < length; i++){
         *(bigData+i+1) = data[i];
     }
-    bool result = mI2C.write(mAddress, (char*) bigData, length + 1);
+    int result = mI2C.write(mAddress, (char*) bigData, length + 1);
     delete[] bigData;
     return result; 
 }

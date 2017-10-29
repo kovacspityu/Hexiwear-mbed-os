@@ -46,8 +46,10 @@ PROJECT := myProject
 ###############################################################################
 # Objects and Paths
 
+OBJECTS += ./include/FXAS21002C.o
 OBJECTS += ./include/MPL3115A2.o
 OBJECTS += ./include/TSL2561.o
+OBJECTS += ./include/HTU21D.o
 OBJECTS += ./mbed-os/drivers/AnalogIn.o
 OBJECTS += ./mbed-os/drivers/BusIn.o
 OBJECTS += ./mbed-os/drivers/BusInOut.o

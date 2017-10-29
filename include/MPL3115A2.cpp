@@ -4,15 +4,20 @@
 
 bool MPL3115A2::visAltimeter = false;
 bool MPL3115A2::visFIFO = false;
+uint8_t MPL3115A2::activeInterruptsOne = 0;
+uint8_t MPL3115A2::activeInterruptsTwo = 0;
 
-MPL3115A2::MPL3115A2(MPL3315A2_Mode mode, MPL3315A2_Os_Ratio ratio) : 
-mI2C(I2C_SDA, I2C_SCL), mAddress(0xC0), mInterruptOne(PTD12), mInterruptTwo(PTD10),
-activeInterruptsOne(0), activeInterruptsTwo(0)
+MPL3115A2::MPL3115A2(MPL3315A2_Mode mode, MPL3315A2_Os_Ratio ratio, MPL3115A2_Time_Step timeStep) : 
+mI2C(I2C_SDA, I2C_SCL), mAddress(0xC0), mInterruptOne(PTD12), mInterruptTwo(PTD10)
 {
     fullReset();
     standby();
     uint8_t data = (1<<1) | (ratio<<3) | (mode<<7);
     write(CTRL_REG_1, &data);
+    read(CTRL_REG_2, &data);
+    data&=0b00110000;
+    data|=timeStep;
+    write(CTRL_REG_2, &data);
     if(mode==ALTIMETER){visAltimeter = true;}
     else{visAltimeter = false;}
     visFIFO = false;
@@ -55,25 +60,8 @@ void MPL3115A2::fullReset(){
 
 bool MPL3115A2::isDataAvailable(){
     uint8_t data;
-    read(STATUS, &data);
+    read(DR_STATUS, &data);
     return data&0b00001110;
-}
-
-int MPL3115A2::write(MPL3115A2_Address address, uint8_t *data, int length){
-    uint8_t *bigData = new uint8_t[length+1];
-    *bigData = address;
-    for(int i = 0; i < length; i++){
-        *(bigData+i+1) = data[i];
-    }
-    bool result = mI2C.write(mAddress, (char*) bigData, length + 1);
-    delete[] bigData;
-    return result; 
-}
-
-void MPL3115A2::read(MPL3115A2_Address address, uint8_t *data, int length){
-    uint8_t addressP[] = {address}; 
-    mI2C.write(mAddress, (char*) addressP, 1, true);
-    mI2C.read(mAddress, (char*) data, length);
 }
 
 uint8_t MPL3115A2::getActiveInterruptsOne(){
@@ -90,10 +78,10 @@ uint8_t MPL3115A2::getStatus(){
     return data;
 }
 
-int MPL3115A2::getOsR(){
+MPL3315A2_Os_Ratio MPL3115A2::getOsR(){
     uint8_t data;
     read(CTRL_REG_1, &data, 1);
-    return (data&0b00111000)>>3;
+    return static_cast<MPL3315A2_Os_Ratio>((data&0b00111000)>>3);
 }
 
 void MPL3115A2::setOsR(MPL3315A2_Os_Ratio ratio){
@@ -106,11 +94,11 @@ void MPL3115A2::setOsR(MPL3315A2_Os_Ratio ratio){
     setActive();
 }
 
-int MPL3115A2::getTimeStep(){
+MPL3115A2_Time_Step MPL3115A2::getTimeStep(){
     uint8_t data;
     read(CTRL_REG_2, &data);
     data&=0b00001111;
-    return data;
+    return static_cast<MPL3115A2_Time_Step>(data);
 }
 
 void MPL3115A2::setTimeStep(MPL3115A2_Time_Step timeStep){
@@ -133,8 +121,10 @@ float MPL3115A2::getData(){
     else{dataLength = 3;}
     uint8_t *data = new uint8_t[dataLength];
     read(PRESSURE_MSB, data, dataLength);
-    if (isAltimeter()){return convertAltitudeI2D(data);}
-    else{return convertPressureI2D(data);}
+    float result;
+    isAltimeter()?(result = convertAltitudeI2D(data)):(result = convertPressureI2D(data));
+    delete[] data;
+    return result;
 }
 
 float MPL3115A2::getTemperature(){
@@ -150,7 +140,9 @@ float MPL3115A2::getTemperature(){
     }
     uint8_t *data = new uint8_t[2+offset];
     read(address, data, 2+offset);
-    return convertTemperatureI2D(data+offset);
+    float result = convertTemperatureI2D(data+offset);
+    delete[] data;
+    return result;
 }
 
 float MPL3115A2::getDataDelta(){
@@ -212,19 +204,26 @@ void MPL3115A2::setSeaLevelPressure(float pressure){
     }
 }
 
-void MPL3115A2::setPressureOffset(uint8_t pressure){
+void MPL3115A2::setPressureOffset(int8_t pressure){
     pressure = ~(pressure*4) + 1;
-    write(PRESSURE_OFFSET, &pressure); 
+//TODO Check if the underlying bits are actually left untouched, as they should.
+    uint8_t upressure = (uint8_t)pressure;
+    write(PRESSURE_OFFSET, &upressure); 
 }
 
-void MPL3115A2::setTemperatureOffset(uint8_t temperature){
-    temperature = (~div(temperature, 16).quot) + 1;
-    write(PRESSURE_OFFSET, &temperature); 
+void MPL3115A2::setTemperatureOffset(float temperature){
+    temperature = fmod(temperature, 8);
+    temperature /=16;
+    int8_t itemperature = (int8_t) lround(temperature);
+//TODO Check if the underlying bits are actually left untouched, as they should.
+    uint8_t utemperature = (uint8_t)itemperature;
+    write(PRESSURE_OFFSET, &utemperature); 
 }
 
-void MPL3115A2::setAltitudeOffset(uint8_t altitude){
-    altitude = (~altitude) + 1;
-    write(PRESSURE_OFFSET, &altitude); 
+void MPL3115A2::setAltitudeOffset(int8_t altitude){
+//TODO Check if the underlying bits are actually left untouched, as they should.
+    uint8_t ualtitude = (uint8_t)altitude;
+    write(PRESSURE_OFFSET, &ualtitude); 
 }
 
 void MPL3115A2::setInterrupt(MPL3115A2_Interrupt_Pin pin, MPL3115A2_Interrupt name, void (*function)(), float target){
@@ -426,7 +425,7 @@ void MPL3115A2::setInterruptFunction(void (*function)(), MPL3115A2_Interrupt_Pin
     }
     else{
         MPL3115A2InterruptTwo = function;
-        threadTwo.start(*function);
+        threadTwo.start(callback(this, &MPL3115A2::interruptWrapperTwo));
     }
 }
 
@@ -440,6 +439,7 @@ void MPL3115A2::interruptWrapper(MPL3115A2_Interrupt_Pin pin){
     while(1){
         Thread::signal_wait(0x01);
         mail_t *mail = mailBox.alloc();
+        uint8_t data = getStatus();
         switch(identifyInterrupt(pin)){
             case I_ALTITUDE_CHANGE : ;
             case I_ALTITUDE_THRESHOLD : ;
@@ -473,7 +473,7 @@ void MPL3115A2::interruptWrapper(MPL3115A2_Interrupt_Pin pin){
                 }
                 uint8_t *samples = new uint8_t[5*samplesNumber];
                 read(FIFO_DATA, samples, 5*samplesNumber);
-                for(int i=0;i<lround(samplesNumber/2);i++){
+                for(int i=0;i<samplesNumber-1;i++){
                     if(isAltimeter()){
                         (*(mailArray+2*i))->type = TYPE_ALTITUDE;
                         (*(mailArray+2*i))->value = convertAltitudeI2D(samples+5*i);
@@ -487,10 +487,10 @@ void MPL3115A2::interruptWrapper(MPL3115A2_Interrupt_Pin pin){
                     mailBox.put(*(mailArray+2*i));
                     mailBox.put(*(mailArray+2*i+1));
                 }
+                delete[] samples;
                 break;
             }
             case I_NEW_DATA : {
-                uint8_t data = getStatus();
                 switch(data&0xE){
                     case 0xE: {
                         mail_t *mail2 = mailBox.alloc();
@@ -520,8 +520,8 @@ void MPL3115A2::interruptWrapper(MPL3115A2_Interrupt_Pin pin){
                 break;
             }
         }
-        getStatus();
-        MPL3115A2InterruptOne();
+        if(pin){MPL3115A2InterruptOne();}
+        else{MPL3115A2InterruptTwo();}
     }
 }
 
@@ -602,6 +602,23 @@ MPL3115A2_Interrupt MPL3115A2::identifyInterrupt(MPL3115A2_Interrupt_Pin pin){
 void MPL3115A2::dispatchInterruptData(MPL3115A2_Interrupt_Pin pin){
     if(pin){threadOne.signal_set(0x01);}
     else{threadTwo.signal_set(0x01);}
+}
+
+int MPL3115A2::write(MPL3115A2_Address address, uint8_t *data, int length){
+    uint8_t *bigData = new uint8_t[length+1];
+    *bigData = address;
+    for(int i = 0; i < length; i++){
+        *(bigData+i+1) = data[i];
+    }
+    int result = mI2C.write(mAddress, (char*) bigData, length + 1);
+    delete[] bigData;
+    return result; 
+}
+
+void MPL3115A2::read(MPL3115A2_Address address, uint8_t *data, int length){
+    uint8_t addressP[] = {address}; 
+    mI2C.write(mAddress, (char*) addressP, 1, true);
+    mI2C.read(mAddress, (char*) data, length);
 }
 
 
