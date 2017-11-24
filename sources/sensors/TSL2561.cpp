@@ -65,7 +65,8 @@ void TSL2561::setOSRate(TSL2561_Os_Rate rate){
     wait();
 }
 
-/*void TSL2561::setInterrupt(float lowThreshold, float highThreshold, TSL2561_Interrupt_Length persistence){
+/* TODO
+void TSL2561::setInterrupt(float lowThreshold, float highThreshold, TSL2561_Interrupt_Length persistence){
 
 }*/
 
