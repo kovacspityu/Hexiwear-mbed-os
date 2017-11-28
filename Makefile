@@ -56,6 +56,7 @@ OBJECTS += ./mbed-os/features/unsupported/dsp/cmsis_dsp/TransformFunctions/arm_r
 OBJECTS += ./mbed-os/features/unsupported/dsp/cmsis_dsp/TransformFunctions/arm_cfft_f32.o
 OBJECTS += ./mbed-os/features/unsupported/dsp/cmsis_dsp/ComplexMathFunctions/arm_cmplx_mag_squared_f32.o
 OBJECTS += ./mbed-os/features/unsupported/dsp/cmsis_dsp/StatisticsFunctions/arm_max_f32.o
+OBJECTS += ./mbed-os/features/unsupported/dsp/cmsis_dsp/StatisticsFunctions/arm_var_f32.o
 OBJECTS += ./mbed-os/features/unsupported/dsp/cmsis_dsp/TransformFunctions/arm_cfft_radix8_f32.o
 OBJECTS += ./mbed-os/features/unsupported/dsp/cmsis_dsp/TransformFunctions/arm_bitreversal.o
 OBJECTS += ./mbed-os/features/unsupported/dsp/cmsis_dsp/TransformFunctions/arm_bitreversal2.o

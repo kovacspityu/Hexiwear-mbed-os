@@ -27,6 +27,11 @@ MAX30101_Led slot3 = MAX_LED_NONE, MAX30101_Led slot4 = MAX_LED_NONE);
             float temperature;
         } mail_t;
 
+        typedef struct{
+            uint8_t hr;
+            float weight;
+        } uint8AndFloat;
+
         Mail<mail_t, 32> mailBox;
 
         void standby();
@@ -34,7 +39,7 @@ MAX30101_Led slot3 = MAX_LED_NONE, MAX30101_Led slot4 = MAX_LED_NONE);
         void reset();
         void powerDown();
 
-        uint8_t getHR(uint32_t* values, uint16_t length);
+        uint8AndFloat getHR(uint32_t* values, uint16_t length);
         
         mail_t getSampleTemplate();
         mail_t* getData(uint8_t numberOfSamples = 0);
@@ -55,6 +60,8 @@ MAX30101_Led slot3 = MAX_LED_NONE, MAX30101_Led slot4 = MAX_LED_NONE);
 
         void setInterrupt(MAX30101_Interrupt interrupt, void (*function)(), uint8_t threshold = 0, bool fifoRollover = false);
         void removeInterrupt(MAX30101_Interrupt interrupt);
+
+        uint8_t combineLeds(uint8AndFloat* leds, uint8_t length);
 
 
     private:

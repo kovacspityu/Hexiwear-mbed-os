@@ -4,17 +4,89 @@
 #include "HTU21D.h"
 #include "FXAS21002C.h"
 #include "MAX30101.h"
+#include <queue>
+#include <string>
 
 #define FFT_SAMPLE_SIZE 512
 
+Ticker ticker;
+Thread pulseUpdaterThread, dumpThread;
+EventQueue equeue;
 Serial pc(USBTX, USBRX);
 Mutex stdio_mutex;
 MPL3115A2 sensorM(ALTIMETER);
 TSL2561 sensorL;
 HTU21D sensorH;
 MAX30101 sensorHR(MAX_MULTI_MODE);
-uint32_t *bufferHR = new uint32_t[FFT_SAMPLE_SIZE];
+InterruptIn button1(PTA12);
+InterruptIn button2(PTA13);
+InterruptIn button3(PTA15);
+DigitalOut redLed(LED1, 1);
+DigitalOut greenLed(LED2, 1);
+DigitalOut blueLed(LED3, 1);
+uint32_t *bufferHRRed = new uint32_t[FFT_SAMPLE_SIZE];
+uint32_t *bufferHRGreen = new uint32_t[FFT_SAMPLE_SIZE];
+uint32_t *bufferHRIR = new uint32_t[FFT_SAMPLE_SIZE];
+MAX30101::uint8AndFloat hrRed, hrGreen, hrIR;
 uint32_t sampleNumber = 0;
+std::queue<MAX30101::uint8AndFloat> logQueue;
+uint8_t pulseAmplitude = 1;
+
+//void dummyDumper(){
+//    dumperThread.signal_set(0x02);
+//}
+
+void dummyPulseUpdater(){
+    pulseUpdaterThread.signal_set(0x03);
+}
+
+void logDumper(){
+    //while(1){
+    //    Thread::signal_wait(0x02);
+        //while(pc.readable()){pc.getc();}
+        stdio_mutex.lock();
+        pc.printf("\n");
+        int i=0;
+        while(logQueue.size()){
+            MAX30101::uint8AndFloat dummy = logQueue.front();
+            pc.printf("%u\t\t", dummy.hr);
+            if(dummy.weight>=0){
+            pc.printf("%1.2e\t", dummy.weight);
+            }
+            else{pc.printf("\t");}
+            logQueue.pop();
+            i++;
+            if(i%4==0){
+                pc.printf("\n");
+                i = 0;
+            }
+        }
+        pc.printf("\n");
+        stdio_mutex.unlock();
+    //}
+}
+
+void pulseAmplitudeUpdater(){
+    while(1){
+        Thread::signal_wait(0x03);    
+        pulseAmplitude++;
+        sensorHR.setPulseAmplitude(pulseAmplitude, pulseAmplitude, pulseAmplitude, pulseAmplitude);
+        if(pulseAmplitude==0xFF){
+            greenLed=0;
+            pulseAmplitude=0;
+        }
+    }
+}
+
+void logUpdater(){
+    MAX30101::uint8AndFloat dummy;
+    dummy.hr=pulseAmplitude;
+    dummy.weight=-1;
+    logQueue.push(dummy);
+    logQueue.push(hrRed);
+    logQueue.push(hrGreen);
+    logQueue.push(hrIR);
+}
 
 void interruptDummyM(){
     pc.printf("Currently in context %p\n", Thread::gettid());
@@ -59,22 +131,18 @@ void interruptDummyHR(){
         osEvent evt = sensorHR.mailBox.get(10);
         if (evt.status == osEventMail){
             MAX30101::mail_t *mail = (MAX30101::mail_t*)evt.value.p;
-            stdio_mutex.lock();
-            for(uint i=0;i<mail->length && i<FFT_SAMPLE_SIZE-sampleNumber;i++){
-                //pc.printf("\nPeaks = %u, number of samples collected thus far = %u", mail->ledSamples[i].value, sampleNumber+i+1);
-                bufferHR[sampleNumber+i] = mail->ledSamples[i].value;
+            bufferHRRed[sampleNumber] = mail->ledSamples[0].value;
+            bufferHRGreen[sampleNumber] = mail->ledSamples[1].value;
+            bufferHRIR[sampleNumber] = mail->ledSamples[2].value;
+            sampleNumber++;
+            if(sampleNumber==FFT_SAMPLE_SIZE){
+                hrRed = sensorHR.getHR(bufferHRRed, FFT_SAMPLE_SIZE);
+                hrGreen = sensorHR.getHR(bufferHRGreen, FFT_SAMPLE_SIZE);
+                hrIR = sensorHR.getHR(bufferHRIR, FFT_SAMPLE_SIZE);
+                pc.printf("%u\t\t\t%u\t\t%1.2e\t%u\t\t%1.2e\t%u\t\t%1.2e\n", pulseAmplitude, hrRed.hr, hrRed.weight, hrGreen.hr, hrGreen.weight, hrIR.hr, hrIR.weight);
+                sampleNumber = 0;
+                logUpdater();
             }
-            sampleNumber+=mail->length;
-            if(sampleNumber>=FFT_SAMPLE_SIZE){
-                uint8_t rawHR = sensorHR.getHR(bufferHR, FFT_SAMPLE_SIZE);
-                pc.printf("\nHeart rate = %u", rawHR);
-                for(uint i= sampleNumber-FFT_SAMPLE_SIZE;i<mail->length;i++){
-                    //pc.printf("\nPeaks = %u, number of samples collected thus far = %u", mail->ledSamples[i].value, i-FFT_SAMPLE_SIZE+sampleNumber+1);
-                    bufferHR[i+FFT_SAMPLE_SIZE-sampleNumber] = mail->ledSamples[i].value;
-                }
-                sampleNumber = mail->length + sampleNumber - FFT_SAMPLE_SIZE;//TODO sampleNumber needs to be equal to the number of samples added during the second for cycle, not 0
-            }
-            stdio_mutex.unlock();
             delete[] mail->ledSamples;
             mail->ledSamples = 0;
             sensorHR.mailBox.free(mail);
@@ -88,12 +156,20 @@ void interruptDummyHR(){
 
 int main(){
     pc.baud(19200);
+    dumpThread.start(callback(&equeue, &EventQueue::dispatch_forever));
+    button1.rise(equeue.event(logDumper));
+    button2.rise(equeue.event(logDumper));
+    button3.rise(equeue.event(logDumper));
+    //pc.attach(equeue.event(logDumper), Serial::RxIrq);
+    ticker.attach(dummyPulseUpdater, 15.0);
+    //dumperThread.start(logDumper);
+    pulseUpdaterThread.start(pulseAmplitudeUpdater);
     //sensorM.setInterrupt(PIN_ONE, I_FIFO, &interruptDummyM, true);
     //sensorL.setInterrupt(80, 120, ONE_CYCLE, &interruptDummyL);
-    sensorHR.setPulseAmplitude(0xCF, 0, 0xCF, 0);
-    sensorHR.setProximityDelay(0);
-    sensorHR.setMultiLedTiming(MAX_LED_RED, MAX_LED_GREEN, MAX_LED_NONE, MAX_LED_NONE);
+    sensorHR.setPulseAmplitude(0x01, 0x01, 0x01, 0x01);
+    sensorHR.setMultiLedTiming(MAX_LED_RED, MAX_LED_GREEN, MAX_LED_IR, MAX_LED_NONE);
     sensorHR.setInterrupt(I_FIFO_FULL_MAX, &interruptDummyHR, 0x0F);
+    pc.printf("Pulse Amplitude\t\tRed HR\t\tRed Weight\tGreen HR\tGreen Weight\tInfrared HR\tIR Weight\n");
     //float barometer;
     //float temperature;
     //float light;

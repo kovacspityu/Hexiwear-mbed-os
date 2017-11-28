@@ -60,7 +60,7 @@ void MAX30101::powerDown(){
 }
 
 
-uint8_t MAX30101::getHR(uint32_t *values, uint16_t length){
+MAX30101::uint8AndFloat MAX30101::getHR(uint32_t *values, uint16_t length){
     float32_t *fValues = new float32_t[length];
     for(uint i=0;i<length;i++){
         fValues[i] = values[i];
@@ -72,15 +72,21 @@ uint8_t MAX30101::getHR(uint32_t *values, uint16_t length){
     arm_cmplx_mag_squared_f32(frequencies + lround(((float) (MIN_HEART_FREQUENCY * length))/(60 * 50 * 1<<mSampleRate)),
                     fValues, lround((( (float) (MAX_HEART_FREQUENCY - MIN_HEART_FREQUENCY)) * length)/(60 * 50 * 1<<mSampleRate)));
     // Only selecting the frequencies that have physical meaning, as defined in the header.
-    uint32_t result = 0;
+    uint32_t index = 0;
     delete[] frequencies;
     frequencies=0;
-    float32_t dummy;
-    arm_max_f32(fValues, length, &dummy, &result);
+    float32_t variance;
+    arm_max_f32(fValues, length, &variance, &index);
+    arm_var_f32(fValues, lround((( (float) (MAX_HEART_FREQUENCY - MIN_HEART_FREQUENCY)) * length)/(60 * 50 * 1<<mSampleRate)), &variance);
+    uint8AndFloat result;
+    result.hr = ((uint8_t) (60 * (float)(index) * (50*1<<mSampleRate) / length)) + MIN_HEART_FREQUENCY;
+    // 60 is the number of seconds in a minute, length is needed because the FFTs are not normalized
+    result.weight = length * abs(fValues[index] - index>MIN_HEART_FREQUENCY ? fValues[index-1] : fValues[index+1])/variance; 
+    // As for the hr, the variance needs to be scaled by a factor of length, and divided by the derivative of fValues due to uncertainty propagation.
+    // We should also multiply it by the same factor as hr, but we will only use it as a weight, so that would be a common factor to all terms.
     delete[] fValues;
     fValues=0;
-    return ((uint8_t) (60 * (float)(result) * (50*1<<mSampleRate) / length)) + MIN_HEART_FREQUENCY; 
-    // 60 is the number of seconds in a minute, length is needed because the FFTs are not normalized
+    return result;
 }
 
 
@@ -271,6 +277,16 @@ void MAX30101::removeInterrupt(MAX30101_Interrupt interrupt){
     }
     delete[] data;
     data=0;
+}
+
+uint8_t MAX30101::combineLeds(uint8AndFloat* leds, uint8_t length){
+    float meanSum = 0;
+    float weightSum = 0;
+    for(int i=0; i<length; i++){
+        meanSum+=leds[i].hr*leds[i].weight;
+        weightSum+=leds[i].weight;
+    }
+    return roundl(meanSum/weightSum);
 }
 
 
