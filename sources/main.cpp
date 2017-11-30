@@ -14,16 +14,14 @@ Thread pulseUpdaterThread, dumpThread;
 EventQueue equeue;
 Serial pc(USBTX, USBRX);
 Mutex stdio_mutex;
-MPL3115A2 sensorM(ALTIMETER);
+MPL3115A2 sensorM(MPL_ALTIMETER);
 TSL2561 sensorL;
 HTU21D sensorH;
 MAX30101 sensorHR(MAX_MULTI_MODE);
-InterruptIn button1(PTA12);
-InterruptIn button2(PTA13);
-InterruptIn button3(PTA15);
-DigitalOut redLed(LED1, 1);
-DigitalOut greenLed(LED2, 1);
-DigitalOut blueLed(LED3, 1);
+InterruptIn button1(BUTTON1);
+DigitalOut redLed(LED_RED, 1);
+DigitalOut greenLed(LED_GREEN, 1);
+DigitalOut blueLed(LED_BLUE, 1);
 uint32_t *bufferHRRed = new uint32_t[FFT_SAMPLE_SIZE];
 uint32_t *bufferHRGreen = new uint32_t[FFT_SAMPLE_SIZE];
 uint32_t *bufferHRIR = new uint32_t[FFT_SAMPLE_SIZE];
@@ -96,15 +94,15 @@ void interruptDummyM(){
             MPL3115A2::mail_t *mail = (MPL3115A2::mail_t*)evt.value.p;
             stdio_mutex.lock();
             switch(mail->type){
-                case TYPE_ALTITUDE : {
+                case MPL_TYPE_ALTITUDE : {
                     pc.printf("Current altitude = %f m\n", mail->value);
                     break;
                 }
-                case TYPE_PRESSURE : {
+                case MPL_TYPE_PRESSURE : {
                     pc.printf("Current pressure = %f Pa\n", mail->value);
                     break;
                 }
-                case TYPE_TEMPERATURE: {
+                case MPL_TYPE_TEMPERATURE: {
                     pc.printf("Current temperature = %f°C\n", mail->value);
                     break;
                 }
@@ -158,14 +156,12 @@ int main(){
     pc.baud(19200);
     dumpThread.start(callback(&equeue, &EventQueue::dispatch_forever));
     button1.rise(equeue.event(logDumper));
-    button2.rise(equeue.event(logDumper));
-    button3.rise(equeue.event(logDumper));
     //pc.attach(equeue.event(logDumper), Serial::RxIrq);
     ticker.attach(dummyPulseUpdater, 15.0);
     //dumperThread.start(logDumper);
     pulseUpdaterThread.start(pulseAmplitudeUpdater);
-    //sensorM.setInterrupt(PIN_ONE, I_FIFO, &interruptDummyM, true);
-    //sensorL.setInterrupt(80, 120, ONE_CYCLE, &interruptDummyL);
+    //sensorM.setInterrupt(MPL_PIN_ONE, I_FIFO_MPL, &interruptDummyM, true);
+    //sensorL.setInterrupt(80, 120, TSL_ONE_CYCLE, &interruptDummyL);
     sensorHR.setPulseAmplitude(0x01, 0x01, 0x01, 0x01);
     sensorHR.setMultiLedTiming(MAX_LED_RED, MAX_LED_GREEN, MAX_LED_IR, MAX_LED_NONE);
     sensorHR.setInterrupt(I_FIFO_FULL_MAX, &interruptDummyHR, 0x0F);
@@ -191,7 +187,7 @@ int main(){
         uint32_t sampleNumber = (32 + fifoWrite - fifoRead) % 32;
         delete[] data;
         /*
-        sensorM.setMode(ALTIMETER); 
+        sensorM.setMode(MPL_ALTIMETER); 
         wait(3);
         if(sensorM.isDataAvailable()){
             barometer = sensorM.getData();

@@ -13,7 +13,7 @@ class MPL3115A2
     @param ratio The ratio the sensor starts in, defaults to OS_512_MS
     @param timeStep The time step the sensor starts in, defaults to TS_1S
     */
-    MPL3115A2(MPL3315A2_Mode mode = BAROMETER, MPL3315A2_Os_Ratio ratio = OS_512_MS, MPL3115A2_Time_Step timeStep = TS_1S);
+    MPL3115A2(MPL3315A2_Mode mode = MPL_BAROMETER, MPL3315A2_Os_Ratio ratio = MPL_OS_512_MS, MPL3115A2_Time_Step timeStep = MPL_TS_1S);
 
     /*! @struct mail_t Contains a single sensor measurement.
     */
@@ -25,14 +25,6 @@ class MPL3115A2
     This is where the class will store all measurements linked with an Interrupt.*/
     Mail<mail_t, 48> mailBox;
     
-    /*! @var    visAltemeter Stores the mode of the MPL3115A2 sensor, shared among all class instances */
-    static bool visAltimeter;
-    /*! @var    visFifo Stores whether the MPL3115A2 sensor is in FIFO mode, shared among all class instances*/
-    static bool visFIFO;
-    /*! @var    activeInterruptsOne, activeInterruptsTwo store the interrupts 
-                that have been configured on each pin of the MPL3115A2 sensor,
-                shared among all class instances.*/
-    static uint8_t activeInterruptsOne, activeInterruptsTwo;
     
     /*! Activates the MPL3115A2 sensor*/
     void setActive();
@@ -154,6 +146,14 @@ class MPL3115A2
     Thread threadOne;
     Thread threadTwo;
     InterruptIn mInterruptOne, mInterruptTwo;
+    /*! @var    visAltemeter Stores the mode of the MPL3115A2 sensor, shared among all class instances */
+    static bool visAltimeter;
+    /*! @var    visFifo Stores whether the MPL3115A2 sensor is in FIFO mode, shared among all class instances*/
+    static bool visFIFO;
+    /*! @var    activeInterruptsOne, activeInterruptsTwo store the interrupts 
+                that have been configured on each pin of the MPL3115A2 sensor,
+                shared among all class instances.*/
+    static uint8_t activeInterruptsOne, activeInterruptsTwo;
     void interruptWrapper(MPL3115A2_Interrupt_Pin pin);
     void interruptWrapperOne();
     void interruptWrapperTwo();

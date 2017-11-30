@@ -2,28 +2,28 @@
 #define _FXAS21002C_enum_
 
 enum FXAS21002C_Address{
-    FXA_STATUS              = 0x00,   //Aliases either DR_STATUS or FIFO_STATUS depending on if in FIFO mode.
-    X_ANGLE_MSB             = 0x01,
-    X_ANGLE_LSB             = 0x02,
-    Y_ANGLE_MSB             = 0x03,
-    Y_ANGLE_LSB             = 0x04,
-    Z_ANGLE_MSB             = 0x05,
-    Z_ANGLE_LSB             = 0x06,
-    FXA_DR_STATUS           = 0x07,
-    FXA_FIFO_STATUS         = 0x08,
-    FXA_FIFO_SETUP          = 0x09,
-    FXA_FIFO_EVENT          = 0x0A,
-    FXA_INTERRUPT_STATUS    = 0x0B,
-    FXA_WHO_AM_I            = 0x0C,
-    FXA_CTRL_REG_0          = 0x0D,
-    RT_INT_CONFIG           = 0x0E,
-    THRESHOLD_STATUS        = 0x0F,
-    THRESHOLD_CONFIG        = 0x10,
-    THRESHOLD_COUNTER       = 0x11,
-    FXA_TEMPERATURE         = 0x12,
-    FXA_CTRL_REG_1          = 0x13,
-    FXA_CTRL_REG_2          = 0x14,
-    FXA_CTRL_REG_3          = 0x15
+    FXA_STATUS                  = 0x00,   //Aliases either DR_STATUS or FIFO_STATUS depending on if in FIFO mode.
+    FXA_X_ANGLE_MSB             = 0x01,
+    FXA_X_ANGLE_LSB             = 0x02,
+    FXA_Y_ANGLE_MSB             = 0x03,
+    FXA_Y_ANGLE_LSB             = 0x04,
+    FXA_Z_ANGLE_MSB             = 0x05,
+    FXA_Z_ANGLE_LSB             = 0x06,
+    FXA_DR_STATUS               = 0x07,
+    FXA_FIFO_STATUS             = 0x08,
+    FXA_FIFO_SETUP              = 0x09,
+    FXA_FIFO_EVENT              = 0x0A,
+    FXA_INTERRUPT_STATUS        = 0x0B,
+    FXA_WHO_AM_I                = 0x0C,
+    FXA_CTRL_REG_0              = 0x0D,
+    FXA_RT_INT_CONFIG           = 0x0E,
+    FXA_THRESHOLD_STATUS        = 0x0F,
+    FXA_THRESHOLD_CONFIG        = 0x10,
+    FXA_THRESHOLD_COUNTER       = 0x11,
+    FXA_TEMPERATURE             = 0x12,
+    FXA_CTRL_REG_1              = 0x13,
+    FXA_CTRL_REG_2              = 0x14,
+    FXA_CTRL_REG_3              = 0x15
 };
 
 enum FXAS21002C_Axis{

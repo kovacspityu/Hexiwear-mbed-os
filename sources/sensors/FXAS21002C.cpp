@@ -166,7 +166,7 @@ int8_t *FXAS21002C::getTemperature(){
 
 int16_t *FXAS21002C::getRawData(){
     uint8_t *data = new uint8_t[6];
-    read(X_ANGLE_MSB, data, 6);
+    read(FXA_X_ANGLE_MSB, data, 6);
     int16_t *result = new int16_t[3];
     for(int i=0; i<3;i++){
         result[i] = (int16_t) (((uint16_t)(data[2*i])<<8) + data[2*i+1]);
@@ -190,14 +190,14 @@ void FXAS21002C::setInterrupt(FXAS21002C_Interrupt_Pin pin, FXAS21002C_Interrupt
         }
         case I_THRESHOLD_FXA: {
             uint8_t data = (count<256?count:255); 
-            write(THRESHOLD_COUNTER, &data);
+            write(FXA_THRESHOLD_COUNTER, &data);
             if(count>127){count=127;}
             data = (count/256)-1;
             data|=resetCount<<7;
-            write(THRESHOLD_CONFIG, &data);
+            write(FXA_THRESHOLD_CONFIG, &data);
             data=7;
             //TODO This register allows to select only certain axes for the interrupt, and to "latch" it.
-            write(RT_INT_CONFIG, &data);
+            write(FXA_RT_INT_CONFIG, &data);
             break;
         }
     }
@@ -278,7 +278,7 @@ void FXAS21002C::interruptWrapper(FXAS21002C_Interrupt_Pin pin){
                     *(mailArray+i)= mailBox.alloc();
                 }
                 uint8_t *samples = new uint8_t[6*samplesNumber];
-                read(X_ANGLE_MSB, samples, 6*samplesNumber);
+                read(FXA_X_ANGLE_MSB, samples, 6*samplesNumber);
                 for(int i=0;i<3*samplesNumber;i++){
                     (*(mailArray+i))->axis = (FXAS21002C_Axis) (i%3);
                     (*(mailArray+i))->value = convertToAngle(*samples+2*i);

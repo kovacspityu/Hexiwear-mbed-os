@@ -6,7 +6,7 @@
 
 class TSL2561{
     public:
-        TSL2561(TSL2561_Gain gain = LOW_GAIN, TSL2561_Os_Rate rate = OS_400MS);
+        TSL2561(TSL2561_Gain gain = TSL_LOW_GAIN, TSL2561_Os_Rate rate = TSL_OS_400MS);
         
         Mail<float, 16> mailBox;
 

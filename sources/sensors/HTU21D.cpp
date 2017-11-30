@@ -11,7 +11,7 @@ mAddress(0x80), mResolution(resolution) {
 }
 
 float HTU21D::waitForTemperature(){
-    uint8_t dummy[1] = {WAIT_FOR_TEMPERATURE};
+    uint8_t dummy[1] = {HTU_WAIT_FOR_TEMPERATURE};
     uint8_t *data = new uint8_t[3];
     mI2C.write(mAddress, (char*)dummy, 1, true);
     mI2C.read(mAddress, (char*)data, 3);
@@ -23,7 +23,7 @@ float HTU21D::waitForTemperature(){
 }
 
 float HTU21D::waitForHumidity(){
-    uint8_t dummy[1] = {WAIT_FOR_HUMIDITY};
+    uint8_t dummy[1] = {HTU_WAIT_FOR_HUMIDITY};
     uint8_t *data = new uint8_t[3];
     mI2C.write(mAddress, (char*)dummy, 1, true);
     mI2C.read(mAddress, (char*)data, 3);
@@ -35,7 +35,7 @@ float HTU21D::waitForHumidity(){
  }
 
 float HTU21D::getTemperature(){
-    uint8_t dummy[1] = {MEASURE_TEMPERATURE};
+    uint8_t dummy[1] = {HTU_MEASURE_TEMPERATURE};
     uint8_t *data = new uint8_t[3];
     mI2C.write(mAddress, (char*)dummy, 1);
     wait_ms(50);
@@ -47,7 +47,7 @@ float HTU21D::getTemperature(){
 }
 
 float HTU21D::getHumidity(){
-    uint8_t dummy[1] = {MEASURE_HUMIDITY};
+    uint8_t dummy[1] = {HTU_MEASURE_HUMIDITY};
     uint8_t *data = new uint8_t[3];
     mI2C.write(mAddress, (char*)dummy, 1);
     wait_ms(16);
@@ -59,7 +59,7 @@ float HTU21D::getHumidity(){
 }
 
 void HTU21D::setResolution(HTU21D_Resolution resolution){
-    uint8_t dummy[1] = {HTU21D_READ};
+    uint8_t dummy[1] = {HTU_READ};
     uint8_t *data = new uint8_t[2];
     mI2C.write(mAddress, (char*)dummy, 1, true);
     mI2C.read(mAddress, (char*)data, 2);
@@ -72,7 +72,7 @@ void HTU21D::setResolution(HTU21D_Resolution resolution){
 }
 
 void HTU21D::reset(){
-    uint8_t dummy[1] = {HTU21D_RESET};
+    uint8_t dummy[1] = {HTU_RESET};
     mI2C.write(mAddress, (char*)dummy, 1);
     wait_ms(15);
 }
