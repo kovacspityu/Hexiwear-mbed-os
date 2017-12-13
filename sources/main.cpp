@@ -4,44 +4,37 @@
 #include "HTU21D.h"
 #include "FXAS21002C.h"
 #include "MAX30101.h"
+#include "SSD1351.h"
 #include <queue>
 #include <string>
 
 #define FFT_SAMPLE_SIZE 512
 
-Ticker ticker;
-Thread pulseUpdaterThread, dumpThread;
-EventQueue equeue;
+//Ticker ticker;
+//Thread pulseUpdaterThread, dumpThread;
+//EventQueue dumpQueue, pulseUpdaterQueue;
 Serial pc(USBTX, USBRX);
-Mutex stdio_mutex;
-MPL3115A2 sensorM(MPL_ALTIMETER);
-TSL2561 sensorL;
-HTU21D sensorH;
-MAX30101 sensorHR(MAX_MULTI_MODE);
-InterruptIn button1(BUTTON1);
-DigitalOut redLed(LED_RED, 1);
-DigitalOut greenLed(LED_GREEN, 1);
-DigitalOut blueLed(LED_BLUE, 1);
-uint32_t *bufferHRRed = new uint32_t[FFT_SAMPLE_SIZE];
-uint32_t *bufferHRGreen = new uint32_t[FFT_SAMPLE_SIZE];
-uint32_t *bufferHRIR = new uint32_t[FFT_SAMPLE_SIZE];
-MAX30101::uint8AndFloat hrRed, hrGreen, hrIR;
-uint32_t sampleNumber = 0;
-std::queue<MAX30101::uint8AndFloat> logQueue;
-uint8_t pulseAmplitude = 1;
+//Mutex stdio_mutex;
+//MPL3115A2 sensorM(MPL_ALTIMETER);
+//TSL2561 sensorL;
+//HTU21D sensorH;
+//MAX30101 sensorHR(MAX_MULTI_MODE);
+SSD1351 screen;
+//InterruptIn button1(BUTTON1);
+//DigitalOut redLed(LED_RED, 1);
+//DigitalOut greenLed(LED_GREEN, 1);
+//DigitalOut blueLed(LED_BLUE, 1);
+//uint32_t *bufferHRRed = new uint32_t[FFT_SAMPLE_SIZE];
+//uint32_t *bufferHRGreen = new uint32_t[FFT_SAMPLE_SIZE];
+//uint32_t *bufferHRIR = new uint32_t[FFT_SAMPLE_SIZE];
+//MAX30101::uint8AndFloat hrRed, hrGreen, hrIR;
+//uint32_t sampleNumber = 0;
+//std::queue<MAX30101::uint8AndFloat> logQueue;
+//uint8_t pulseAmplitude = 1;
 
-//void dummyDumper(){
-//    dumperThread.signal_set(0x02);
-//}
 
-void dummyPulseUpdater(){
-    pulseUpdaterThread.signal_set(0x03);
-}
 
-void logDumper(){
-    //while(1){
-    //    Thread::signal_wait(0x02);
-        //while(pc.readable()){pc.getc();}
+/*void logDumper(){
         stdio_mutex.lock();
         pc.printf("\n");
         int i=0;
@@ -61,12 +54,10 @@ void logDumper(){
         }
         pc.printf("\n");
         stdio_mutex.unlock();
-    //}
 }
 
 void pulseAmplitudeUpdater(){
-    while(1){
-        Thread::signal_wait(0x03);    
+    while(1){  
         pulseAmplitude++;
         sensorHR.setPulseAmplitude(pulseAmplitude, pulseAmplitude, pulseAmplitude, pulseAmplitude);
         if(pulseAmplitude==0xFF){
@@ -148,29 +139,33 @@ void interruptDummyHR(){
         else{return;}
     }
 }
-
+*/
 
 
 
 int main(){
     pc.baud(19200);
-    dumpThread.start(callback(&equeue, &EventQueue::dispatch_forever));
-    button1.rise(equeue.event(logDumper));
-    //pc.attach(equeue.event(logDumper), Serial::RxIrq);
-    ticker.attach(dummyPulseUpdater, 15.0);
-    //dumperThread.start(logDumper);
-    pulseUpdaterThread.start(pulseAmplitudeUpdater);
+    //dumpThread.start(callback(&dumpQueue, &EventQueue::dispatch_forever));
+    //pulseUpdaterThread.start(callback(&pulseUpdaterQueue, &EventQueue::dispatch_forever));
+    //button1.rise(dumpQueue.event(logDumper));  //TODO It will need to be attached to the touch buttons of the HexiWear, not of the Docking Station.
+    //ticker.attach(pulseUpdaterQueue.event(pulseAmplitudeUpdater), 15.0);
     //sensorM.setInterrupt(MPL_PIN_ONE, I_FIFO_MPL, &interruptDummyM, true);
     //sensorL.setInterrupt(80, 120, TSL_ONE_CYCLE, &interruptDummyL);
-    sensorHR.setPulseAmplitude(0x01, 0x01, 0x01, 0x01);
-    sensorHR.setMultiLedTiming(MAX_LED_RED, MAX_LED_GREEN, MAX_LED_IR, MAX_LED_NONE);
-    sensorHR.setInterrupt(I_FIFO_FULL_MAX, &interruptDummyHR, 0x0F);
-    pc.printf("Pulse Amplitude\t\tRed HR\t\tRed Weight\tGreen HR\tGreen Weight\tInfrared HR\tIR Weight\n");
+    //sensorHR.setPulseAmplitude(0x01, 0x01, 0x01, 0x01);
+    //sensorHR.setMultiLedTiming(MAX_LED_RED, MAX_LED_GREEN, MAX_LED_IR, MAX_LED_NONE);
+    //sensorHR.setInterrupt(I_FIFO_FULL_MAX, &interruptDummyHR, 0x0F);
+    //pc.printf("Pulse Amplitude\t\tRed HR\t\tRed Weight\tGreen HR\tGreen Weight\tInfrared HR\tIR Weight\n");
     //float barometer;
     //float temperature;
     //float light;
     //float humidity;
-    while(1){   
+    while(1){  
+        for(uint i = 0; i<360; i++){   
+            printf("Adding line with angle %u\n", i);
+            screen.addLineOnTop(48, 48, 20, i, SSD1351::getColour(161, 255, 177), 1, SSD1351::getColour(255, 148, 82), 2);
+            screen.draw();
+            Thread::wait(500);
+        } 
         //light = sensorL.getLux();
         //humidity = sensorH.waitForHumidity();
         //temperature = sensorH.waitForTemperature();

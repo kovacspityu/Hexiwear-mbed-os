@@ -51,6 +51,7 @@ OBJECTS += ./sources/sensors/HTU21D.o
 OBJECTS += ./sources/sensors/MAX30101.o
 OBJECTS += ./sources/sensors/MPL3115A2.o
 OBJECTS += ./sources/sensors/TSL2561.o
+OBJECTS += ./sources/IO/SSD1351.o
 OBJECTS += ./mbed-os/features/unsupported/dsp/cmsis_dsp/TransformFunctions/arm_rfft_fast_init_f32.o
 OBJECTS += ./mbed-os/features/unsupported/dsp/cmsis_dsp/TransformFunctions/arm_rfft_fast_f32.o
 OBJECTS += ./mbed-os/features/unsupported/dsp/cmsis_dsp/TransformFunctions/arm_cfft_f32.o
@@ -343,7 +344,6 @@ INCLUDE_PATHS += -I.././mbed-os/targets/TARGET_Freescale/TARGET_MCUXpresso_MCUS/
 INCLUDE_PATHS += -I.././mbed-os/targets/TARGET_Freescale/TARGET_MCUXpresso_MCUS/TARGET_MCU_K64F/device/TOOLCHAIN_GCC_ARM
 INCLUDE_PATHS += -I.././mbed-os/targets/TARGET_Freescale/TARGET_MCUXpresso_MCUS/TARGET_MCU_K64F/drivers
 INCLUDE_PATHS += -I.././mbed-os/targets/TARGET_Freescale/TARGET_MCUXpresso_MCUS/api
-INCLUDE_PATHS += -I.././sources
 
 LIBRARY_PATHS :=
 LIBRARIES :=
