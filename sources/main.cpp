@@ -160,11 +160,12 @@ int main(){
     //float light;
     //float humidity;
     while(1){  
-        for(uint i = 0; i<360; i++){   
+        for(uint i = 0; i<360; i++){
             printf("Adding line with angle %u\n", i);
-            screen.addLineOnTop(48, 48, 20, i, SSD1351::getColour(161, 255, 177), 1, SSD1351::getColour(255, 148, 82), 2);
+            screen.addLineOnTop(48, 48, 30, i, SSD1351::getColour(161, 255, 177), 1, SSD1351::getColour(255, 148, 82), 2);
             screen.draw();
             Thread::wait(500);
+            screen.clearScreen();
         } 
         //light = sensorL.getLux();
         //humidity = sensorH.waitForHumidity();
