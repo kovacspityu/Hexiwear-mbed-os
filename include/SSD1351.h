@@ -54,8 +54,9 @@ class SSD1351{
         void workerDraw();
 
         SSD_Error boundaryCheck(uint8_t xPosition, uint8_t yPosition, int16_t deltaX, int16_t deltaY);
-        SSD_Error addLineInternalSimple(uint8_t xPosition, uint8_t yPosition, uint8_t length, float angle, uint16_t colour, bool topOrBottom);
-        SSD_Error addLineInternalExact(uint8_t xPosition, uint8_t yPosition, uint8_t length, float angle, uint16_t colour, bool topOrBottom);
+        SSD_Error addLineInternalSimple(uint8_t xPosition, uint8_t yPosition, uint8_t length, float angle, uint16_t internalColour, uint8_t internalThickness, bool topOrBottom, uint16_t externalColour = 0, uint8_t externalThickness = 0);
+        SSD_Error addLineInternalExact(uint8_t xPosition, uint8_t yPosition, uint8_t length, float angle, uint16_t internalColour, uint8_t internalThickness, bool topOrBottom, uint16_t externalColour = 0, uint8_t externalThickness = 0);
+        SSD_Error lineBoundaryCheck(uint8_t xPosition, uint8_t yPosition, uint8_t* length, float angle, uint8_t thickness);
         
 
         int write(SSD_Command command);

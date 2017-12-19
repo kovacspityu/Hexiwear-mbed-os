@@ -29,7 +29,7 @@ SSD1351 screen;
 //uint32_t *bufferHRIR = new uint32_t[FFT_SAMPLE_SIZE];
 //MAX30101::uint8AndFloat hrRed, hrGreen, hrIR;
 //uint32_t sampleNumber = 0;
-//std::queue<MAX30101::uint8AndFloat> logQueue;
+//queue<MAX30101::uint8AndFloat> logQueue;
 //uint8_t pulseAmplitude = 1;
 
 

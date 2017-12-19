@@ -96,7 +96,7 @@ MAX30101::mail_t MAX30101::getSampleTemplate(){
 
 MAX30101::mail_t *MAX30101::getData(uint8_t numberOfSamples){
     if(numberOfSamples){
-        numberOfSamples=std::min(numberOfSamples, (uint8_t) 32);
+        numberOfSamples=min(numberOfSamples, (uint8_t) 32);
     // Sanitizing the input to avoid reading outside of the FIFO buffer
     //TODO the 32 should be changed to a variable that depends on the mode of operation
     }
@@ -151,7 +151,7 @@ void MAX30101::setFIFORollover(bool fifoRollover){
 }
 
 void MAX30101::setFIFOThreshold(uint8_t fifoThreshold){
-    fifoThreshold=std::min(fifoThreshold, (uint8_t) 15);
+    fifoThreshold=min(fifoThreshold, (uint8_t) 15);
     uint8_t data;
     read(MAX_FIFO_CONFIG, &data);
     data&=0xF0;
