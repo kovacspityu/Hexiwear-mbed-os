@@ -197,7 +197,6 @@ SSD_Error SSD1351::addImage(uint16_t *image, uint8_t xPosition, uint8_t yPositio
             if((*activeScreenBuffer)[j*SCREEN_SIZE + i]){
                 if(topOrBottom){continue;}
             }
-            (*activeScreenBuffer)[j*SCREEN_SIZE + i] = image[(j - yPosition)*width + i - xPosition];
         }
     }
     return SSD_NO_ERROR;
