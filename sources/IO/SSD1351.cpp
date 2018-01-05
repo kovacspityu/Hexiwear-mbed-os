@@ -2,11 +2,7 @@
 #include "SSD1351.h"
 #include <algorithm>
 #include <cmath>
-
-#define X_OFFSET 16
-#define Y_OFFSET 0
-#define CRITICAL_ANGLE_MIN 25
-#define CRITICAL_ANGLE_MAX 65
+#include "SSD1351_Fonts.h"
 
 uint8_t SSD1351::xStartActive = 0;
 uint8_t SSD1351::xEndActive = SCREEN_SIZE - 1; 
@@ -20,7 +16,7 @@ uint8_t SSD1351::yEndDrawing = 0;
 
 SSD1351::SSD1351() : mSPI(PTB22, NC, PTB21, PTB20), dataORcommand(PTD15), mPower(PTC13), resetPin(PTE6), chipSelect(PTB20){
     mSPI.frequency(8000000);
-    mSPI.format(8);
+    mSPI.format(8, 3);
     reset();
     screenBuffer1 = new uint16_t[SCREEN_SIZE * SCREEN_SIZE];
     screenBuffer2 = new uint16_t[SCREEN_SIZE * SCREEN_SIZE];
@@ -57,19 +53,8 @@ SSD1351::SSD1351() : mSPI(PTB22, NC, PTB21, PTB20), dataORcommand(PTD15), mPower
     write(SSD_DISPLAY_V_OFFSET);
     write(data); 
     setChargePeriods(0x32);
-    unlockCommands();
-    //data[0] = 0x05;
-    //write(SSD_ROW_DEFAULT_V);
-    //write(data);
-    lockCommands();
     write(SSD_DISPLAY_ON); 
-    //setColourBrightness(0x8A, 0x51, 0x8A);
-    //setBrightness(0xCF);
-    //data[0] = 0xA0;
-    //data[1] = 0xB5;
-    //data[2] = 0x55;
-    //write(SSD_COLUMN_DEFAULT_V);
-    //write(data, 3);
+    setBrightness(0xCF);
     data[0] = 0x01;
     write(SSD_PHASE_3);
     write(data);
@@ -137,7 +122,7 @@ void SSD1351::setColourBrightness(uint8_t red, uint8_t green, uint8_t blue){
     delete[] brightness;
 }
 
-void SSD1351::draw(){
+void SSD1351::draw(bool keepScreen){
     while(mThread.get_state() != Thread::WaitingThreadFlag) ;
     if(*activeScreenBuffer == screenBuffer1){
         activeScreenBuffer  = &screenBuffer2;
@@ -147,19 +132,27 @@ void SSD1351::draw(){
         activeScreenBuffer  = &screenBuffer1;
         drawingScreenBuffer = &screenBuffer2;
     }
-    fill(
-        *activeScreenBuffer + xStartActive*SCREEN_SIZE + yStartActive, 
-        *activeScreenBuffer + xEndActive*SCREEN_SIZE + yEndActive, 
-        0);
     xStartDrawing = xStartActive;
     xEndDrawing = xEndActive;
     yStartDrawing = yStartActive;
     yEndDrawing = yEndActive;
+    if(keepScreen){
+        memcpy((void*) *activeScreenBuffer, (void*) *drawingScreenBuffer, 2*SCREEN_SIZE*SCREEN_SIZE);
+        xStartActive = 0;
+        xEndActive = SCREEN_SIZE - 1;
+        yStartActive = 0;
+        yEndActive = SCREEN_SIZE - 1;
+    }
+    else{clearScreen();}
     mThread.signal_set(0x01);
-    xStartActive = SCREEN_SIZE - 1;
-    xEndActive = 0; 
-    yStartActive = SCREEN_SIZE - 1; 
-    yEndActive = 0;
+}
+
+void SSD1351::drawAndKeep(){
+    draw(true);
+}
+
+void SSD1351::drawAndClear(){
+    draw(false);
 }
 
 void SSD1351::clearScreen(){
@@ -170,21 +163,62 @@ void SSD1351::clearScreen(){
     fill(*activeScreenBuffer, *activeScreenBuffer + SCREEN_SIZE*SCREEN_SIZE, 0);
 }
 
-SSD_Error SSD1351::addLine(uint8_t xPosition, uint8_t yPosition, uint8_t length, float angle, uint16_t internalColour, uint8_t internalThickness, bool topOrBottom, uint16_t externalColour, uint8_t externalThickness){
-    // TODO Doesn't check if the thickness makes the line go outside the screen
-    SSD_Error error;
-    if(fmod(abs(angle), 90)<CRITICAL_ANGLE_MIN || fmod(abs(angle), 90)>CRITICAL_ANGLE_MAX){
-        error = addLineInternalSimple(xPosition, yPosition, length, angle, internalColour, internalThickness, topOrBottom, externalColour, externalThickness);
+SSD_Error SSD1351::addText(uint8_t xPosition, uint8_t yPosition, char* text, uint16_t textLength, bool topOrBottom, TextProperties_t textProperties){
+    Font* currentFont = fontDatabase[textProperties.font].fontCollection[textProperties.size];
+    SSD_Error error = boundaryCheck(xPosition, yPosition, calculateTextSpace(text, textLength, textProperties), textProperties.size);
+    //TODO Need to consider if and when to split into lines, and how to calculate them.
+    for(uint16_t i=0;i<textLength;i++){
+        uint8_t currentIndex = ((uint8_t) text[i]) - FONT_OFFSET;
+        for(uint j=0;j<currentFont->width[currentIndex] * currentFont->height[currentIndex];j++){
+            if(!topOrBottom && (*activeScreenBuffer)[xPosition + j%currentFont->width[currentIndex] + currentFont->xPosition[currentIndex] + (yPosition + div(j, currentFont->width[currentIndex]).quot + currentFont->yPosition[currentIndex])*SCREEN_SIZE]){}
+            else{    
+                (*activeScreenBuffer)   [
+                                        xPosition + j%currentFont->width[currentIndex] + currentFont->xPosition[currentIndex]
+                                         + (yPosition + div(j, currentFont->width[currentIndex]).quot + currentFont->yPosition[currentIndex])*SCREEN_SIZE
+                                        ] = 
+                textProperties.colour * (currentFont->alphabet[currentIndex][j]);
+            }
+        }
     }
-    else{error = addLineInternalExact(xPosition, yPosition, length, angle, internalColour, internalThickness, topOrBottom, externalColour, externalThickness); }
     return error;
 }
 
-SSD_Error SSD1351::addLineOnTop(uint8_t xPosition, uint8_t yPosition, uint8_t length, float angle, uint16_t internalColour, uint8_t internalThickness, uint16_t externalColour, uint8_t externalThickness){
+
+SSD_Error SSD1351::addLine(uint8_t xPosition, uint8_t yPosition, uint8_t length, uint16_t angle, uint16_t internalColour, uint8_t internalThickness, bool topOrBottom, uint16_t externalColour, uint8_t externalThickness){
+    SSD_Error error, tempError;
+    uint8_t internalLength, counter, counter2;
+    int8_t transversalDelta, tangentialDelta; 
+    calculateLineParameters(angle, length, internalLength, counter, counter2, tangentialDelta, transversalDelta);
+    int16_t delta = 0;
+    int16_t coordinates = xPosition + SCREEN_SIZE * yPosition;
+    float sinAngle = sin(angle * M_PI/180);
+    float cosAngle = cos(angle * M_PI/180);
+    for(uint8_t i=0;i<internalThickness + externalThickness;i++){
+        tempError = boundaryCheck(div(coordinates+delta, SCREEN_SIZE).rem, div(coordinates+delta, SCREEN_SIZE).quot, lround(length*abs(cosAngle)), lround(length*abs(sinAngle)));
+        if(tempError==SSD_NO_ERROR){
+            if(i<internalThickness){addLineInternal(coordinates + delta, internalLength, tangentialDelta, transversalDelta, counter, counter2, internalColour, topOrBottom);}
+            else{addLineInternal(coordinates + delta, internalLength, tangentialDelta, transversalDelta, counter, counter2, externalColour, topOrBottom);}
+            }
+        else{error=tempError;}
+        tempError = boundaryCheck(div(coordinates-delta, SCREEN_SIZE).rem, div(coordinates-delta, SCREEN_SIZE).quot, lround(length*abs(cosAngle)), lround(length*abs(sinAngle)));
+        if(tempError==SSD_NO_ERROR){
+            if(i<internalThickness){addLineInternal(coordinates - delta, internalLength, tangentialDelta, transversalDelta, counter, counter2, internalColour, topOrBottom);}
+            else{addLineInternal(coordinates - delta, internalLength, tangentialDelta, transversalDelta, counter, counter2, externalColour, topOrBottom);}
+        }
+        else{error=tempError;}
+        if(abs(angle%90)>CRITICAL_ANGLE_MIN && abs(angle%90)<CRITICAL_ANGLE_MAX){
+            delta-=transversalDelta;
+        }
+        else{delta+=transversalDelta;}
+    }
+   return error;
+}
+
+SSD_Error SSD1351::addLineOnTop(uint8_t xPosition, uint8_t yPosition, uint8_t length, uint16_t angle, uint16_t internalColour, uint8_t internalThickness, uint16_t externalColour, uint8_t externalThickness){
     return addLine(xPosition, yPosition, length, angle, internalColour, internalThickness, true, externalColour, externalThickness);
 }
 
-SSD_Error SSD1351::addLineAtBottom(uint8_t xPosition, uint8_t yPosition, uint8_t length, float angle, uint16_t internalColour, uint8_t internalThickness, uint16_t externalColour, uint8_t externalThickness){
+SSD_Error SSD1351::addLineAtBottom(uint8_t xPosition, uint8_t yPosition, uint8_t length, uint16_t angle, uint16_t internalColour, uint8_t internalThickness, uint16_t externalColour, uint8_t externalThickness){
     return addLine(xPosition, yPosition, length, angle, internalColour, internalThickness, false, externalColour, externalThickness);
 }
 
@@ -194,9 +228,8 @@ SSD_Error SSD1351::addImage(uint16_t *image, uint8_t xPosition, uint8_t yPositio
     if(result){return result;}
     for(uint i=xPosition;i<=xPosition+width;i++){
         for(uint j=yPosition;j<=yPosition+height;j++){
-            if((*activeScreenBuffer)[j*SCREEN_SIZE + i]){
-                if(topOrBottom){continue;}
-            }
+            if(!topOrBottom && (*activeScreenBuffer)[j*SCREEN_SIZE + i]){continue;}
+            else{(*activeScreenBuffer)[j*SCREEN_SIZE + i] = image[(j - yPosition)*width + i - xPosition];}
         }
     }
     return SSD_NO_ERROR;
@@ -230,7 +263,7 @@ void SSD1351::scrollingOff(){
 }
 
 uint16_t SSD1351::getColour(uint8_t red, uint8_t green, uint8_t blue){
-    return blue>>3 | (green>>2)<<5 | (red>>3)<<11;
+    return green>>3 | (red>>2)<<5 | (blue>>3)<<11;
 }
 
 
@@ -285,7 +318,7 @@ void SSD1351::workerDraw(){
         mMutex.lock();
         for(uint8_t i=yStartDrawing;i<yEndDrawing || i==yStartDrawing;i++){
             write((uint8_t *)(*drawingScreenBuffer + i*SCREEN_SIZE + xStartDrawing),
-            2 * (xEndDrawing-xStartDrawing+1)); // TODO Check!!!
+            2 * (xEndDrawing-xStartDrawing+1));
         }
         mMutex.unlock();
     }
@@ -313,151 +346,84 @@ SSD_Error SSD1351::boundaryCheck(uint8_t xPosition, uint8_t yPosition, int16_t d
     return SSD_NO_ERROR;
 }
 
-SSD_Error SSD1351::addLineInternalSimple(uint8_t xPosition, uint8_t yPosition, uint8_t length, float angle, uint16_t internalColour, uint8_t internalThickness, bool topOrBottom, uint16_t externalColour, uint8_t externalThickness){
-    float cosAngle = cos(angle * M_PI/180);
-    float sinAngle = sin(angle * M_PI/180);
-    SSD_Error error = lineBoundaryCheck(xPosition, yPosition, &length, angle, internalThickness+externalThickness);
-    // This identifies whether the line is compared to the diagonal lines, 
-    // which is used to determine whether the majority of the pixels will
-    // be shifted vertically or horizontally compared to the previous ones.
-    int8_t transversalCoefficient, tangentialCoefficient, counter, counter2;
-    if(abs(sinAngle)>=0.5){
-        length*=abs(sinAngle);
-        transversalCoefficient = copysign(1, cosAngle);
-        tangentialCoefficient = copysign(SCREEN_SIZE, sinAngle);
-        if(abs(cosAngle)>0.001){
-            counter = abs(lround(sinAngle/cosAngle));
-            counter2 = abs(lround(2*sinAngle/cosAngle));
-            if(counter2==2*counter){counter2 = length;}
-        }
-        else{
-            counter = length;
-            counter2 = length;
-        }
-    }
-    else{
-        length*=abs(cosAngle);
-        transversalCoefficient = copysign(SCREEN_SIZE, sinAngle);
-        tangentialCoefficient = copysign(1, cosAngle);
-        if(abs(sinAngle)>0.001){
-            counter = abs(lround(cosAngle/sinAngle));
-            counter2 = abs(lround(2*cosAngle/sinAngle));
-            if(counter2==2*counter){counter2 = length;}
-        }
-        else{
-            counter = length;
-            counter2 = length;
-        }
-    }
-    int16_t coordinates = xPosition + SCREEN_SIZE * yPosition;
+void SSD1351::addLineInternal(int16_t coordinates, uint8_t length, int8_t tangentialDelta, int8_t transversalDelta, int8_t counter, int8_t counter2, uint16_t colour,  bool topOrBottom){
     for(uint8_t i=0;i<length;i++){
         if(i){
             if(i%counter==0){
-                coordinates+=transversalCoefficient;
+                coordinates+=transversalDelta;
                 if(counter2!=length){   
                     int8_t counterDummy = counter;
                     counter = counter2;
                     counter2 = counterDummy;
                 }
             }
-            coordinates+=tangentialCoefficient;
+            coordinates+=tangentialDelta;
         }
-            uint8_t j;
-            for(j=0;j<internalThickness;j++){
-                if(topOrBottom && (*activeScreenBuffer)[coordinates + j*transversalCoefficient]){}
-                else{(*activeScreenBuffer)[coordinates + j*transversalCoefficient] = internalColour;}
-                if(topOrBottom && (*activeScreenBuffer)[coordinates - j*transversalCoefficient]){}
-                else{(*activeScreenBuffer)[coordinates - j*transversalCoefficient] = internalColour;}
-            }
-            for(uint k=0;k<externalThickness;k++){
-                if(topOrBottom && (*activeScreenBuffer)[coordinates + (j+k)*transversalCoefficient]){}
-                else{(*activeScreenBuffer)[coordinates + (j+k)*transversalCoefficient] = externalColour;}
-                if(topOrBottom && (*activeScreenBuffer)[coordinates - (j+k)*transversalCoefficient]){}
-                else{(*activeScreenBuffer)[coordinates - (j+k)*transversalCoefficient] = externalColour;}
-            }
+        if(!topOrBottom && (*activeScreenBuffer)[coordinates]){}
+        else{(*activeScreenBuffer)[coordinates] = colour;}
     }
-    return error;
 }
 
-SSD_Error SSD1351::addLineInternalExact(uint8_t xPosition, uint8_t yPosition, uint8_t length, float angle, uint16_t internalColour, uint8_t internalThickness, bool topOrBottom, uint16_t externalColour, uint8_t externalThickness){
-    float cosAngle = cos(angle * M_PI/180);
+void SSD1351::calculateLineParameters(const uint16_t angle, const uint8_t length, uint8_t &internalLength, uint8_t &counter, uint8_t &counter2,  int8_t &tangentialDelta, int8_t &transversalDelta){
+    // This identifies where the line is compared to the diagonal lines, which is used to determine 
+    // whether the majority of the pixels will be shifted vertically, horizontally 
+    // or diagonally compared to the previous ones.
     float sinAngle = sin(angle * M_PI/180);
-    SSD_Error error = lineBoundaryCheck(xPosition, yPosition, &length, angle, internalThickness+externalThickness);
-    int16_t coordinates = SCREEN_SIZE * yPosition + xPosition;
-    for(uint8_t i=0;i<length;i++){
-        uint8_t j;
-        for(j=0;j<internalThickness;j++){
-            if(topOrBottom && (*activeScreenBuffer)[coordinates + (lround(i*cosAngle)) + lround(j*sinAngle)+ SCREEN_SIZE * (lround(i*sinAngle) - lround(j*cosAngle))]){}        
-            else{(*activeScreenBuffer)[coordinates + (lround(i*cosAngle)) + lround(j*sinAngle)+ SCREEN_SIZE * (lround(i*sinAngle) - lround(j*cosAngle))] = internalColour;} 
-            if(topOrBottom && (*activeScreenBuffer)[coordinates + (lround(i*cosAngle)) - lround(j*sinAngle)+ SCREEN_SIZE * (lround(i*sinAngle) + lround(j*cosAngle))]){}        
-            else{(*activeScreenBuffer)[coordinates + (lround(i*cosAngle)) - lround(j*sinAngle)+ SCREEN_SIZE * (lround(i*sinAngle) + lround(j*cosAngle))] = internalColour;}
+    float cosAngle = cos(angle * M_PI/180);
+    if(abs(sinAngle)>abs(cosAngle)){
+        internalLength = length*abs(sinAngle);
+        transversalDelta = copysign(1, cosAngle);
+        tangentialDelta = copysign(SCREEN_SIZE, sinAngle);
+        if(abs(cosAngle)>0.001){
+            counter = abs(lround(sinAngle/cosAngle));
+            counter2 = abs(lround(2*sinAngle/cosAngle));
+            if(counter2==2*counter){counter2 = internalLength;}
         }
-        for(uint8_t k=0;k<externalThickness;k++){
-            if(topOrBottom && (*activeScreenBuffer)[coordinates + (lround(i*cosAngle)) + lround((j+k)*sinAngle)+ SCREEN_SIZE * (lround(i*sinAngle) - lround((j+k)*cosAngle))]){}        
-            else{(*activeScreenBuffer)[coordinates + (lround(i*cosAngle)) + lround((j+k)*sinAngle)+ SCREEN_SIZE * (lround(i*sinAngle) - lround((j+k)*cosAngle))] = externalColour;} 
-            if(topOrBottom && (*activeScreenBuffer)[coordinates + (lround(i*cosAngle)) - lround((j+k)*sinAngle)+ SCREEN_SIZE * (lround(i*sinAngle) + lround((j+k)*cosAngle))]){}        
-            else{(*activeScreenBuffer)[coordinates + (lround(i*cosAngle)) - lround((j+k)*sinAngle)+ SCREEN_SIZE * (lround(i*sinAngle) + lround((j+k)*cosAngle))] = externalColour;}
+        else{
+            counter = internalLength;
+            counter2 = internalLength;
         }
-   }
-   return error;
+    }
+    else{
+        internalLength = length*abs(cosAngle);
+        transversalDelta = copysign(SCREEN_SIZE, sinAngle);
+        tangentialDelta = copysign(1, cosAngle);
+        if(abs(sinAngle)>0.001){
+            counter = abs(lround(cosAngle/sinAngle));
+            counter2 = abs(lround(2*cosAngle/sinAngle));
+            if(counter2==2*counter){counter2 = internalLength;}
+        }
+        else{
+            counter = internalLength;
+            counter2 = internalLength;
+        }
+    }
+    if(abs(angle%90)>CRITICAL_ANGLE_MIN && abs(angle%90)<CRITICAL_ANGLE_MAX){
+            if(sinAngle/cosAngle>0){
+                counter = abs(lround(1/std::tan((angle - 45) * M_PI/180)));
+                counter2 = abs(lround(2/std::tan((angle - 45) * M_PI/180)));
+            }
+            else{
+                counter = abs(lround(std::tan((angle - 45) * M_PI/180)));
+                counter2 = abs(lround(2*std::tan((angle - 45) * M_PI/180)));
+            }
+            if(counter2==2*counter){counter2 = internalLength;}
+            tangentialDelta+=transversalDelta;
+            transversalDelta= -transversalDelta;
+            if(abs(angle%90)==45){
+            counter = internalLength;
+            }
+    }
 }
 
-SSD_Error SSD1351::lineBoundaryCheck(uint8_t xPosition, uint8_t yPosition, uint8_t* length, float angle, uint8_t thickness){
-    float cosAngle = cos(angle * M_PI/180);
-    float sinAngle = sin(angle * M_PI/180);
-    int16_t deltaX, deltaY;
-    SSD_Error error = boundaryCheck(xPosition, yPosition, lround(*length*cosAngle), lround(*length*sin(angle)));
-    // Checks whether the line would go beyond the screen borders, and shrinks it accordingly.
-    switch(error){
-        //TODO Check!
-        case SSD_OUT_OF_LEFT_BORDER:{
-            length-=abs(lround((*length*cosAngle + xPosition)/cosAngle));
-            break;
-        }
-        case SSD_OUT_OF_RIGHT_BORDER:{
-            length-=abs(lround((*length*cosAngle + xPosition - SCREEN_SIZE)/cosAngle));
-            break;
-        }
-        case SSD_OUT_OF_TOP_BORDER:{
-            length-=abs(lround((*length*sinAngle + yPosition)/sinAngle));
-            break;
-        }
-        case SSD_OUT_OF_BOTTOM_BORDER:{
-            length-=abs(lround((*length*sinAngle + yPosition - SCREEN_SIZE)/sinAngle));
-            break;
-        }
-        case SSD_NO_ERROR:{}
+uint16_t SSD1351::calculateTextSpace(char *text, uint16_t textLength, TextProperties_t textProperties){
+    uint16_t result;
+    for(uint16_t i=0;i<textLength; i++){
+        result+=(fontDatabase[textProperties.font].fontCollection[textProperties.size])->width[((uint8_t) text[i]) - FONT_OFFSET];
     }
-    deltaX = lround((thickness)*cosAngle);
-    deltaY = lround((thickness)*sinAngle);
-    SSD_Error errorInternal = boundaryCheck(xPosition, yPosition, lround(*length*cosAngle) + deltaX, lround(*length*sin(angle)));
-    switch(errorInternal){
-        //TODO
-        case SSD_OUT_OF_LEFT_BORDER: {
-            break;
-        }
-        case SSD_OUT_OF_RIGHT_BORDER: {
-            break;
-        }
-        default: {
-            break;
-        }
-    }
-    errorInternal = boundaryCheck(xPosition, yPosition, lround(*length*cosAngle), lround(*length*sin(angle)) + deltaY);
-    switch(errorInternal){
-        //TODO
-        case SSD_OUT_OF_TOP_BORDER: {
-            break;
-        }
-        case SSD_OUT_OF_LEFT_BORDER: {
-            break;
-        }
-        default: {
-            break;
-        }
-    }
-    return error;
+    return result; 
 }
+
 
 int SSD1351::write(SSD_Command command){
     dataORcommand = 0;
@@ -477,3 +443,5 @@ int SSD1351::write(uint8_t *data, int length){
     }
     return result;
 }
+
+

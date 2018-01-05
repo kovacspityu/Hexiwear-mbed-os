@@ -2,12 +2,38 @@
 #define _SSD1351_
 
 #include "SSD1351_enum.h"
+#include "SSD1351_Fonts.h"
 #include "mbed.h"
+
+
+#define X_OFFSET 16
+#define Y_OFFSET 0
+#define CRITICAL_ANGLE_MIN 30
+#define CRITICAL_ANGLE_MAX 60
+#define DEFAULT_TEXT_SIZE 15
+#define DEFAULT_TEXT_FONT 0
+#define DEFAULT_TEXT_COLOUR 0x861
+
+extern FontDatabase fontDatabase;
 
 class SSD1351{
     public:
         SSD1351();
         ~SSD1351();
+
+        struct TextProperties_t{
+            uint8_t size;
+            uint8_t font;
+            uint16_t colour;
+            TextProperties_t(uint8_t size, uint8_t font, uint16_t colour){
+                this->size=size;
+                this->font=font;
+                this->colour=colour;
+            }
+            TextProperties_t(){
+                TextProperties_t(DEFAULT_TEXT_SIZE, DEFAULT_TEXT_FONT, DEFAULT_TEXT_COLOUR);
+            }
+        };
 
         void powerUp();
         void powerOff();
@@ -18,11 +44,14 @@ class SSD1351{
         void setBrightness(uint8_t brightness);
         void setColourBrightness(uint8_t red, uint8_t green, uint8_t blue);
 
-        void draw();
+        void draw(bool keepScreen = false);
+        void drawAndKeep();
+        void drawAndClear();
         void clearScreen();
-        SSD_Error addLine(uint8_t xPosition, uint8_t yPosition, uint8_t length, float angle, uint16_t internalColour, uint8_t internalThickness, bool topOrBottom, uint16_t externalColour = 0, uint8_t externalThickness = 0);
-        SSD_Error addLineOnTop(uint8_t xPosition, uint8_t yPosition, uint8_t length, float angle, uint16_t internalColour, uint8_t internalThickness, uint16_t externalColour, uint8_t externalThickness);
-        SSD_Error addLineAtBottom(uint8_t xPosition, uint8_t yPosition, uint8_t length, float angle, uint16_t internalColour, uint8_t internalThickness, uint16_t externalColour, uint8_t externalThickness);
+        SSD_Error addText(uint8_t xPosition, uint8_t yPosition, char* text, uint16_t textLength, bool topOrBottom, TextProperties_t textProperties = defaultTextProperties);
+        SSD_Error addLine(uint8_t xPosition, uint8_t yPosition, uint8_t length, uint16_t angle, uint16_t internalColour, uint8_t internalThickness, bool topOrBottom, uint16_t externalColour = 0, uint8_t externalThickness = 0);
+        SSD_Error addLineOnTop(uint8_t xPosition, uint8_t yPosition, uint8_t length, uint16_t angle, uint16_t internalColour, uint8_t internalThickness, uint16_t externalColour, uint8_t externalThickness);
+        SSD_Error addLineAtBottom(uint8_t xPosition, uint8_t yPosition, uint8_t length, uint16_t angle, uint16_t internalColour, uint8_t internalThickness, uint16_t externalColour, uint8_t externalThickness);
         SSD_Error addImage(uint16_t *image, uint8_t xPosition, uint8_t yPosition, uint8_t width, uint8_t height, bool topOrBottom);
         SSD_Error addImageOnTop(uint16_t *image, uint8_t xPosition, uint8_t yPosition, uint8_t width, uint8_t height);
         SSD_Error addImageAtBottom(uint16_t *image, uint8_t xPosition, uint8_t yPosition, uint8_t width, uint8_t height);
@@ -41,6 +70,8 @@ class SSD1351{
         Thread mThread;
         Mutex mMutex;
 
+
+        static const TextProperties_t defaultTextProperties;
         static uint8_t xStartActive, xEndActive, yStartActive, yEndActive, xStartDrawing, xEndDrawing, yStartDrawing, yEndDrawing;
         uint16_t **activeScreenBuffer, **drawingScreenBuffer, *screenBuffer1, *screenBuffer2;
 
@@ -54,9 +85,9 @@ class SSD1351{
         void workerDraw();
 
         SSD_Error boundaryCheck(uint8_t xPosition, uint8_t yPosition, int16_t deltaX, int16_t deltaY);
-        SSD_Error addLineInternalSimple(uint8_t xPosition, uint8_t yPosition, uint8_t length, float angle, uint16_t internalColour, uint8_t internalThickness, bool topOrBottom, uint16_t externalColour = 0, uint8_t externalThickness = 0);
-        SSD_Error addLineInternalExact(uint8_t xPosition, uint8_t yPosition, uint8_t length, float angle, uint16_t internalColour, uint8_t internalThickness, bool topOrBottom, uint16_t externalColour = 0, uint8_t externalThickness = 0);
-        SSD_Error lineBoundaryCheck(uint8_t xPosition, uint8_t yPosition, uint8_t* length, float angle, uint8_t thickness);
+        void addLineInternal(int16_t coordinates, uint8_t length, int8_t transversalDelta, int8_t tangentialDelta, int8_t counter, int8_t counter2, uint16_t colour, bool topOrBottom);
+        void calculateLineParameters(const uint16_t angle, const uint8_t length, uint8_t &internalLength, uint8_t &counter, uint8_t &counter2,  int8_t &tangentialDelta, int8_t &transversalDelta);
+        uint16_t calculateTextSpace(char *text, uint16_t textLength, TextProperties_t textProperties);
         
 
         int write(SSD_Command command);
