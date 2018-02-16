@@ -25,14 +25,21 @@ struct Font{
 };
 
 struct FontList{
-    FontList(uint8_t s, Font** f){
+    FontList(uint8_t s, Font* f){
         sizes = s;
         fontCollection = f;
     }
-    uint8_t sizes;
-    Font** fontCollection;
+    const uint8_t sizes;
+    const Font* fontCollection;
 };
 
-typedef FontList *FontDatabase;
+struct FontDatabase{
+    FontDatabase(uint8_t s, FontList* f){
+        sizes = s;
+        fontList = f;
+    }
+    const uint8_t sizes;
+    const FontList * fontList;
+}
 
 #endif
