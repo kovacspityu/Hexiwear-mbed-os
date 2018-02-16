@@ -2,12 +2,7 @@
 #define _SSD1351_FONTS_
 #include "mbed.h"
 
-#define NUMBER_OF_FONTS 1
 #define FONT_OFFSET 32
-
-enum SSD1351_Fonts{
-    FONT_MINIMAL_FONT = 0
-};
 
 typedef bool *Character;
 
