@@ -3,6 +3,7 @@
 
 #include "SSD1351_enum.h"
 #include "SSD1351_Fonts.h"
+#include "SSD1351_Fonts_enum.h"
 #include "mbed.h"
 
 
@@ -10,11 +11,11 @@
 #define Y_OFFSET 0
 #define CRITICAL_ANGLE_MIN 30
 #define CRITICAL_ANGLE_MAX 60
-#define DEFAULT_TEXT_SIZE 15
-#define DEFAULT_TEXT_FONT 0
+#define DEFAULT_TEXT_INDEX ROBOTO11
 #define DEFAULT_TEXT_COLOUR 0x861
 
 extern FontDatabase fontDatabase;
+extern uint16_t fontSizes[];
 
 class SSD1351{
     public:
@@ -22,16 +23,14 @@ class SSD1351{
         ~SSD1351();
 
         struct TextProperties_t{
-            uint8_t size;
-            uint8_t font;
+            FontIndex index;
             uint16_t colour;
-            TextProperties_t(uint8_t size, uint8_t font, uint16_t colour){
-                this->size=size;
-                this->font=font;
+            TextProperties_t(FontIndex i, uint16_t colour){
+                this->index=i;
                 this->colour=colour;
             }
             TextProperties_t(){
-                TextProperties_t(DEFAULT_TEXT_SIZE, DEFAULT_TEXT_FONT, DEFAULT_TEXT_COLOUR);
+                TextProperties_t(DEFAULT_TEXT_INDEX, DEFAULT_TEXT_COLOUR);
             }
         };
 
@@ -87,7 +86,7 @@ class SSD1351{
         SSD_Error boundaryCheck(uint8_t xPosition, uint8_t yPosition, int16_t deltaX, int16_t deltaY);
         void addLineInternal(int16_t coordinates, uint8_t length, int8_t transversalDelta, int8_t tangentialDelta, int8_t counter, int8_t counter2, uint16_t colour, bool topOrBottom);
         void calculateLineParameters(const uint16_t angle, const uint8_t length, uint8_t &internalLength, uint8_t &counter, uint8_t &counter2,  int8_t &tangentialDelta, int8_t &transversalDelta);
-        uint16_t calculateTextSpace(char *text, uint16_t textLength, TextProperties_t textProperties);
+        uint16_t* calculateTextSpace(char *text, uint16_t textLength, TextProperties_t textProperties);
         
 
         int write(SSD_Command command);

@@ -3,13 +3,15 @@ from pathlib import Path
 import imghdr
 import os
 result = open("sources/Fonts.cpp", "w")
+resultEnum = open("include/SSD1351_Fonts_enum.h", "w")
+resultEnum.write("#ifndef _SSD1351_FONTS_ENUM_\n#define _SSD1351_FONTS_ENUM_\n\nenum FontIndex{\n")
 result.write("#include \"SSD1351_Fonts.h\"\n\n\n")
 p = Path("Fonts")
 fonts = [x for x in p.iterdir() if x.is_dir()]
-for font in fonts:
-    sizes = [x for x in font.iterdir() if x.is_dir()]
+for f in range(len(fonts)):
+    sizes = [x for x in fonts[f].iterdir() if x.is_dir()]
     for i in range(len(sizes)):
-        result.write("Character " + font.name + sizes[i].name + "Alphabet ={\n")
+        result.write("const bool " + fonts[f].name + sizes[i].name + "Alphabet[][")
         for j in Path(sizes[i]).iterdir():
             if j.is_file() and imghdr.what(str(j)):
                 print("Analyzing file", j.name)
@@ -32,6 +34,7 @@ for font in fonts:
                 for k in range(round(len(greenPositions)/2)):
                     widths.append(greenPositions[2*k+1][0]- greenPositions[2*k][0])
                     heights.append(greenPositions[2*k+1][1]- greenPositions[2*k][1])
+                result.write(str(max(widths) * max(heights)) + "] = {\n")
                 for k in range(len(bluePositions)):
                     result.write("    {")
                     for l in range(greenPositions[2*k][0], greenPositions[2*k+1][0]):
@@ -49,51 +52,61 @@ for font in fonts:
                             else:
                                 result.write(", ")
                 alphabetR.close()
-                result.write(font.name + sizes[i].name + "Widths = {\n    ")
+                result.write("const uint8_t " + fonts[f].name + sizes[i].name + "Widths[] = {\n    ")
                 for x in range(len(widths)):
                     result.write(str(widths[x]))
                     if x==len(widths) - 1:
                         result.write("\n};\n\n")
                     else:
                         result.write(", ")
-                result.write(font.name + sizes[i].name + "Heights = {\n    ")
+                result.write("const uint8_t " + fonts[f].name + sizes[i].name + "Heights[] = {\n    ")
                 for x in range(len(heights)):
                     result.write(str(heights[x]))
                     if x==len(heights) - 1:
                         result.write("\n};\n\n")
                     else:
                         result.write(", ")  
-                result.write(font.name + sizes[i].name + "XPositions = {\n    ")
+                result.write("const int8_t " + fonts[f].name + sizes[i].name + "XPositions[] = {\n    ")
                 for x in range(len(xPositions)):
                     result.write(str(xPositions[x]))
                     if x==len(xPositions) - 1:
                         result.write("\n};\n\n")
                     else:
                         result.write(", ")
-                result.write(font.name + sizes[i].name + "YPositions = {\n    ")
+                result.write("const int8_t " + fonts[f].name + sizes[i].name + "YPositions[] = {\n    ")
                 for x in range(len(yPositions)):
                     result.write(str(yPositions[x]))
                     if x==len(yPositions) - 1:
                         result.write("\n};\n\n")
                     else:
                         result.write(", ")
-        result.write("Font " + font.name + sizes[i].name + "= Font(" + font.name + sizes[i].name + "Alphabet, " + font.name + sizes[i].name + "Widths, " + font.name + sizes[i].name + "Heights, " + font.name + sizes[i].name + "XPositions, " + font.name + sizes[i].name + "YPositions);\n\n")
-    result.write("Font " + font.name +"[] = {\n    ")
-    for i in range(len(sizes)):
-        result.write(font.name + sizes[i].name)
-        if i == len(sizes) - 1:
+        result.write("Font " + fonts[f].name + sizes[i].name + "= Font((void*)" + fonts[f].name + sizes[i].name + "Alphabet, " + fonts[f].name + sizes[i].name + "Widths, " + fonts[f].name + sizes[i].name + "Heights, " + fonts[f].name + sizes[i].name + "XPositions, " + fonts[f].name + sizes[i].name + "YPositions);\n\n")
+result.write("Font fontList[] = {\n    ")
+counter = 0
+for i in range(len(fonts)):
+    sizes = [x for x in fonts[f].iterdir() if x.is_dir()]
+    for j in range(len(sizes)):
+        resultEnum.write("    " + fonts[i].name.upper() + sizes[j].name + " =    " + str(counter))
+        counter = counter + 1
+        result.write(fonts[i].name + sizes[j].name)
+        if i == len(fonts) - 1 and j == len(sizes) - 1:
+            resultEnum.write("\n}; \n")
             result.write("\n};\n\n")
         else:
+            resultEnum.write(", \n")
             result.write(", ")
-    result.write("FontList " + font.name + " = FontList(" + str(len(sizes)) + ", " + font.name + ");\n")
-result.write("FontList fontList[] = {\n    ")
+result.write("FontDatabase fontDatabase = fontList;\n")
+result.write("const uint8_t fontSizes[] = {\n")
 for i in range(len(fonts)):
-    result.write(fonts[i].name)
-    if i == len(fonts) - 1:
-        result.write("\n};\n\n")
-    else:
-        result.write(", ")
-result.write("FontDatabase fontDatabase = FontDatabase(" + str(len(fonts)) + ", fontList);\n")
+    sizes = [x for x in fonts[f].iterdir() if x.is_dir()]
+    for j in range(len(sizes)):
+        result.write("    " + sizes[j].name)
+        if j == len(sizes) - 1 and i == len(fonts) - 1:
+            result.write("\n};\n")
+        else:
+            result.write(", ")
+resultEnum.write("\n\n#endif\n")
+resultEnum.close()
 result.close()
 
         

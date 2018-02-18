@@ -164,8 +164,10 @@ void SSD1351::clearScreen(){
 }
 
 SSD_Error SSD1351::addText(uint8_t xPosition, uint8_t yPosition, char* text, uint16_t textLength, bool topOrBottom, TextProperties_t textProperties){
-    Font* currentFont = fontDatabase[textProperties.font].fontCollection[textProperties.size];
-    SSD_Error error = boundaryCheck(xPosition, yPosition, calculateTextSpace(text, textLength, textProperties), textProperties.size);
+    Font* currentFont = &fontDatabase[textProperties.index];
+    uint16_t *textSpace = calculateTextSpace(text, textLength, textProperties);
+    SSD_Error error = boundaryCheck(xPosition, yPosition, textSpace[0], textSpace[1]);
+    delete[] textSpace;
     //TODO Need to consider if and when to split into lines, and how to calculate them.
     for(uint16_t i=0;i<textLength;i++){
         uint8_t currentIndex = ((uint8_t) text[i]) - FONT_OFFSET;
@@ -416,11 +418,14 @@ void SSD1351::calculateLineParameters(const uint16_t angle, const uint8_t length
     }
 }
 
-uint16_t SSD1351::calculateTextSpace(char *text, uint16_t textLength, TextProperties_t textProperties){
-    uint16_t result;
+uint16_t* SSD1351::calculateTextSpace(char *text, uint16_t textLength, TextProperties_t textProperties){
+    uint16_t resultX;
     for(uint16_t i=0;i<textLength; i++){
-        result+=(fontDatabase[textProperties.font].fontCollection[textProperties.size])->width[((uint8_t) text[i]) - FONT_OFFSET];
+        resultX+=(fontDatabase[textProperties.index]).width[((uint8_t) text[i]) - FONT_OFFSET];
     }
+    uint16_t *result = new uint16_t[2];
+    result[0] = resultX;
+    result[1] = fontSizes[textProperties.index];
     return result; 
 }
 

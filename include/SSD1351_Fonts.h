@@ -3,12 +3,12 @@
 #include "mbed.h"
 
 #define FONT_OFFSET 32
+#define SUPPORTED_CHARACTERS 93
 
-typedef bool *Character;
 
 struct Font{
-    Font(const Character* c, const uint8_t *w, const uint8_t *h, const int8_t *x, const int8_t *y){
-        alphabet = c;
+    Font(const void* c, const uint8_t *w, const uint8_t *h, const int8_t *x, const int8_t *y){
+        alphabet = *((const bool***) c);
         width = w;
         height = h;
         xPosition = x;
@@ -16,25 +16,9 @@ struct Font{
     }
     const uint8_t *width, *height;
     const int8_t *xPosition, *yPosition;
-    const Character *alphabet;
+    const bool **alphabet;
 };
 
-struct FontList{
-    FontList(uint8_t s, Font* f){
-        sizes = s;
-        fontCollection = f;
-    }
-    const uint8_t sizes;
-    const Font* fontCollection;
-};
-
-struct FontDatabase{
-    FontDatabase(uint8_t s, FontList* f){
-        sizes = s;
-        fontList = f;
-    }
-    const uint8_t sizes;
-    const FontList * fontList;
-}
+typedef Font *FontDatabase;
 
 #endif
