@@ -3,7 +3,6 @@
 #include "mbed.h"
 
 #define FONT_OFFSET 32
-#define SUPPORTED_CHARACTERS 93
 
 
 struct Font{

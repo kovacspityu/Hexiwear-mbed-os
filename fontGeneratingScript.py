@@ -5,7 +5,7 @@ import os
 result = open("sources/Fonts.cpp", "w")
 resultEnum = open("include/SSD1351_Fonts_enum.h", "w")
 resultEnum.write("#ifndef _SSD1351_FONTS_ENUM_\n#define _SSD1351_FONTS_ENUM_\n\nenum FontIndex{\n")
-result.write("#include \"SSD1351_Fonts.h\"\n\n\n")
+result.write("#include \"SSD1351_Fonts.h\"\n\n\nnamespace fnt{\n")
 p = Path("Fonts")
 fonts = [x for x in p.iterdir() if x.is_dir()]
 for f in range(len(fonts)):
@@ -107,6 +107,7 @@ for i in range(len(fonts)):
             result.write(", ")
 resultEnum.write("\n\n#endif\n")
 resultEnum.close()
+result.write("}\n")
 result.close()
 
         
