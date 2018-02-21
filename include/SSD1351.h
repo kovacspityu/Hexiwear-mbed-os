@@ -47,13 +47,16 @@ class SSD1351{
         void drawAndKeep();
         void drawAndClear();
         void clearScreen();
-        SSD_Error addText(uint8_t xPosition, uint8_t yPosition, char* text, uint16_t textLength, bool topOrBottom, TextProperties_t textProperties = defaultTextProperties);
+        SSD_Error addText(uint8_t xPosition, uint8_t yPosition, char* text, uint16_t textLength, bool topOrBottom, TextProperties_t textProperties);
+        SSD_Error addBox(uint8_t xPosition, uint8_t yPosition, uint8_t width, uint8_t height, uint16_t internalColour, uint8_t internalThickness, bool topOrBottom, uint16_t externalColour = 0, uint8_t externalThickness = 0);
+        SSD_Error addTextInBox(char* text, uint16_t textLength, TextProperties_t textProperties, uint8_t xPosition, uint8_t yPosition, uint8_t width, uint8_t height, uint16_t internalColour, uint8_t internalThickness, bool topOrBottom, uint16_t externalColour = 0, uint8_t externalThickness = 0)
         SSD_Error addLine(uint8_t xPosition, uint8_t yPosition, uint8_t length, uint16_t angle, uint16_t internalColour, uint8_t internalThickness, bool topOrBottom, uint16_t externalColour = 0, uint8_t externalThickness = 0);
         SSD_Error addLineOnTop(uint8_t xPosition, uint8_t yPosition, uint8_t length, uint16_t angle, uint16_t internalColour, uint8_t internalThickness, uint16_t externalColour, uint8_t externalThickness);
         SSD_Error addLineAtBottom(uint8_t xPosition, uint8_t yPosition, uint8_t length, uint16_t angle, uint16_t internalColour, uint8_t internalThickness, uint16_t externalColour, uint8_t externalThickness);
         SSD_Error addImage(uint16_t *image, uint8_t xPosition, uint8_t yPosition, uint8_t width, uint8_t height, bool topOrBottom);
         SSD_Error addImageOnTop(uint16_t *image, uint8_t xPosition, uint8_t yPosition, uint8_t width, uint8_t height);
         SSD_Error addImageAtBottom(uint16_t *image, uint8_t xPosition, uint8_t yPosition, uint8_t width, uint8_t height);
+        SSD_Error fillArea(uint8_t xPosition, uint8_t yPosition, uint8_t width, uint8_t height, uint16_t colour, bool topOrBottom);
 
         void scrollingOn(bool direction, uint8_t startingRow, uint8_t numberOfRows, SSD_Scrolling_Period period);
         void scrollingOff();

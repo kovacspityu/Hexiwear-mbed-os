@@ -40,9 +40,9 @@ enum FXOS8700CQ_Address{
     FXO_SLEEP_COUNTER           = 0x29,
     FXO_CTRL_REG_1              = 0x2A,
     FXO_CTRL_REG_2              = 0x2B,
-    FXO_CTRL_REG_3              = 0x2C,
-    FXO_CTRL_REG_4              = 0x2D,
-    FXO_CTRL_REG_5              = 0x2E,
+    FXO_SLEEP_INT_CONFIG        = 0x2C,
+    FXO_INT_CONFIG              = 0x2D,
+    FXO_INT_PIN_CONFIG          = 0x2E,
     FXO_ACC_X_OFFSET            = 0x2F,
     FXO_ACC_Y_OFFSET            = 0x30,
     FXO_ACC_Z_OFFSET            = 0x31,
@@ -119,31 +119,40 @@ enum FXOS8700CQ_Address{
     FXO_MOTION_Z_LSB            = 0x78,
 };
 
-enum FXOS21002C_Axis{
-    FXO_AXIS_X  = 0,
-    FXO_AXIS_Y  = 1,
-    FXO_AXIS_Z  = 2
+enum FXOS8700CQ_Axis{
+    FXO_AXIS_X  = 4,
+    FXO_AXIS_Y  = 2,
+    FXO_AXIS_Z  = 1
 };
 
-enum FXOS21002C_Interrupt{
-    I_NEW_DATA_FXO  = 1,
-    I_THRESHOLD_FXO = 2,
-    I_FIFO_FXO      = 4
+enum FXOS8700CQ_Interrupt{
+    I_SLEEP_WAKE_FXO    = 1,
+    I_FIFO_FXO          = 2,
+    I_TRANSIENT_FXO     = 4,
+    I_ORIENTATION_FXO   = 8,
+    I_PULSE_FXO         = 16,
+    I_FREEFALL_FXO      = 32,
+    I_ACC_MAG_FXO       = 64,
+    I_NEW_DATA_FXO      = 128,
+    I_MAG_THRESHOLD_FXO = 256,
+    I_MAG_MAG_FXO       = 512,
+    I_MAG_NEW_DATA_FXO  = 1024
 };
 
-enum FXOS21002C_Interrupt_Pin{
+
+enum FXOS8700CQ_Interrupt_Pin{
     FXO_PIN_ONE = 1,
     FXO_PIN_TWO = 0
 };
 
-enum FXOS21002C_Low{
+enum FXOS8700CQ_Low{
                        //OSR=  800 Hz | 400 Hz | 200 Hz | 100 Hz | 50 Hz | 25 Hz | 12.5 Hz |
 FXO_LOW0 = 0b00<<6,    //      256    | 128    | 64     | 32     | 16    | 8     | 4       |                                            
 FXO_LOW1 = 0b01<<6,    //      128    | 64     | 32     | 16     | 8     | 4     | -       |
 FXO_LOW2 = 0b10<<6     //      64     | 32     | 16     | 8      | 4     | -     | -       |
 };
 
-enum FXOS21002C_High{
+enum FXOS8700CQ_High{
     //All the values for an active High Pass also contain the bit that activates High Pass itself.
 
                           //OSR =  800 Hz | 400 Hz | 200 Hz | 100 Hz | 50 Hz | 25 Hz | 12.5 Hz |
@@ -154,7 +163,7 @@ FXO_HIGH3   = 0b111<<2,   //       1.98   | 0.99   | 0.495  | 0.248  | 0.124 | 0
 FXO_HIGHOFF = 0b000<<2
 };
 
-enum FXOS21002C_Range{
+enum FXOS8700CQ_Range{
                                    //  Nominal Sensitivity (mdps/LSB)
     FXO_RANGE2000   = 0b000,       //  62.5
     FXO_RANGE1000   = 0b001,       //  31.25
@@ -164,14 +173,14 @@ enum FXOS21002C_Range{
     FXO_RANGE4000   = 0b100,       //  125.0
 };
 
-enum FXOS21002C_Mode{
-
-    FXO_STANDBY = 0b00,
-    FXO_READY   = 0b01,
-    FXO_ACTIVE  = 0b11
+enum FXOS8700CQ_Mode{
+    FXO_STANDBY = 2,
+    FXO_ACCELEROMETER   = 0,
+    FXO_MAGNETOMETER    = 1,
+    FXO_HYBRID          = 3
 };
 
-enum FXOS21002C_ODR{
+enum FXOS8700CQ_ODR{
     FXO_ODR800 = 0<<2,
     FXO_ODR400 = 1<<2,
     FXO_ODR200 = 2<<2,

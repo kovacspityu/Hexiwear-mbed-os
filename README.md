@@ -12,7 +12,7 @@ The project is based on the [mbed OS](mbed.com), a complete os for arm-based har
 
 To build the project you will need the hexiwear docking station or equivalent programmer.    
 Software wise, you'll need mbed CLI or make use of the mbed online compiler.    
-The most updated instructions will always be available on mbed documentation site, os.mbed.com/docs/    
+The most updated instructions will always be available on [mbed documentation site](os.mbed.com/docs/)    
 
 As of right now, these are the necessary steps:
 * Install mbed CLI through pip, calling

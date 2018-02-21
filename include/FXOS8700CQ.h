@@ -1,36 +1,37 @@
-#ifndef _FXOS21002C_Driver_
-#define _FXOS21002C_Driver_
+#ifndef _FXOS8700CQ_Driver_
+#define _FXOS8700CQ_Driver_
 
 #include "mbed.h"
 #include "FXOS8700CQ_enum.h"
 
-class FXOS21002C{
+class FXOS8700CQ{
 
     public:
-        FXOS21002C(FXOS21002C_Range range = FXO_RANGE2000, FXOS21002C_ODR dataRate = FXO_ODR100);
+        FXOS8700CQ(FXOS8700CQ_Range range = FXO_RANGE2000, FXOS8700CQ_ODR dataRate = FXO_ODR100);
 
         typedef struct{
-            FXOS21002C_Axis axis;
+            FXOS8700CQ_Axis axis;
             float value;
         } mail_t;
         Mail<mail_t, 24> mailBox;
 
         void standby();
-        void setActive();
-        void setReady();
-        FXOS21002C_Mode getStatus();
+        void setAccelerometer();
+        void setMagnetometer();
+        void setHybrid();
+        FXOS8700CQ_Mode getStatus();
         bool isDataAvailable();
 
-        void setRange(FXOS21002C_Range range);
-        void setLowPass(FXOS21002C_Low threshold);
-        void setHighPass(FXOS21002C_High threshold);
-        void setODR(FXOS21002C_ODR dataRate);
+        void setRange(FXOS8700CQ_Range range);
+        void setLowPass(FXOS8700CQ_Low threshold);
+        void setHighPass(FXOS8700CQ_High threshold);
+        void setODR(FXOS8700CQ_ODR dataRate);
 
         float* getAngles();
         float* getRadians();
         int8_t* getTemperature();
-        void setInterrupt(FXOS21002C_Interrupt_Pin pin, FXOS21002C_Interrupt name, void (*function)(), float threshold = 0, int count = 0, bool resetCount = false);
-        void removeInterrupt(FXOS21002C_Interrupt name);
+        void setInterrupt(FXOS8700CQ_Interrupt_Pin pin, FXOS8700CQ_Interrupt name, void (*function)(), float threshold = 0, int count = 0, bool resetCount = false);
+        void removeInterrupt(FXOS8700CQ_Interrupt name);
         
 
     private:
@@ -44,24 +45,24 @@ class FXOS21002C{
         InterruptIn mInterruptTwo;
         Thread mThreadOne;
         Thread mThreadTwo;
-        void interruptWrapper(FXOS21002C_Interrupt_Pin pin);
+        void interruptWrapper(FXOS8700CQ_Interrupt_Pin pin);
         void interruptWrapperOne();
         void interruptWrapperTwo();
-        void (*FXOS21002CInterruptOne)();
-        void (*FXOS21002CInterruptTwo)();
+        void (*FXOS8700CQInterruptOne)();
+        void (*FXOS8700CQInterruptTwo)();
 
         int16_t* getRawData();
-        void dispatchInterruptData(FXOS21002C_Interrupt_Pin pin);
+        void dispatchInterruptData(FXOS8700CQ_Interrupt_Pin pin);
         void dispatchInterruptDataOne();
         void dispatchInterruptDataTwo();
-        void setInterruptFunction(void (*function)(), FXOS21002C_Interrupt_Pin pin);
-        FXOS21002C_Interrupt identifyInterrupt(FXOS21002C_Interrupt_Pin pin);
+        void setInterruptFunction(void (*function)(), FXOS8700CQ_Interrupt_Pin pin);
+        FXOS8700CQ_Interrupt identifyInterrupt(FXOS8700CQ_Interrupt_Pin pin);
 
         float convertToAngle(int16_t rawAngle);
         float convertToRadian(int16_t rawAngle);
 
-        void read(FXOS21002C_Address address, uint8_t *data, int length = 1);
-        int write(FXOS21002C_Address address, uint8_t *data, int length = 1);
+        void read(FXOS8700CQ_Address address, uint8_t *data, int length = 1);
+        int write(FXOS8700CQ_Address address, uint8_t *data, int length = 1);
 
 };
 

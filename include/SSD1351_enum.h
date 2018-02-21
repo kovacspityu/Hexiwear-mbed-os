@@ -38,11 +38,17 @@ enum SSD_Command{
 };
 
 enum SSD_Error{
-    SSD_NO_ERROR                = 0,
-    SSD_OUT_OF_TOP_BORDER       = 1,
-    SSD_OUT_OF_BOTTOM_BORDER    = 2,
-    SSD_OUT_OF_RIGHT_BORDER     = 3,
-    SSD_OUT_OF_LEFT_BORDER      = 4
+    SSD_NO_ERROR                    = 0,
+    SSD_OUT_OF_TOP_BORDER           = 1,
+    SSD_OUT_OF_BOTTOM_BORDER        = 2,
+    SSD_OUT_OF_RIGHT_BORDER         = 4,
+    SSD_OUT_OF_LEFT_BORDER          = 8,
+    SSD_OUT_OF_VERTICAL_BORDERS     = 3,
+    SSD_OUT_OF_TOP_RIGHT_BORDER     = 5,
+    SSD_OUT_OF_TOP_LEFT_BORDER      = 9,
+    SSD_OUT_OF_BOTTOM_RIGHT_BORDER  = 6,
+    SSD_OUT_OF_BOTTOM_LEFT_BORDER   = 10,
+    SSD_OUT_OF_HORIZONTAL_BORDER    = 12
 };
 
 enum SSD_Scrolling_Period{
