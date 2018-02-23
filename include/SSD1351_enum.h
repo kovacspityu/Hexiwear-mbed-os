@@ -48,7 +48,12 @@ enum SSD_Error{
     SSD_OUT_OF_TOP_LEFT_BORDER      = 9,
     SSD_OUT_OF_BOTTOM_RIGHT_BORDER  = 6,
     SSD_OUT_OF_BOTTOM_LEFT_BORDER   = 10,
-    SSD_OUT_OF_HORIZONTAL_BORDER    = 12
+    SSD_OUT_OF_HORIZONTAL_BORDER    = 12,
+    SSD_OUT_ALL_BUT_TOP             = 14,
+    SSD_OUT_ALL_BUT_BOTTOM          = 13,    
+    SSD_OUT_ALL_BUT_RIGHT           = 11,
+    SSD_OUT_ALL_BUT_LEFT            = 7,
+    SSD_OUT_ALL_BORDERS             = 15
 };
 
 enum SSD_Scrolling_Period{

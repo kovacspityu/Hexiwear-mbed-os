@@ -181,12 +181,13 @@ enum FXOS8700CQ_Mode{
 };
 
 enum FXOS8700CQ_ODR{
-    FXO_ODR800 = 0<<2,
-    FXO_ODR400 = 1<<2,
-    FXO_ODR200 = 2<<2,
-    FXO_ODR100 = 3<<2,
-    FXO_ODR50  = 4<<2,
-    FXO_ODR25  = 5<<2,
-    FXO_ODR12  = 6<<2
+    FXO_ODR800 = 0<<3,              // All numbers are approximated for readability, and valid for accelerometer and magnetic mode.
+    FXO_ODR400 = 1<<3,              // In hybrid mode the real ODR is half that expected.
+    FXO_ODR200 = 2<<3,
+    FXO_ODR100 = 3<<3,
+    FXO_ODR50  = 4<<3,
+    FXO_ODR12  = 5<<3,
+    FXO_ODR6   = 6<<3,
+    FXO_ODR1   = 7<<3
 };
 #endif

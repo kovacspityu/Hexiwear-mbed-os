@@ -180,10 +180,10 @@ SSD_Error SSD1351::addText(uint8_t xPosition, uint8_t yPosition, char* text, uin
         if(i && lines[i]){
             char *partialText = new char[lines[i] - lines[i-1]];
             for(uint j=lines[i-1];j<lines[i];j++){
-                partialText[j - lines[i-1]] = lines[j] ;
+                partialText[j - lines[i-1]] = lines[j];
             }
             tempError = addTextInternal(xPosition, yPosition + fnt::fontSizes[textProperties.index], partialText, lines[i] - lines[i-1], topOrBottom, textProperties);
-            error|=tempError;
+            error = static_cast<SSD_Error> (error|tempError);
             delete[] partialText;
         }
     }
@@ -191,43 +191,44 @@ SSD_Error SSD1351::addText(uint8_t xPosition, uint8_t yPosition, char* text, uin
     return error;
 }
 
-SSD_Error SSD1351::addBox(uint8_t xPosition, uint8_t yPosition, uint8_t width, uint8_t height, uint16_t internalColour, uint8_t internalThickness, bool topOrBottom, uint16_t externalColour = 0, uint8_t externalThickness = 0){
-    SDD_Error error = addLine(xPosition + internalThickness, yPosition, width - 2*internalThickness, 0, internalColour, internalThickness, topOrBottom, externalColour, externalThickness);
-    error|=addLine(xPosition + width, yPosition + internalThickness, height - 2*internalThickness, 90, internalColour, internalThickness, topOrBottom, externalColour, externalThickness);
-    error|=addLine(xPosition + internalThickness, yPosition + height, width - 2*internalThickness, 0, internalColour, internalThickness, topOrBottom, externalColour, externalThickness);
-    error|=addLine(xPosition, yPosition + internalThickness, height - 2*internalThickness, 90, internalColour, internalThickness, topOrBottom, externalColour, externalThickness);
+SSD_Error SSD1351::addBox(uint8_t xPosition, uint8_t yPosition, uint8_t width, uint8_t height, uint16_t internalColour, uint8_t internalThickness, bool topOrBottom, uint16_t externalColour, uint8_t externalThickness){
+    SSD_Error error = addLine(xPosition + internalThickness, yPosition, width - 2*internalThickness, 0, internalColour, internalThickness, topOrBottom, externalColour, externalThickness);
+    error = static_cast<SSD_Error> (error|addLine(xPosition + width, yPosition + internalThickness, height - 2*internalThickness, 90, internalColour, internalThickness, topOrBottom, externalColour, externalThickness));
+    error = static_cast<SSD_Error> (error|addLine(xPosition + internalThickness, yPosition + height, width - 2*internalThickness, 0, internalColour, internalThickness, topOrBottom, externalColour, externalThickness));
+    error = static_cast<SSD_Error> (error|addLine(xPosition, yPosition + internalThickness, height - 2*internalThickness, 90, internalColour, internalThickness, topOrBottom, externalColour, externalThickness));
     //Each of the subsequent groups fills in the three areas at the corners on that delimit the box, 
     //in order the one that is vertically outside together with the one that is both vertically and horizontally outside, 
     //the one to the side, and finally the internal corners.
     
     //Left uppermost corner
-    error|=fillArea(xPosition - internalThickness - externalThickness, yPosition - internalThickness - externalThickness, 2*internalThickness + externalThickness, externalThickness, externalColour, topOrBottom);
-    error|=fillArea(xPosition - internalThickness - externalThickness, yPosition - internalThickness, externalThickness, 2*internalThickness, externalColour, topOrBottom);
-    error|=fillArea(xPosition - internalThickness, yPosition - internalThickness, 2*internalThickness, 2*internalThickness, internalColour, topOrBottom);
+    error = static_cast<SSD_Error> (error|fillArea(xPosition - internalThickness - externalThickness, yPosition - internalThickness - externalThickness, 2*internalThickness + externalThickness, externalThickness, externalColour, topOrBottom));
+    error = static_cast<SSD_Error> (error|fillArea(xPosition - internalThickness - externalThickness, yPosition - internalThickness, externalThickness, 2*internalThickness, externalColour, topOrBottom));
+    error = static_cast<SSD_Error> (error|fillArea(xPosition - internalThickness, yPosition - internalThickness, 2*internalThickness, 2*internalThickness, internalColour, topOrBottom));
     //Right uppermost corner
-    error|=fillArea(xPosition + width - internalThickness, yPosition - internalThickness - externalThickness, 2*internalThickness + externalThickness, externalThickness, externalColour, topOrBottom);
-    error|=fillArea(xPosition + width + internalThickness, yPosition - internalThickness, externalThickness, 2*internalThickness, externalColour, topOrBottom);
-    error|=fillArea(xPosition + width - internalThickness, yPosition - internalThickness, 2*internalThickness, 2*internalThickness, internalColour, topOrBottom);
+    error = static_cast<SSD_Error> (error|fillArea(xPosition + width - internalThickness, yPosition - internalThickness - externalThickness, 2*internalThickness + externalThickness, externalThickness, externalColour, topOrBottom));
+    error = static_cast<SSD_Error> (error|fillArea(xPosition + width + internalThickness, yPosition - internalThickness, externalThickness, 2*internalThickness, externalColour, topOrBottom));
+    error = static_cast<SSD_Error> (error|fillArea(xPosition + width - internalThickness, yPosition - internalThickness, 2*internalThickness, 2*internalThickness, internalColour, topOrBottom));
     //Left lowermost corner
-    error|=fillArea(xPosition - internalThickness - externalThickness, yPosition + internalThickness , 2*internalThickness + externalThickness, externalThickness, externalColour, topOrBottom);
-    error|=fillArea(xPosition - internalThickness - externalThickness, yPosition - internalThickness, externalThickness, 2*internalThickness, externalColour, topOrBottom);
-    error|=fillArea(xPosition - internalThickness, yPosition - internalThickness, 2*internalThickness, 2*internalThickness, internalColour, topOrBottom);   
+    error = static_cast<SSD_Error> (error|fillArea(xPosition - internalThickness - externalThickness, yPosition + internalThickness , 2*internalThickness + externalThickness, externalThickness, externalColour, topOrBottom));
+    error = static_cast<SSD_Error> (error|fillArea(xPosition - internalThickness - externalThickness, yPosition - internalThickness, externalThickness, 2*internalThickness, externalColour, topOrBottom));
+    error = static_cast<SSD_Error> (error|fillArea(xPosition - internalThickness, yPosition - internalThickness, 2*internalThickness, 2*internalThickness, internalColour, topOrBottom));   
     //Right lowermost corner
-    error|=fillArea(xPosition + width - internalThickness, yPosition + internalThickness, 2*internalThickness + externalThickness, externalThickness, externalColour, topOrBottom);
-    error|=fillArea(xPosition + width + internalThickness, yPosition - internalThickness, externalThickness, 2*internalThickness, externalColour, topOrBottom);
-    error|=fillArea(xPosition + width - internalThickness, yPosition - internalThickness, 2*internalThickness, 2*internalThickness, internalColour, topOrBottom);
+    error = static_cast<SSD_Error> (error|fillArea(xPosition + width - internalThickness, yPosition + internalThickness, 2*internalThickness + externalThickness, externalThickness, externalColour, topOrBottom));
+    error = static_cast<SSD_Error> (error|fillArea(xPosition + width + internalThickness, yPosition - internalThickness, externalThickness, 2*internalThickness, externalColour, topOrBottom));
+    error = static_cast<SSD_Error> (error|fillArea(xPosition + width - internalThickness, yPosition - internalThickness, 2*internalThickness, 2*internalThickness, internalColour, topOrBottom));
     
     return error;
 }
 
-SSD_Error SSD1351::addTextInBox(char* text, uint16_t textLength, TextProperties_t textProperties, uint8_t xPosition, uint8_t yPosition, uint8_t width, uint8_t height, uint16_t internalColour, uint8_t internalThickness, bool topOrBottom, uint16_t externalColour = 0, uint8_t externalThickness = 0){
+SSD_Error SSD1351::addTextInBox(char* text, uint16_t textLength, TextProperties_t textProperties, uint8_t xPosition, uint8_t yPosition, uint8_t width, uint8_t height, uint16_t internalColour, uint8_t internalThickness, bool topOrBottom, uint16_t externalColour, uint8_t externalThickness){
     SSD_Error error = addBox(xPosition, yPosition, width, height, internalColour, internalThickness, topOrBottom, externalColour, externalThickness);
-    error|=addText(xPosition + internalThickness, yPosition + internalThickness + fnt:fontSizes[textProperties.index], text, textLength, topOrBottom, textProperties);
+    error = static_cast<SSD_Error> (error|addText(xPosition + internalThickness, yPosition + internalThickness + fnt::fontSizes[textProperties.index], text, textLength, topOrBottom, textProperties));
     return error;
 }
 
 SSD_Error SSD1351::addLine(uint8_t xPosition, uint8_t yPosition, uint8_t length, uint16_t angle, uint16_t internalColour, uint8_t internalThickness, bool topOrBottom, uint16_t externalColour, uint8_t externalThickness){
-    SSD_Error error;
+    SSD_Error error = SSD_NO_ERROR;
+    SSD_Error tempError = SSD_NO_ERROR;
     uint8_t internalLength, counter, counter2;
     int8_t transversalDelta, tangentialDelta; 
     calculateLineParameters(angle, length, internalLength, counter, counter2, tangentialDelta, transversalDelta);
@@ -241,13 +242,13 @@ SSD_Error SSD1351::addLine(uint8_t xPosition, uint8_t yPosition, uint8_t length,
             if(i<internalThickness){addLineInternal(coordinates + delta, internalLength, tangentialDelta, transversalDelta, counter, counter2, internalColour, topOrBottom);}
             else{addLineInternal(coordinates + delta, internalLength, tangentialDelta, transversalDelta, counter, counter2, externalColour, topOrBottom);}
             }
-        else{error|=tempError;}
+        else{error = static_cast<SSD_Error> (error|tempError);}
         tempError = boundaryCheck(div(coordinates-delta, SCREEN_SIZE).rem, div(coordinates-delta, SCREEN_SIZE).quot, lround(length*abs(cosAngle)), lround(length*abs(sinAngle)));
         if(tempError==SSD_NO_ERROR){
             if(i<internalThickness){addLineInternal(coordinates - delta, internalLength, tangentialDelta, transversalDelta, counter, counter2, internalColour, topOrBottom);}
             else{addLineInternal(coordinates - delta, internalLength, tangentialDelta, transversalDelta, counter, counter2, externalColour, topOrBottom);}
         }
-        else{error|=tempError;}
+        else{error = static_cast<SSD_Error> (error|tempError);}
         if(abs(angle%90)>CRITICAL_ANGLE_MIN && abs(angle%90)<CRITICAL_ANGLE_MAX){
             delta-=transversalDelta;
         }
@@ -285,22 +286,22 @@ SSD_Error SSD1351::addImageAtBottom(uint16_t *image, uint8_t xPosition, uint8_t 
     return addImage(image, xPosition, yPosition, width, height, false);
 }
 
-SSD_Error fillArea(uint8_t xPosition, uint8_t yPosition, uint8_t width, uint8_t height, uint16_t colour, bool topOrBottom){
+SSD_Error SSD1351::fillArea(uint8_t xPosition, uint8_t yPosition, uint8_t width, uint8_t height, uint16_t colour, bool topOrBottom){
     SSD_Error error=SSD_NO_ERROR;
     SSD_Error tempError=SSD_NO_ERROR;
-    if(xPosition>SCREEN_SIZE){error |= SSD_OUT_OF_RIGHT_BORDER;}
+    if(xPosition>SCREEN_SIZE){error = static_cast<SSD_Error> (error | SSD_OUT_OF_RIGHT_BORDER);}
     if(xPosition+width>SCREEN_SIZE){
         width = SCREEN_SIZE - xPosition;
-        tempError |= SSD_OUT_OF_RIGHT_BORDER
+        tempError = static_cast<SSD_Error> (tempError | SSD_OUT_OF_RIGHT_BORDER);
     }
-    if(yPosition>SCREEN_SIZE){error |= SSD_OUT_OF_BOTTOM_BORDER;}
+    if(yPosition>SCREEN_SIZE){error = static_cast<SSD_Error> (error | SSD_OUT_OF_BOTTOM_BORDER);}
     if(yPosition+height>SCREEN_SIZE){
         height = SCREEN_SIZE - yPosition;
-        tempError |= SSD_OUT_OF_BOTTOM_BORDER;
+        tempError = static_cast<SSD_Error> (tempError | SSD_OUT_OF_BOTTOM_BORDER);
     }
     if(error!=SSD_NO_ERROR){return error;}
     for(uint i=xPosition;i<xPosition+width;i++){
-        for(uint j=yPosition;y<yPosition+height;j++){
+        for(uint j=yPosition;j<yPosition+height;j++){
             if(!topOrBottom && (*activeScreenBuffer)[j*SCREEN_SIZE + i]){continue;}
             else{(*activeScreenBuffer)[j*SCREEN_SIZE + i] = colour;}
         }
@@ -399,10 +400,10 @@ SSD_Error SSD1351::boundaryCheck(uint8_t xPosition, uint8_t yPosition, int16_t d
     int16_t minY = (yPosition < yPosition + deltaY) ? yPosition : yPosition + deltaY;
     int16_t maxY = (yPosition > yPosition + deltaY) ? yPosition : yPosition + deltaY;
     SSD_Error error = SSD_NO_ERROR;
-    if(minX < 0)                {error|= SSD_OUT_OF_LEFT_BORDER;}
-    if(maxX > SCREEN_SIZE - 1)  {error|= SSD_OUT_OF_RIGHT_BORDER;}   
-    if(minY < 0)                {error|= SSD_OUT_OF_TOP_BORDER;}             
-    if(maxY > SCREEN_SIZE - 1)  {error|= SSD_OUT_OF_BOTTOM_BORDER;}
+    if(minX < 0)                {error = static_cast<SSD_Error> (error| SSD_OUT_OF_LEFT_BORDER);}
+    if(maxX > SCREEN_SIZE - 1)  {error = static_cast<SSD_Error> (error| SSD_OUT_OF_RIGHT_BORDER);}   
+    if(minY < 0)                {error = static_cast<SSD_Error> (error| SSD_OUT_OF_TOP_BORDER);}             
+    if(maxY > SCREEN_SIZE - 1)  {error = static_cast<SSD_Error> (error| SSD_OUT_OF_BOTTOM_BORDER);}
     
     if(minX < xStartActive)  {xStartActive = minX;}
     if(maxX > xEndActive)    {xEndActive   = maxX;}

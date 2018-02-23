@@ -20,4 +20,9 @@ struct Font{
 
 typedef Font *FontDatabase;
 
+namespace fnt{
+    extern const uint8_t fontSizes[];
+    extern FontDatabase fontDatabase;
+};
+
 #endif
