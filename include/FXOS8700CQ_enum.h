@@ -139,7 +139,6 @@ enum FXOS8700CQ_Interrupt{
     I_MAG_NEW_DATA_FXO  = 1024
 };
 
-
 enum FXOS8700CQ_Interrupt_Pin{
     FXO_PIN_ONE = 1,
     FXO_PIN_TWO = 0
@@ -190,4 +189,16 @@ enum FXOS8700CQ_ODR{
     FXO_ODR6   = 6<<3,
     FXO_ODR1   = 7<<3
 };
+
+enum FXOS8700CQ_OSR{
+    FXO_OSR_0 = 0,    
+    FXO_OSR_1 = 1,
+    FXO_OSR_2 = 2,
+    FXO_OSR_3 = 3,
+    FXO_OSR_4 = 4,
+    FXO_OSR_5 = 5,
+    FXO_OSR_6 = 6,
+    FXO_OSR_7 = 7
+};
+
 #endif

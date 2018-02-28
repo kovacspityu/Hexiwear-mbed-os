@@ -9,6 +9,7 @@ class FXOS8700CQ{
     public:
         FXOS8700CQ(FXOS8700CQ_Mode mode = FXO_ACCELEROMETER, FXOS8700CQ_Range range = FXO_RANGE2000, FXOS8700CQ_ODR dataRate = FXO_ODR100);
 
+        static const float TEMPERATURE_SENSITIVITY;
         typedef struct{
             FXOS8700CQ_Axis axis;
             float value;
@@ -26,11 +27,11 @@ class FXOS8700CQ{
         void setLowPass(FXOS8700CQ_Low threshold);
         void setHighPass(FXOS8700CQ_High threshold);
         void setODR(FXOS8700CQ_ODR dataRate);
+        void setMagOversample(FXOS8700CQ_OSR oversample);
 
         float* getAcceleration();
         float* getMagnetic();
-        float* getRadians();
-        int8_t* getTemperature();
+        float getTemperature();
         void setInterrupt(FXOS8700CQ_Interrupt_Pin pin, FXOS8700CQ_Interrupt name, void (*function)(), float threshold = 0, int count = 0, bool resetCount = false);
         void removeInterrupt(FXOS8700CQ_Interrupt name);
         
@@ -56,14 +57,15 @@ class FXOS8700CQ{
 
         int16_t* getRawAcceleration();
         int16_t* getRawMagnetic();
+        
         void dispatchInterruptData(FXOS8700CQ_Interrupt_Pin pin);
         void dispatchInterruptDataOne();
         void dispatchInterruptDataTwo();
         void setInterruptFunction(void (*function)(), FXOS8700CQ_Interrupt_Pin pin);
         FXOS8700CQ_Interrupt identifyInterrupt(FXOS8700CQ_Interrupt_Pin pin);
 
-        float convertAcceleration(int16_t rawAcc);
-        float convertMagnetic(int16_t rawMag);
+        float convertAcceleration(int16_t *rawAcc);
+        float convertMagnetic(int16_t *rawMag);
 
         void read(FXOS8700CQ_Address address, uint8_t *data, int length = 1);
         int write(FXOS8700CQ_Address address, uint8_t *data, int length = 1);
