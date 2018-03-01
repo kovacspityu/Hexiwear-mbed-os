@@ -2,6 +2,8 @@
 #include "W25Q64FV.h"
 #include "mbed.h"
 
+using namespace W25;
+
 W25Q64FV::W25Q64FV() : mSPI(PTD6, PTD7, PTD5, NC), chipSelect(PTD4){
     mSPI.frequency(8000000);
     mSPI.format(8, 0);
@@ -18,7 +20,7 @@ int W25Q64FV::deinit(){
 
 int W25Q64FV::read(void *buffer, bd_addr_t addr, bd_size_t size){
     char data[4];
-    data[0] = W25_READ;
+    data[0] = READ;
     for(uint8_t i=0;i<3;i++){
         data[i+1] = (addr>>(2-i))&0xF;
     } 
@@ -33,13 +35,13 @@ int W25Q64FV::program(const void *buffer, bd_addr_t addr, bd_size_t size){
     char data[4];
     char dummy;
     int result1, result2;
-    data[0] = W25_WRITE_PAGE;
+    data[0] = WRITE_PAGE;
     for(uint8_t i=0;i<3;i++){
         data[i+1] = (addr>>(2-i))&0xF;
     }
     while(isBusy()) ;
     chipSelect = 0;
-    mSPI.write(W25_WRITE_EN);
+    mSPI.write(WRITE_EN);
     chipSelect = 1;
     chipSelect = 0;
     result1 = mSPI.write(data, 4, &dummy, 0);
@@ -56,15 +58,15 @@ int W25Q64FV::erase(bd_addr_t addr, bd_size_t size){
     uint factor;
     while(size>0){   
         if(size > 64000){
-            data[0] = W25_LONG_WORD_ERASE;
+            data[0] = LONG_WORD_ERASE;
             factor = 64000;
         }
         else if(size>32000){
-            data[0] = W25_WORD_ERASE;
+            data[0] = WORD_ERASE;
             factor = 32000;
         }
         else{
-            data[0] = W25_SECTOR_ERASE;
+            data[0] = SECTOR_ERASE;
             factor = 4000;
         }
         for(uint8_t i=0;i<3;i++){
@@ -72,7 +74,7 @@ int W25Q64FV::erase(bd_addr_t addr, bd_size_t size){
         }
         while(isBusy()) ;
         chipSelect = 0;
-        mSPI.write(W25_WRITE_EN);
+        mSPI.write(WRITE_EN);
         chipSelect = 1;
         chipSelect = 0;
         tempResult = mSPI.write(data, 4, &dummy, 0);
@@ -102,7 +104,7 @@ bd_size_t W25Q64FV::size(){
 
 bool W25Q64FV::isBusy(){
     char result, data;
-    data = W25_READ_STATUS_1;
+    data = READ_STATUS_1;
     chipSelect = 0;
     mSPI.write(&data, 1, &result, 1);
     chipSelect = 1;

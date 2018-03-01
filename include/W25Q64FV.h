@@ -5,6 +5,8 @@
 #include "mbed.h"
 #include "BlockDevice.h"
 
+using namespace W25;
+
 class W25Q64FV : public BlockDevice{
     public:
         W25Q64FV();

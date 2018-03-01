@@ -3,6 +3,7 @@
 #include "mbed.h"
 #include "rtos.h"
 
+using namespace TSL;
 
 TSL2561::TSL2561(TSL2561_Gain gain, TSL2561_Os_Rate rate) : mPower(PTB12),
 mI2C(PTB1, PTB0), mInterrupt(PTC0), mAddress(0x52), mGain(gain), mRate(rate)
@@ -11,13 +12,13 @@ mI2C(PTB1, PTB0), mInterrupt(PTC0), mAddress(0x52), mGain(gain), mRate(rate)
     mI2C.frequency(400000);
     powerUp();
     uint8_t data = (gain<<4) | rate;
-    write(TSL_TIMING, &data);
+    write(TIMING, &data);
     wait();
 }
 
 bool TSL2561::isActive(){
     uint8_t data;
-    read(TSL_CONTROL, &data);
+    read(CONTROL, &data);
     return data;
 }
 
@@ -29,12 +30,12 @@ float TSL2561::getLux(){
 
 void TSL2561::powerUp(){
     uint8_t data = 3;
-    write(TSL_CONTROL, &data);
+    write(CONTROL, &data);
 }
 
 void TSL2561::powerDown(){
     uint8_t data = 0;
-    write(TSL_CONTROL, &data);
+    write(CONTROL, &data);
 }
 
 void TSL2561::reset(){
@@ -48,19 +49,19 @@ void TSL2561::reset(){
 
 void TSL2561::setGain(TSL2561_Gain gain){
     uint8_t data;
-    read(TSL_TIMING, &data);
+    read(TIMING, &data);
     if(gain){data |= (gain<<4);}
     else{ data &= ~(gain<<4);}
-    write(TSL_TIMING, &data);
+    write(TIMING, &data);
     mGain = gain;
 }
 
 void TSL2561::setOSRate(TSL2561_Os_Rate rate){
     uint8_t data;
-    read(TSL_TIMING, &data);
+    read(TIMING, &data);
     data &= ~(3);
     data |= rate;
-    write(TSL_TIMING, &data);
+    write(TIMING, &data);
     mRate = rate;
     wait();
 }
@@ -77,17 +78,17 @@ void TSL2561::setInterrupt(int lowPercentage, int highPercentage, TSL2561_Interr
     data[3] = uint8_t(lround(((data[1] / 100) * highPercentage)));
     data[0] = uint8_t(lround(((data[0] / 100) * lowPercentage)));
     data[1] = uint8_t(lround(((data[1] / 100) * lowPercentage)));
-    write(TSL_LOW_THRESHOLD_LSB, data, 4);
+    write(LOW_THRESHOLD_LSB, data, 4);
     uint8_t dummy = persistance | (1<<4);
     mInterrupt.rise(callback(this, &TSL2561::dispatchInterruptData));
-    write(TSL_INTERRUPT, &dummy);
+    write(INTERRUPT, &dummy);
     setInterruptFunction(function);
 }
 
 void TSL2561::removeInterrupt(){
     uint8_t dummy = 0;
     mThread.terminate();
-    write(TSL_INTERRUPT, &dummy);
+    write(INTERRUPT, &dummy);
     mInterruptFunction = NULL;
 }
 
@@ -99,7 +100,7 @@ void TSL2561::clearInterrupt(){
 void TSL2561::setDebugInterrupt(void (*function)()){
     mInterrupt.rise(callback(this, &TSL2561::dispatchInterruptData));
     uint8_t data = 3<<4;
-    write(TSL_INTERRUPT, &data);
+    write(INTERRUPT, &data);
     setInterruptFunction(function);
 }
 
@@ -122,7 +123,7 @@ void TSL2561::interruptWrapper(){
 
 
 void TSL2561::getRawLux(uint8_t *rawLight){
-    read(TSL_WHOLE_DATA_LSB, rawLight, 4);
+    read(WHOLE_DATA_LSB, rawLight, 4);
 }
 
 float TSL2561::formatLux(uint8_t *light){
@@ -134,17 +135,17 @@ float TSL2561::formatLux(uint8_t *light){
         irLight<<=4;
     }
     switch(mRate){
-        case TSL_OS_14MS :{
+        case OS_14MS :{
             allLightF = ((float) allLight) * 0.034;
             irLightF = ((float) irLight) * 0.034;
             break;
         }
-        case TSL_OS_100MS :{
+        case OS_100MS :{
             allLightF = ((float) allLight) * 0.252;
             irLightF = ((float ) irLight) * 0.252;
             break;
         }
-        case TSL_OS_400MS :{
+        case OS_400MS :{
             allLightF = (float) allLight;
             irLightF = (float) irLight;
             break;
@@ -175,28 +176,28 @@ void TSL2561::dispatchInterruptData(){
 
 void TSL2561::dispatchWrongSensitivity(float lux){
     if(lux<0.1f){
-        if(mGain == TSL_LOW_GAIN){setGain(TSL_HIGH_GAIN);}
-        else{if(mRate!=TSL_OS_400MS){setOSRate((TSL2561_Os_Rate)(mRate+1));}}
+        if(mGain == LOW_GAIN){setGain(HIGH_GAIN);}
+        else{if(mRate!=OS_400MS){setOSRate((TSL2561_Os_Rate)(mRate+1));}}
         return;
     }
     if(lux>=20500){
-            if((mRate==TSL_OS_14MS)&&(mGain==TSL_HIGH_GAIN)){setGain(TSL_LOW_GAIN);}
-            else if(mRate!=TSL_OS_14MS){setOSRate((TSL2561_Os_Rate)(mRate-1));}
+            if((mRate==OS_14MS)&&(mGain==HIGH_GAIN)){setGain(LOW_GAIN);}
+            else if(mRate!=OS_14MS){setOSRate((TSL2561_Os_Rate)(mRate-1));}
     }
 }
 
 void TSL2561::wait(){
     int waitingTime;
     switch(mRate){
-        case TSL_OS_14MS: {
+        case OS_14MS: {
             waitingTime = 14;
             break;
         }
-        case TSL_OS_100MS: {
+        case OS_100MS: {
             waitingTime = 101;
             break;
         }
-        case TSL_OS_400MS: {
+        case OS_400MS: {
             waitingTime = 402;
             break;
         }

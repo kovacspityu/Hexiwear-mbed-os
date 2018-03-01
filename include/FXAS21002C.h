@@ -4,10 +4,12 @@
 #include "mbed.h"
 #include "FXAS21002C_enum.h"
 
+using namespace FXA;
+
 class FXAS21002C{
 
     public:
-        FXAS21002C(FXAS21002C_Range range = FXA_RANGE2000, FXAS21002C_ODR dataRate = FXA_ODR100);
+        FXAS21002C(FXAS21002C_Range range = RANGE2000, FXAS21002C_ODR dataRate = ODR100);
 
         typedef struct{
             FXAS21002C_Axis axis;

@@ -8,11 +8,13 @@
 #define MIN_HEART_FREQUENCY 50u
 #define MAX_HEART_FREQUENCY 200u
 
+using namespace MAX;
+
 class MAX30101{
     public:
-        MAX30101(MAX30101_Mode mode = MAX_HR_MODE, MAX30101_Oversample oversample = MAX_OVERSAMPLE_1,
-bool fifoRollover = false, uint8_t fifoThreshold = 0, MAX30101_Led slot1 = MAX_LED_RED, MAX30101_Led slot2 = MAX_LED_NONE,
-MAX30101_Led slot3 = MAX_LED_NONE, MAX30101_Led slot4 = MAX_LED_NONE);
+        MAX30101(MAX30101_Mode mode = HR_MODE, MAX30101_Oversample oversample = OVERSAMPLE_1,
+bool fifoRollover = false, uint8_t fifoThreshold = 0, MAX30101_Led slot1 = RED_LED, MAX30101_Led slot2 = NONE_LED,
+MAX30101_Led slot3 = NONE_LED, MAX30101_Led slot4 = NONE_LED);
 
         ~MAX30101();
         
@@ -47,9 +49,9 @@ MAX30101_Led slot3 = MAX_LED_NONE, MAX30101_Led slot4 = MAX_LED_NONE);
         void setOversample(MAX30101_Oversample oversample);
         void setFIFORollover(bool fifoRollover);
         void setFIFOThreshold(uint8_t fifoThreshold);
-        void setMode(MAX30101_Mode mode, MAX30101_Led slot1 = MAX_LED_NONE, 
-            MAX30101_Led slot2 = MAX_LED_NONE, MAX30101_Led slot3 = MAX_LED_NONE, 
-            MAX30101_Led slot4 = MAX_LED_NONE);
+        void setMode(MAX30101_Mode mode, MAX30101_Led slot1 = NONE_LED, 
+            MAX30101_Led slot2 = NONE_LED, MAX30101_Led slot3 = NONE_LED, 
+            MAX30101_Led slot4 = NONE_LED);
         void setPulseAmplitude(uint8_t redAmplitude, uint8_t irAmplitude, 
                             uint8_t greenAmplitude = 0, uint8_t pilotAmplitude = 0);
         void setPulseWidth(MAX30101_Pulse_Width width);
@@ -87,9 +89,9 @@ MAX30101_Led slot3 = MAX_LED_NONE, MAX30101_Led slot4 = MAX_LED_NONE);
         void dispatchInterruptData();
 
         void clearFIFOCounters();
-        void updateChannels(MAX30101_Mode mode, MAX30101_Led slot1 = MAX_LED_NONE, 
-                            MAX30101_Led slot2 = MAX_LED_NONE, MAX30101_Led slot3 = MAX_LED_NONE, 
-                            MAX30101_Led slot4 = MAX_LED_NONE);
+        void updateChannels(MAX30101_Mode mode, MAX30101_Led slot1 = NONE_LED, 
+                            MAX30101_Led slot2 = NONE_LED, MAX30101_Led slot3 = NONE_LED, 
+                            MAX30101_Led slot4 = NONE_LED);
         
         int write(MAX30101_Address address, uint8_t *data, int length = 1);
         void read(MAX30101_Address address, uint8_t *data, int length = 1);

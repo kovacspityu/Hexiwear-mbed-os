@@ -3,10 +3,12 @@
 #include "HTU21D_enum.h"
 #include "mbed.h"
 
+using namespace HTU;
+
 class HTU21D{
 
     public:
-        HTU21D(HTU21D_Resolution resolution = HTU_H12_T14);
+        HTU21D(HTU21D_Resolution resolution = H12_T14);
         float waitForTemperature();
         float waitForHumidity();
         float getTemperature();

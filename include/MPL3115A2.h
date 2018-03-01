@@ -3,6 +3,8 @@
 #include "MPL3115A2_enum.h"
 #include "mbed.h"
 
+using namespace MPL;
+
 /*! @class MPL3115A2 
 Class that implements the MPL3115A2 sensor. */
 class MPL3115A2
@@ -13,7 +15,7 @@ class MPL3115A2
     @param ratio The ratio the sensor starts in, defaults to OS_512_MS
     @param timeStep The time step the sensor starts in, defaults to TS_1S
     */
-    MPL3115A2(MPL3315A2_Mode mode = MPL_BAROMETER, MPL3315A2_Os_Ratio ratio = MPL_OS_512_MS, MPL3115A2_Time_Step timeStep = MPL_TS_1S);
+    MPL3115A2(MPL3315A2_Mode mode = BAROMETER, MPL3315A2_Os_Ratio ratio = OS_512_MS, MPL3115A2_Time_Step timeStep = TS_1S);
 
     /*! @struct mail_t Contains a single sensor measurement.
     */

@@ -5,6 +5,8 @@
 #include <algorithm>
 #include "arm_math.h"
 
+using namespace MAX;
+
 MAX30101::MAX30101(MAX30101_Mode mode, MAX30101_Oversample oversample,
     bool fifoRollover, uint8_t fifoThreshold, MAX30101_Led slot1, MAX30101_Led slot2,
     MAX30101_Led slot3, MAX30101_Led slot4) : mPower(PTA29), mI2C(PTB1, PTB0),
@@ -14,16 +16,16 @@ MAX30101::MAX30101(MAX30101_Mode mode, MAX30101_Oversample oversample,
     reset();
     updateChannels(mode, slot1, slot2, slot3, slot4);
     uint8_t data = mode;
-    write(MAX_MODE_CONFIG, &data);
+    write(MODE_CONFIG, &data);
     data = fifoThreshold + (((uint) fifoRollover)<<4) + (oversample<<5);
-    write(MAX_FIFO_CONFIG, &data);
+    write(FIFO_CONFIG, &data);
     clearFIFOCounters();
-    if(mode==MAX_OX_MODE){
+    if(mode==OX_MODE){
         mTicker.attach(callback(this, &MAX30101::startTemperatureMeasurement), 1);
         startTemperatureMeasurement();
     }
     uint8_t *dummy = new uint8_t[2];
-    read(MAX_INTERRUPT_STATUS, dummy, 2);
+    read(INTERRUPT_STATUS, dummy, 2);
     delete[] dummy;
     dummy=0;
 }
@@ -34,24 +36,24 @@ MAX30101::~MAX30101(){
 
 void MAX30101::standby(){
     uint8_t data;
-    read(MAX_MODE_CONFIG, &data);
+    read(MODE_CONFIG, &data);
     data|=1<<7;
-    write(MAX_MODE_CONFIG, &data);
+    write(MODE_CONFIG, &data);
 }
 
 void MAX30101::powerUp(){
     mPower = 1;
     uint8_t data;
-    read(MAX_MODE_CONFIG, &data);
+    read(MODE_CONFIG, &data);
     data&=127;
-    write(MAX_MODE_CONFIG, &data);
+    write(MODE_CONFIG, &data);
 }
 
 void MAX30101::reset(){
     uint8_t data;
-    read(MAX_MODE_CONFIG, &data);
+    read(MODE_CONFIG, &data);
     data|=1<<6;
-    write(MAX_MODE_CONFIG, &data);
+    write(MODE_CONFIG, &data);
 }
 
 void MAX30101::powerDown(){
@@ -102,19 +104,19 @@ MAX30101::mail_t *MAX30101::getData(uint8_t numberOfSamples){
     }
     else{
         uint8_t fifoWrite, fifoRead, fifoOverflow;
-        read(MAX_FIFO_OVERFLOW_CTR, &fifoOverflow);
+        read(FIFO_OVERFLOW_CTR, &fifoOverflow);
         if(fifoOverflow){
             numberOfSamples = 32;
         }
         else{
-            read(MAX_FIFO_WRITE_PTR, &fifoWrite);
-            read(MAX_FIFO_READ_PTR, &fifoRead);
+            read(FIFO_WRITE_PTR, &fifoWrite);
+            read(FIFO_READ_PTR, &fifoRead);
             numberOfSamples = (32 + fifoWrite - fifoRead) % 32;
         }
     }
     if(numberOfSamples){
         uint8_t *data= new uint8_t[3 * mSampleTemplate.length * numberOfSamples];
-        read(MAX_FIFO_DATA, data, 3 * mSampleTemplate.length * numberOfSamples);
+        read(FIFO_DATA, data, 3 * mSampleTemplate.length * numberOfSamples);
         mail_t* samples = new mail_t[numberOfSamples];
         for(int i=0;i<numberOfSamples;i++){
             samples[i].ledSamples = new ledSample_t[mSampleTemplate.length];
@@ -136,38 +138,38 @@ MAX30101::mail_t *MAX30101::getData(uint8_t numberOfSamples){
 
 void MAX30101::setOversample(MAX30101_Oversample oversample){
     uint8_t data;
-    read(MAX_FIFO_CONFIG, &data);
+    read(FIFO_CONFIG, &data);
     data&=0x1F;
     data|=oversample;
-    write(MAX_FIFO_CONFIG, &data);
+    write(FIFO_CONFIG, &data);
 }
 
 void MAX30101::setFIFORollover(bool fifoRollover){
     uint8_t data;
-    read(MAX_FIFO_CONFIG, &data);
+    read(FIFO_CONFIG, &data);
     data&=0xEF;
     if(fifoRollover){data|=1<<4;}
-    write(MAX_FIFO_CONFIG, &data);
+    write(FIFO_CONFIG, &data);
 }
 
 void MAX30101::setFIFOThreshold(uint8_t fifoThreshold){
     fifoThreshold=min(fifoThreshold, (uint8_t) 15);
     uint8_t data;
-    read(MAX_FIFO_CONFIG, &data);
+    read(FIFO_CONFIG, &data);
     data&=0xF0;
     data|=fifoThreshold;
-    write(MAX_FIFO_CONFIG, &data);
+    write(FIFO_CONFIG, &data);
 }
 
 void MAX30101::setMode(MAX30101_Mode mode, MAX30101_Led slot1, 
     MAX30101_Led slot2, MAX30101_Led slot3, MAX30101_Led slot4){
     uint8_t data;
-    read(MAX_MODE_CONFIG, &data);
+    read(MODE_CONFIG, &data);
     data&=0xF8;
     data|=mode;
-    write(MAX_MODE_CONFIG, &data);
+    write(MODE_CONFIG, &data);
     clearFIFOCounters();
-    if(mode == MAX_MULTI_MODE && (slot1||slot2||slot3||slot4) ){
+    if(mode == MULTI_MODE && (slot1||slot2||slot3||slot4) ){
         setMultiLedTiming(slot1, slot2, slot3, slot4);
     }
     else{updateChannels(mode, slot1, slot2, slot3, slot4);}
@@ -179,50 +181,50 @@ void MAX30101::setPulseAmplitude(uint8_t redAmplitude, uint8_t irAmplitude,
     data[0] = redAmplitude;
     data[1] = irAmplitude;
     data[2] = greenAmplitude;
-    write(MAX_LED_CONFIG, data, 3);
-    write(MAX_P_LED_CONFIG, &pilotAmplitude);
+    write(LED_CONFIG, data, 3);
+    write(P_LED_CONFIG, &pilotAmplitude);
     delete[] data;
     data = 0;
 }
 
 void MAX30101::setPulseWidth(MAX30101_Pulse_Width width){
     uint8_t data;
-    read(MAX_OXYGEN_CONFIG, &data);
+    read(OXYGEN_CONFIG, &data);
     data&=0xFC;
     data|=width;
-    write(MAX_OXYGEN_CONFIG, &data); 
+    write(OXYGEN_CONFIG, &data); 
 }
 
 void MAX30101::setOxygenRate(MAX30101_Oxygen_Rate rate){
     uint8_t data;
-    read(MAX_OXYGEN_CONFIG, &data);
+    read(OXYGEN_CONFIG, &data);
     data&=0xE3;
     data|=rate<<3;
-    write(MAX_OXYGEN_CONFIG, &data);
+    write(OXYGEN_CONFIG, &data);
     mSampleRate = rate;
 }
 
 void MAX30101::setOxygenRange(MAX30101_Oxygen_Range range){
     uint8_t data;
-    read(MAX_OXYGEN_CONFIG, &data);
+    read(OXYGEN_CONFIG, &data);
     data&=0x9F;
     data|=range<<5;
-    write(MAX_OXYGEN_CONFIG, &data);
+    write(OXYGEN_CONFIG, &data);
 }
 
 void MAX30101::setProximityDelay(uint8_t delay){
-    write(MAX_LED_TIMING, &delay);
+    write(LED_TIMING, &delay);
 }
 
 void MAX30101::setMultiLedTiming(MAX30101_Led slot1, MAX30101_Led slot2, MAX30101_Led slot3, MAX30101_Led slot4){
-    setMode(MAX_MULTI_MODE);
+    setMode(MULTI_MODE);
     uint8_t *data = new uint8_t[2];
     data[0] = slot1 + (slot2<<4);
     data[1] = slot3 + (slot4<<4);
-    write(MAX_LED_TIMING, data, 2);
+    write(LED_TIMING, data, 2);
     delete[] data;
     data = 0;
-    updateChannels(MAX_MULTI_MODE, slot1, slot2, slot3, slot4);
+    updateChannels(MULTI_MODE, slot1, slot2, slot3, slot4);
 }
 
 
@@ -230,21 +232,21 @@ void MAX30101::setMultiLedTiming(MAX30101_Led slot1, MAX30101_Led slot2, MAX3010
 void MAX30101::setInterrupt(MAX30101_Interrupt interrupt, void (*function)(), uint8_t threshold, bool fifoRollover){
     if(interrupt!=1){
         uint8_t *data = new uint8_t[2];
-        read(MAX_INTERRUPT_CONFIG, data, 2);
+        read(INTERRUPT_CONFIG, data, 2);
         if(interrupt == 2){
             data[1]|=interrupt;
         }
         else{
             data[0]|=interrupt;
         }
-        write(MAX_INTERRUPT_CONFIG, data, 2);
+        write(INTERRUPT_CONFIG, data, 2);
         switch(interrupt){
-            case I_FIFO_FULL_MAX: {
+            case I_FIFO_FULL: {
                 setFIFOThreshold(threshold);
                 setFIFORollover(fifoRollover);
                 break;
             }
-            case I_START_MAX: {
+            case I_START: {
                 setProximityDelay(threshold);
                 break;
             }
@@ -262,14 +264,14 @@ void MAX30101::setInterrupt(MAX30101_Interrupt interrupt, void (*function)(), ui
 void MAX30101::removeInterrupt(MAX30101_Interrupt interrupt){
     if(interrupt==1){return;}
     uint8_t *data = new uint8_t[2];
-    read(MAX_INTERRUPT_CONFIG, data, 2);
+    read(INTERRUPT_CONFIG, data, 2);
     if(interrupt == 2){
         data[1]&=~interrupt;
     }
     else{
         data[0]&=~interrupt;
     }
-    write(MAX_INTERRUPT_CONFIG, data, 2);
+    write(INTERRUPT_CONFIG, data, 2);
     if(data[0]==0 && data[1]==2){
         mInterrupt.fall(NULL);
         mInterruptFunction = NULL;
@@ -292,7 +294,7 @@ uint8_t MAX30101::combineLeds(uint8AndFloat* leds, uint8_t length){
 
 float MAX30101::getTemperature(){
     uint8_t *data = new uint8_t[2];
-    read(MAX_TEMPERATURE, data, 2);
+    read(TEMPERATURE, data, 2);
     float result = (int8_t) data[0] + data[1] * 0.0625; 
     //TODO This measures the average temperature, still need to add the correction
     //due to the red led duty cycle.
@@ -305,7 +307,7 @@ float MAX30101::getTemperature(){
 
 void MAX30101::startTemperatureMeasurement(){
     uint8_t data = 1;
-    write(MAX_TEMPERATURE_START, &data);
+    write(TEMPERATURE_START, &data);
 }
 
 
@@ -319,20 +321,20 @@ void MAX30101::interruptWrapper(){
     while(1){
         Thread::signal_wait(0x01);
         uint8_t *data = new uint8_t[2];
-        read(MAX_INTERRUPT_STATUS, data, 2);
+        read(INTERRUPT_STATUS, data, 2);
         switch(data[0]){
-            case I_FIFO_FULL_MAX:{//Falls into the next case
+            case I_FIFO_FULL:{//Falls into the next case
             }
-            case I_NEW_DATA_MAX:{
+            case I_NEW_DATA:{
                 uint8_t fifoOverflow, sampleNumber;
-                read(MAX_FIFO_OVERFLOW_CTR, &fifoOverflow);
+                read(FIFO_OVERFLOW_CTR, &fifoOverflow);
                 if(fifoOverflow){
                     sampleNumber = 32;
                 }
                 else{
                     uint8_t fifoWrite, fifoRead;
-                    read(MAX_FIFO_WRITE_PTR, &fifoWrite);
-                    read(MAX_FIFO_READ_PTR, &fifoRead);
+                    read(FIFO_WRITE_PTR, &fifoWrite);
+                    read(FIFO_READ_PTR, &fifoRead);
                     sampleNumber = (32 + fifoWrite - fifoRead) % 32;
                 }
                 if(sampleNumber){
@@ -352,15 +354,15 @@ void MAX30101::interruptWrapper(){
                 }
             break;
             }
-            case I_LIGHT_MAX:{
+            case I_LIGHT:{
                 //TODO
                 break;
             }
-            case I_POWER_UP_MAX:{
+            case I_POWER_UP:{
                 //TODO
                 break;
             }
-            case I_START_MAX:{
+            case I_START:{
                 //TODO 
                 break;
             }
@@ -381,27 +383,27 @@ void MAX30101::dispatchInterruptData(){
 
 void MAX30101::updateChannels(MAX30101_Mode mode, MAX30101_Led slot1, 
     MAX30101_Led slot2, MAX30101_Led slot3, MAX30101_Led slot4){
-    //TODO The docs are vague on whether the MAX_HR_MODE can use 
+    //TODO The docs are vague on whether the HR_MODE can use 
     //other leds than the red one.
     if(mSampleTemplate.ledSamples!=NULL){
         delete[] mSampleTemplate.ledSamples;
         mSampleTemplate.ledSamples = 0;
     }
     switch(mode){
-        case MAX_HR_MODE:{
+        case HR_MODE:{
             mSampleTemplate.length = 1;
             mSampleTemplate.ledSamples = new ledSample_t[1];
-            mSampleTemplate.ledSamples[0].ledType = MAX_LED_RED;
+            mSampleTemplate.ledSamples[0].ledType = RED_LED;
             break;
         }
-        case MAX_OX_MODE:{
+        case OX_MODE:{
             mSampleTemplate.length = 2;
             mSampleTemplate.ledSamples = new ledSample_t[2];
-            mSampleTemplate.ledSamples[0].ledType = MAX_LED_RED;
-            mSampleTemplate.ledSamples[1].ledType = MAX_LED_IR;
+            mSampleTemplate.ledSamples[0].ledType = RED_LED;
+            mSampleTemplate.ledSamples[1].ledType = IR_LED;
             break;
         }
-        case MAX_MULTI_MODE:{
+        case MULTI_MODE:{
             //TODO The worst of spaghetti code, need to find some way to make a slot array and give it default values
             mSampleTemplate.length = 0;
             if(slot1){
@@ -417,7 +419,7 @@ void MAX30101::updateChannels(MAX30101_Mode mode, MAX30101_Led slot1,
                     else{
                         if(slot4){
                             slot3=slot4;
-                            slot4=MAX_LED_NONE;
+                            slot4=NONE_LED;
                             mSampleTemplate.length++;
                         }
                     }
@@ -425,11 +427,11 @@ void MAX30101::updateChannels(MAX30101_Mode mode, MAX30101_Led slot1,
                 else {
                     if(slot3){
                         slot2=slot3;
-                        slot3=MAX_LED_NONE;
+                        slot3=NONE_LED;
                         mSampleTemplate.length++;
                         if(slot4){
                             slot3=slot4;
-                            slot4=MAX_LED_NONE;
+                            slot4=NONE_LED;
                             mSampleTemplate.length++;
                             break;
                         }
@@ -437,7 +439,7 @@ void MAX30101::updateChannels(MAX30101_Mode mode, MAX30101_Led slot1,
                     else {
                         if(slot4){
                             slot2=slot4;
-                            slot4=MAX_LED_NONE;
+                            slot4=NONE_LED;
                             mSampleTemplate.length++;
                         }
                     }
@@ -446,21 +448,21 @@ void MAX30101::updateChannels(MAX30101_Mode mode, MAX30101_Led slot1,
             else{
                 if(slot2){
                     slot1=slot2;
-                    slot2=MAX_LED_NONE;
+                    slot2=NONE_LED;
                     mSampleTemplate.length++;
                     if(slot3){
                         slot2=slot3;
-                        slot3=MAX_LED_NONE;
+                        slot3=NONE_LED;
                         if(slot4){
                             slot3=slot4;
-                            slot4=MAX_LED_NONE;
+                            slot4=NONE_LED;
                             mSampleTemplate.length++;
                         }
                     }
                     else{
                         if(slot4){
                             slot2=slot4;
-                            slot4=MAX_LED_NONE;
+                            slot4=NONE_LED;
                             mSampleTemplate.length++;
                         }
                     }
@@ -468,11 +470,11 @@ void MAX30101::updateChannels(MAX30101_Mode mode, MAX30101_Led slot1,
                 else {
                     if(slot3){
                         slot1=slot3;
-                        slot3=MAX_LED_NONE;
+                        slot3=NONE_LED;
                         mSampleTemplate.length++;
                         if(slot4){
                             slot2=slot4;
-                            slot4=MAX_LED_NONE;
+                            slot4=NONE_LED;
                             mSampleTemplate.length++;
                             break;
                         }
@@ -480,7 +482,7 @@ void MAX30101::updateChannels(MAX30101_Mode mode, MAX30101_Led slot1,
                     else {
                         if(slot4){
                             slot1=slot4;
-                            slot4=MAX_LED_NONE;
+                            slot4=NONE_LED;
                             mSampleTemplate.length++;
                         }
                     }
@@ -509,9 +511,9 @@ void MAX30101::updateChannels(MAX30101_Mode mode, MAX30101_Led slot1,
 
 void MAX30101::clearFIFOCounters(){
     uint8_t data = 0;
-    write(MAX_FIFO_READ_PTR, &data);
-    write(MAX_FIFO_OVERFLOW_CTR, &data);
-    write(MAX_FIFO_WRITE_PTR, &data);
+    write(FIFO_READ_PTR, &data);
+    write(FIFO_OVERFLOW_CTR, &data);
+    write(FIFO_WRITE_PTR, &data);
 }
 
 void MAX30101::read(MAX30101_Address address, uint8_t* data, int length){

@@ -4,10 +4,12 @@
 #include "mbed.h"
 #include "FXOS8700CQ_enum.h"
 
+using namespace FXO;
+
 class FXOS8700CQ{
 
     public:
-        FXOS8700CQ(FXOS8700CQ_Mode mode = FXO_ACCELEROMETER, FXOS8700CQ_Range range = FXO_RANGE2000, FXOS8700CQ_ODR dataRate = FXO_ODR100);
+        FXOS8700CQ(FXOS8700CQ_Mode mode = ACCELEROMETER, FXOS8700CQ_Range range = RANGE2000, FXOS8700CQ_ODR dataRate = ODR100);
 
         static const float TEMPERATURE_SENSITIVITY;
         typedef struct{
@@ -16,6 +18,7 @@ class FXOS8700CQ{
         } mail_t;
         Mail<mail_t, 24> mailBox;
 
+        void setMode(FXOS8700CQ_Mode mode);
         void standby();
         void setAccelerometer();
         void setMagnetometer();
@@ -55,8 +58,8 @@ class FXOS8700CQ{
         void (*FXOS8700CQInterruptOne)();
         void (*FXOS8700CQInterruptTwo)();
 
-        int16_t* getRawAcceleration();
-        int16_t* getRawMagnetic();
+        uint8_t* getRawAcceleration();
+        uint8_t* getRawMagnetic();
         
         void dispatchInterruptData(FXOS8700CQ_Interrupt_Pin pin);
         void dispatchInterruptDataOne();
@@ -64,8 +67,8 @@ class FXOS8700CQ{
         void setInterruptFunction(void (*function)(), FXOS8700CQ_Interrupt_Pin pin);
         FXOS8700CQ_Interrupt identifyInterrupt(FXOS8700CQ_Interrupt_Pin pin);
 
-        float convertAcceleration(int16_t *rawAcc);
-        float convertMagnetic(int16_t *rawMag);
+        float* convertAcceleration(uint8_t *rawAcc);
+        float* convertMagnetic(uint8_t *rawMag);
 
         void read(FXOS8700CQ_Address address, uint8_t *data, int length = 1);
         int write(FXOS8700CQ_Address address, uint8_t *data, int length = 1);
