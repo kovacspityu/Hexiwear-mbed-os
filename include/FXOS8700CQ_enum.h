@@ -31,7 +31,7 @@ namespace FXO{
         TRANSIENT_THRESHOLD     = 0x1F,
         TRANSIENT_COUNT         = 0x20,
         PULSE_CFG               = 0x21,
-        PULSE_INT               = 0x22,
+        PULSE_INTERRUPT         = 0x22,
         PULSE_X_THRESHOLD       = 0x23,
         PULSE_Y_THRESHOLD       = 0x24,
         PULSE_Z_THRESHOLD       = 0x25,
@@ -91,7 +91,7 @@ namespace FXO{
         MAG_CTRL_REG_1          = 0x5B,
         MAG_CTRL_REG_2          = 0x5C,
         MAG_CTRL_REG_3          = 0x5D,
-        MAG_INT                 = 0x5E,
+        MAG_INTERRUPT           = 0x5E,
         ACC_VEC_DIFF_CFG        = 0x5F,
         ACC_VEC_DIFF_MSB        = 0x60,
         ACC_VEC_DIFF_LSB        = 0x61,
@@ -127,14 +127,14 @@ namespace FXO{
     };
 
     enum FXOS8700CQ_Interrupt{
-        I_SLEEP_WAKE    = 1,
-        I_FIFO          = 2,
-        I_TRANSIENT     = 4,
-        I_ORIENTATION   = 8,
-        I_PULSE         = 16,
-        I_FREEFALL      = 32,
-        I_ACC_MAG       = 64,
-        I_NEW_DATA      = 128,
+        I_NEW_DATA      = 1,
+        I_ACC_MAG       = 2,
+        I_FREEFALL      = 4,
+        I_PULSE         = 8,
+        I_ORIENTATION   = 16,
+        I_TRANSIENT     = 32,
+        I_FIFO          = 64,
+        I_SLEEP_WAKE    = 128,
         I_MAG_THRESHOLD = 256,
         I_MAG_MAG       = 512,
         I_MAG_NEW_DATA  = 1024
@@ -164,17 +164,14 @@ namespace FXO{
     };
 
     enum FXOS8700CQ_Range{
-                                    //  Nominal Sensitivity (mdps/LSB)
-        RANGE2000   = 0b000,       //  62.5
-        RANGE1000   = 0b001,       //  31.25
-        RANGE500    = 0b010,       //  15.625
-        RANGE250    = 0b011,       //  7.8125
-        
-        RANGE4000   = 0b100,       //  125.0
+                                    // Nominal Sensitivity      Range
+        RANGE2000   = 0,            // ±0.244 mg/LSB            ±2 g
+        RANGE1000   = 1,            // ±0.488 mg/LSB            ±4 g
+        RANGE500    = 2             // ±0.976 mg/LSB            ±8 g
     };
 
     enum FXOS8700CQ_Mode{
-        STANDBY = 2,
+        STANDBY         = 2,
         ACCELEROMETER   = 0,
         MAGNETOMETER    = 1,
         HYBRID          = 3
@@ -191,7 +188,14 @@ namespace FXO{
         ODR1   = 7<<3
     };
 
-    enum FXOS8700CQ_OSR{
+    enum FXOS8700CQ_Acc_OSR{
+        OSR_LOWEST  = 1,
+        OSR_LOW     = 3,
+        OSR_NORMAL  = 0,
+        OSR_HIGH    = 2
+    };
+
+    enum FXOS8700CQ_Mag_OSR{
         OSR_0 = 0,    
         OSR_1 = 1,
         OSR_2 = 2,

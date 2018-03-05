@@ -12,6 +12,7 @@ class FXOS8700CQ{
         FXOS8700CQ(FXOS8700CQ_Mode mode = ACCELEROMETER, FXOS8700CQ_Range range = RANGE2000, FXOS8700CQ_ODR dataRate = ODR100);
 
         static const float TEMPERATURE_SENSITIVITY;
+        
         typedef struct{
             FXOS8700CQ_Axis axis;
             float value;
@@ -30,7 +31,9 @@ class FXOS8700CQ{
         void setLowPass(FXOS8700CQ_Low threshold);
         void setHighPass(FXOS8700CQ_High threshold);
         void setODR(FXOS8700CQ_ODR dataRate);
-        void setMagOversample(FXOS8700CQ_OSR oversample);
+        void setMagOversample(FXOS8700CQ_Mag_OSR oversample);
+        void setAccOversampleAwake(FXOS8700CQ_Acc_OSR oversample);
+        void setAccOversampleAsleep(FXOS8700CQ_Acc_OSR oversample);
 
         float* getAcceleration();
         float* getMagnetic();
@@ -42,8 +45,8 @@ class FXOS8700CQ{
     private:
         I2C mI2C;
         uint8_t mAddress;
-        uint8_t activeInterruptsOne;
-        uint8_t activeInterruptsTwo;
+        uint16_t activeInterruptsOne;
+        uint16_t activeInterruptsTwo;
         float mSensitivity;
         FXOS8700CQ_ODR mODR;
         FXOS8700CQ_Mode mMode;
