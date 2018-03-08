@@ -39,6 +39,7 @@ class FXOS8700CQ{
         float* getMagnetic();
         float getTemperature();
         void setInterrupt(FXOS8700CQ_Interrupt_Pin pin, FXOS8700CQ_Interrupt name, void (*function)(), float threshold = 0, int count = 0, bool resetCount = false);
+        void setInterrupt(FXOS8700CQ_Interrupt_Pin pin, FXOS8700CQ_Interrupt name, void (*function)(), FXOS8700CQ_FIFO_Mode mode, uint8_t watermark = 0);
         void removeInterrupt(FXOS8700CQ_Interrupt name);
         
 
@@ -70,8 +71,8 @@ class FXOS8700CQ{
         void setInterruptFunction(void (*function)(), FXOS8700CQ_Interrupt_Pin pin);
         FXOS8700CQ_Interrupt identifyInterrupt(FXOS8700CQ_Interrupt_Pin pin);
 
-        float* convertAcceleration(uint8_t *rawAcc);
-        float* convertMagnetic(uint8_t *rawMag);
+        float convertAcceleration(uint8_t *rawAcc);
+        float convertMagnetic(uint8_t *rawMag);
 
         void read(FXOS8700CQ_Address address, uint8_t *data, int length = 1);
         int write(FXOS8700CQ_Address address, uint8_t *data, int length = 1);

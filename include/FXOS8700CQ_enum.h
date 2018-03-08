@@ -91,7 +91,7 @@ namespace FXO{
         MAG_CTRL_REG_1          = 0x5B,
         MAG_CTRL_REG_2          = 0x5C,
         MAG_CTRL_REG_3          = 0x5D,
-        MAG_INTERRUPT           = 0x5E,
+        MAG_INT_STATUS          = 0x5E,
         ACC_VEC_DIFF_CFG        = 0x5F,
         ACC_VEC_DIFF_MSB        = 0x60,
         ACC_VEC_DIFF_LSB        = 0x61,
@@ -193,6 +193,12 @@ namespace FXO{
         OSR_LOW     = 3,
         OSR_NORMAL  = 0,
         OSR_HIGH    = 2
+    };
+
+    enum FXOS8700CQ_FIFO_Mode{
+        CIRCULAR    = 1,
+        NO_OVERFLOW = 2,
+        TRIGGER     = 3
     };
 
     enum FXOS8700CQ_Mag_OSR{
