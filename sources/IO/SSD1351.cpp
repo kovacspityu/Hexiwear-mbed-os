@@ -171,23 +171,24 @@ Error SSD1351::addText(uint8_t xPosition, uint8_t yPosition, char* text, uint16_
     uint16_t counter = 0;
     //TODO Check if the \n characters are correctly removed from the text sent to addTextInternal
     for(uint8_t i=0;i<textLength;i++){
-        if(text[i] == 10){
+        if(text[i] == '\n'){
             lines[counter] = i;
             counter++;
         }
     }
     Error error = NO_ERROR;
     Error tempError = NO_ERROR;
-    for(uint i=0;i<textLength;i++){
-        if(i && lines[i]){
-            char *partialText = new char[lines[i] - lines[i-1]];
-            for(uint j=lines[i-1];j<lines[i];j++){
-                partialText[j - lines[i-1]] = lines[j];
+    for(uint16_t i=0;i<textLength;i++){
+        if(lines[i]){
+            char *partialText = new char[lines[i] - lines[i-1] - 2];
+            for(uint16_t j=lines[i-1] + 1;j<lines[i] - 1;j++){
+                partialText[j - lines[i-1] + 1] = lines[j];
             }
-            tempError = addTextInternal(xPosition, yPosition + fnt::fontSizes[textProperties.index], partialText, lines[i] - lines[i-1], topOrBottom, textProperties);
-            error = static_cast<Error> (error|tempError);
+            tempError = addTextInternal(xPosition, yPosition + fnt::fontSizes[textProperties.index] * (i+1), partialText, lines[i] - lines[i-1] - 2, topOrBottom, textProperties);
+            error = (Error) (error|tempError);
             delete[] partialText;
         }
+        else{break;}
     }
     delete[] lines;
     return error;
@@ -195,36 +196,36 @@ Error SSD1351::addText(uint8_t xPosition, uint8_t yPosition, char* text, uint16_
 
 Error SSD1351::addBox(uint8_t xPosition, uint8_t yPosition, uint8_t width, uint8_t height, uint16_t internalColour, uint8_t internalThickness, bool topOrBottom, uint16_t externalColour, uint8_t externalThickness){
     Error error = addLine(xPosition + internalThickness, yPosition, width - 2*internalThickness, 0, internalColour, internalThickness, topOrBottom, externalColour, externalThickness);
-    error = static_cast<Error> (error|addLine(xPosition + width, yPosition + internalThickness, height - 2*internalThickness, 90, internalColour, internalThickness, topOrBottom, externalColour, externalThickness));
-    error = static_cast<Error> (error|addLine(xPosition + internalThickness, yPosition + height, width - 2*internalThickness, 0, internalColour, internalThickness, topOrBottom, externalColour, externalThickness));
-    error = static_cast<Error> (error|addLine(xPosition, yPosition + internalThickness, height - 2*internalThickness, 90, internalColour, internalThickness, topOrBottom, externalColour, externalThickness));
+    error = (Error) (error|addLine(xPosition + width, yPosition + internalThickness, height - 2*internalThickness, 90, internalColour, internalThickness, topOrBottom, externalColour, externalThickness));
+    error = (Error) (error|addLine(xPosition + internalThickness, yPosition + height, width - 2*internalThickness, 0, internalColour, internalThickness, topOrBottom, externalColour, externalThickness));
+    error = (Error) (error|addLine(xPosition, yPosition + internalThickness, height - 2*internalThickness, 90, internalColour, internalThickness, topOrBottom, externalColour, externalThickness));
     //Each of the subsequent groups fills in the three areas at the corners on that delimit the box, 
     //in order the one that is vertically outside together with the one that is both vertically and horizontally outside, 
     //the one to the side, and finally the internal corners.
     
     //Left uppermost corner
-    error = static_cast<Error> (error|fillArea(xPosition - internalThickness - externalThickness, yPosition - internalThickness - externalThickness, 2*internalThickness + externalThickness, externalThickness, externalColour, topOrBottom));
-    error = static_cast<Error> (error|fillArea(xPosition - internalThickness - externalThickness, yPosition - internalThickness, externalThickness, 2*internalThickness, externalColour, topOrBottom));
-    error = static_cast<Error> (error|fillArea(xPosition - internalThickness, yPosition - internalThickness, 2*internalThickness, 2*internalThickness, internalColour, topOrBottom));
+    error = (Error) (error|fillArea(xPosition - internalThickness - externalThickness, yPosition - internalThickness - externalThickness, 2*internalThickness + externalThickness, externalThickness, externalColour, topOrBottom));
+    error = (Error) (error|fillArea(xPosition - internalThickness - externalThickness, yPosition - internalThickness, externalThickness, 2*internalThickness, externalColour, topOrBottom));
+    error = (Error) (error|fillArea(xPosition - internalThickness, yPosition - internalThickness, 2*internalThickness, 2*internalThickness, internalColour, topOrBottom));
     //Right uppermost corner
-    error = static_cast<Error> (error|fillArea(xPosition + width - internalThickness, yPosition - internalThickness - externalThickness, 2*internalThickness + externalThickness, externalThickness, externalColour, topOrBottom));
-    error = static_cast<Error> (error|fillArea(xPosition + width + internalThickness, yPosition - internalThickness, externalThickness, 2*internalThickness, externalColour, topOrBottom));
-    error = static_cast<Error> (error|fillArea(xPosition + width - internalThickness, yPosition - internalThickness, 2*internalThickness, 2*internalThickness, internalColour, topOrBottom));
+    error = (Error) (error|fillArea(xPosition + width - internalThickness, yPosition - internalThickness - externalThickness, 2*internalThickness + externalThickness, externalThickness, externalColour, topOrBottom));
+    error = (Error) (error|fillArea(xPosition + width + internalThickness, yPosition - internalThickness, externalThickness, 2*internalThickness, externalColour, topOrBottom));
+    error = (Error) (error|fillArea(xPosition + width - internalThickness, yPosition - internalThickness, 2*internalThickness, 2*internalThickness, internalColour, topOrBottom));
     //Left lowermost corner
-    error = static_cast<Error> (error|fillArea(xPosition - internalThickness - externalThickness, yPosition + internalThickness , 2*internalThickness + externalThickness, externalThickness, externalColour, topOrBottom));
-    error = static_cast<Error> (error|fillArea(xPosition - internalThickness - externalThickness, yPosition - internalThickness, externalThickness, 2*internalThickness, externalColour, topOrBottom));
-    error = static_cast<Error> (error|fillArea(xPosition - internalThickness, yPosition - internalThickness, 2*internalThickness, 2*internalThickness, internalColour, topOrBottom));   
+    error = (Error) (error|fillArea(xPosition - internalThickness - externalThickness, yPosition + internalThickness , 2*internalThickness + externalThickness, externalThickness, externalColour, topOrBottom));
+    error = (Error) (error|fillArea(xPosition - internalThickness - externalThickness, yPosition - internalThickness, externalThickness, 2*internalThickness, externalColour, topOrBottom));
+    error = (Error) (error|fillArea(xPosition - internalThickness, yPosition - internalThickness, 2*internalThickness, 2*internalThickness, internalColour, topOrBottom));   
     //Right lowermost corner
-    error = static_cast<Error> (error|fillArea(xPosition + width - internalThickness, yPosition + internalThickness, 2*internalThickness + externalThickness, externalThickness, externalColour, topOrBottom));
-    error = static_cast<Error> (error|fillArea(xPosition + width + internalThickness, yPosition - internalThickness, externalThickness, 2*internalThickness, externalColour, topOrBottom));
-    error = static_cast<Error> (error|fillArea(xPosition + width - internalThickness, yPosition - internalThickness, 2*internalThickness, 2*internalThickness, internalColour, topOrBottom));
+    error = (Error) (error|fillArea(xPosition + width - internalThickness, yPosition + internalThickness, 2*internalThickness + externalThickness, externalThickness, externalColour, topOrBottom));
+    error = (Error) (error|fillArea(xPosition + width + internalThickness, yPosition - internalThickness, externalThickness, 2*internalThickness, externalColour, topOrBottom));
+    error = (Error) (error|fillArea(xPosition + width - internalThickness, yPosition - internalThickness, 2*internalThickness, 2*internalThickness, internalColour, topOrBottom));
     
     return error;
 }
 
 Error SSD1351::addTextInBox(char* text, uint16_t textLength, TextProperties_t textProperties, uint8_t xPosition, uint8_t yPosition, uint8_t width, uint8_t height, uint16_t internalColour, uint8_t internalThickness, bool topOrBottom, uint16_t externalColour, uint8_t externalThickness){
     Error error = addBox(xPosition, yPosition, width, height, internalColour, internalThickness, topOrBottom, externalColour, externalThickness);
-    error = static_cast<Error> (error|addText(xPosition + internalThickness, yPosition + internalThickness + fnt::fontSizes[textProperties.index], text, textLength, topOrBottom, textProperties));
+    error = (Error) (error|addText(xPosition + internalThickness, yPosition + internalThickness + fnt::fontSizes[textProperties.index], text, textLength, topOrBottom, textProperties));
     return error;
 }
 
@@ -244,13 +245,13 @@ Error SSD1351::addLine(uint8_t xPosition, uint8_t yPosition, uint8_t length, uin
             if(i<internalThickness){addLineInternal(coordinates + delta, internalLength, tangentialDelta, transversalDelta, counter, counter2, internalColour, topOrBottom);}
             else{addLineInternal(coordinates + delta, internalLength, tangentialDelta, transversalDelta, counter, counter2, externalColour, topOrBottom);}
             }
-        else{error = static_cast<Error> (error|tempError);}
+        else{error = (Error) (error|tempError);}
         tempError = boundaryCheck(div(coordinates-delta, SCREEN_SIZE).rem, div(coordinates-delta, SCREEN_SIZE).quot, lround(length*abs(cosAngle)), lround(length*abs(sinAngle)));
         if(tempError==NO_ERROR){
             if(i<internalThickness){addLineInternal(coordinates - delta, internalLength, tangentialDelta, transversalDelta, counter, counter2, internalColour, topOrBottom);}
             else{addLineInternal(coordinates - delta, internalLength, tangentialDelta, transversalDelta, counter, counter2, externalColour, topOrBottom);}
         }
-        else{error = static_cast<Error> (error|tempError);}
+        else{error = (Error) (error|tempError);}
         if(abs(angle%90)>CRITICAL_ANGLE_MIN && abs(angle%90)<CRITICAL_ANGLE_MAX){
             delta-=transversalDelta;
         }
@@ -291,15 +292,15 @@ Error SSD1351::addImageAtBottom(uint16_t *image, uint8_t xPosition, uint8_t yPos
 Error SSD1351::fillArea(uint8_t xPosition, uint8_t yPosition, uint8_t width, uint8_t height, uint16_t colour, bool topOrBottom){
     Error error=NO_ERROR;
     Error tempError=NO_ERROR;
-    if(xPosition>SCREEN_SIZE){error = static_cast<Error> (error | OUT_OF_RIGHT_BORDER);}
+    if(xPosition>SCREEN_SIZE){error = (Error) (error | OUT_OF_RIGHT_BORDER);}
     if(xPosition+width>SCREEN_SIZE){
         width = SCREEN_SIZE - xPosition;
-        tempError = static_cast<Error> (tempError | OUT_OF_RIGHT_BORDER);
+        tempError = (Error) (tempError | OUT_OF_RIGHT_BORDER);
     }
-    if(yPosition>SCREEN_SIZE){error = static_cast<Error> (error | OUT_OF_BOTTOM_BORDER);}
+    if(yPosition>SCREEN_SIZE){error = (Error) (error | OUT_OF_BOTTOM_BORDER);}
     if(yPosition+height>SCREEN_SIZE){
         height = SCREEN_SIZE - yPosition;
-        tempError = static_cast<Error> (tempError | OUT_OF_BOTTOM_BORDER);
+        tempError = (Error) (tempError | OUT_OF_BOTTOM_BORDER);
     }
     if(error!=NO_ERROR){return error;}
     for(uint i=xPosition;i<xPosition+width;i++){
@@ -402,10 +403,10 @@ Error SSD1351::boundaryCheck(uint8_t xPosition, uint8_t yPosition, int16_t delta
     int16_t minY = (yPosition < yPosition + deltaY) ? yPosition : yPosition + deltaY;
     int16_t maxY = (yPosition > yPosition + deltaY) ? yPosition : yPosition + deltaY;
     Error error = NO_ERROR;
-    if(minX < 0)                {error = static_cast<Error> (error| OUT_OF_LEFT_BORDER);}
-    if(maxX > SCREEN_SIZE - 1)  {error = static_cast<Error> (error| OUT_OF_RIGHT_BORDER);}   
-    if(minY < 0)                {error = static_cast<Error> (error| OUT_OF_TOP_BORDER);}             
-    if(maxY > SCREEN_SIZE - 1)  {error = static_cast<Error> (error| OUT_OF_BOTTOM_BORDER);}
+    if(minX < 0)                {error = (Error) (error| OUT_OF_LEFT_BORDER);}
+    if(maxX > SCREEN_SIZE - 1)  {error = (Error) (error| OUT_OF_RIGHT_BORDER);}   
+    if(minY < 0)                {error = (Error) (error| OUT_OF_TOP_BORDER);}             
+    if(maxY > SCREEN_SIZE - 1)  {error = (Error) (error| OUT_OF_BOTTOM_BORDER);}
     
     if(minX < xStartActive)  {xStartActive = minX;}
     if(maxX > xEndActive)    {xEndActive   = maxX;}
