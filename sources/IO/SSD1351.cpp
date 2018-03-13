@@ -181,8 +181,8 @@ Error SSD1351::addText(uint8_t xPosition, uint8_t yPosition, char* text, uint16_
     for(uint16_t i=0;i<textLength;i++){
         if(lines[i]){
             char *partialText = new char[lines[i] - lines[i-1] - 2];
-            for(uint16_t j=lines[i-1] + 1;j<lines[i] - 1;j++){
-                partialText[j - lines[i-1] + 1] = lines[j];
+            for(uint16_t j=lines[i-1] + 1;j<lines[i];j++){
+                partialText[j - lines[i-1] - 1] = lines[j];
             }
             tempError = addTextInternal(xPosition, yPosition + fnt::fontSizes[textProperties.index] * (i+1), partialText, lines[i] - lines[i-1] - 2, topOrBottom, textProperties);
             error = (Error) (error|tempError);
