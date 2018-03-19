@@ -15,7 +15,6 @@ uint8_t SSD1351::xEndDrawing = 0;
 uint8_t SSD1351::yStartDrawing = SCREEN_SIZE - 1; 
 uint8_t SSD1351::yEndDrawing = 0;
 
-//TODO Add the space character at the start of the input image used to generate the fonts.
 SSD1351::SSD1351() : mSPI(PTB22, NC, PTB21, PTB20), dataORcommand(PTD15), mPower(PTC13), resetPin(PTE6), chipSelect(PTB20){
     mSPI.frequency(8000000);
     mSPI.format(8, 3);
@@ -168,6 +167,7 @@ void SSD1351::clearScreen(){
 
 Error SSD1351::addText(uint8_t xPosition, uint8_t yPosition, char* text, uint16_t textLength, bool topOrBottom, TextProperties_t textProperties){
     uint16_t *lines = new uint16_t[textLength];
+    memset(lines, 0, sizeof(uint16_t));
     uint16_t counter = 0;
     //TODO Check if the \n characters are correctly removed from the text sent to addTextInternal
     for(uint8_t i=0;i<textLength;i++){
@@ -178,7 +178,8 @@ Error SSD1351::addText(uint8_t xPosition, uint8_t yPosition, char* text, uint16_
     }
     Error error = NO_ERROR;
     Error tempError = NO_ERROR;
-    for(uint16_t i=0;i<textLength;i++){
+    if(lines[0]){
+        for(uint16_t i=0;i<textLength;i++){
         if(lines[i]){
             char *partialText = new char[lines[i] - lines[i-1] - 2];
             for(uint16_t j=lines[i-1] + 1;j<lines[i];j++){
@@ -189,6 +190,10 @@ Error SSD1351::addText(uint8_t xPosition, uint8_t yPosition, char* text, uint16_
             delete[] partialText;
         }
         else{break;}
+        }
+    }
+    else{
+        error = addTextInternal(xPosition, yPosition, text, textLength, topOrBottom, textProperties);
     }
     delete[] lines;
     return error;
@@ -491,24 +496,24 @@ Error SSD1351::addTextInternal(uint8_t xPosition, uint8_t yPosition, char* text,
     uint16_t *textSpace = calculateTextSpace(text, textLength, textProperties);
     Error error = boundaryCheck(xPosition, yPosition, textSpace[0], textSpace[1]);
     delete[] textSpace;
+    uint16_t currentPosition = xPosition + yPosition*SCREEN_SIZE;
     for(uint16_t i=0;i<textLength;i++){
         uint8_t currentIndex = ((uint8_t) text[i]) - FONT_OFFSET;
+        currentPosition+= currentFont->xPosition[currentIndex] + currentFont->yPosition[currentIndex]*SCREEN_SIZE;
         for(uint j=0;j<currentFont->width[currentIndex] * currentFont->height[currentIndex];j++){
-            if(!topOrBottom && (*activeScreenBuffer)[xPosition + j%currentFont->width[currentIndex] + currentFont->xPosition[currentIndex] + (yPosition + div(j, currentFont->width[currentIndex]).quot + currentFont->yPosition[currentIndex])*SCREEN_SIZE]){}
+            if(!topOrBottom && (*activeScreenBuffer)[currentPosition + j%currentFont->width[currentIndex]  + div(j, currentFont->width[currentIndex]).quot*SCREEN_SIZE]){}
             else{    
-                (*activeScreenBuffer)   [
-                                        xPosition + j%currentFont->width[currentIndex] + currentFont->xPosition[currentIndex]
-                                         + (yPosition + div(j, currentFont->width[currentIndex]).quot + currentFont->yPosition[currentIndex])*SCREEN_SIZE
-                                        ] = 
+                (*activeScreenBuffer)[currentPosition + j%currentFont->width[currentIndex]  + div(j, currentFont->width[currentIndex]).quot*SCREEN_SIZE] = 
                 textProperties.colour * (currentFont->alphabet[currentIndex][j]);
             }
         }
+        currentPosition+= currentFont->width[currentIndex] - currentFont->xPosition[currentIndex] - currentFont->yPosition[currentIndex]*SCREEN_SIZE;
     }
     return error;
 }
 
 uint16_t* SSD1351::calculateTextSpace(char *text, uint16_t textLength, TextProperties_t textProperties){
-    uint16_t resultX;
+    uint16_t resultX=0;
     for(uint16_t i=0;i<textLength; i++){
         resultX+=(fnt::fontDatabase[textProperties.index]).width[((uint8_t) text[i]) - FONT_OFFSET];
     }

@@ -159,13 +159,16 @@ int main(){
     //float temperature;
     //float light;
     //float humidity;
-    while(1){  
-        for(uint i = 0; i<360; i++){
-            printf("Adding line with angle %u\n", i);
-            screen.addLineOnTop(48, 48, 30, i, SSD1351::getColour(161, 255, 177), 1, SSD1351::getColour(255, 148, 82), 2);
-            screen.draw();
-            Thread::wait(500);
-        } 
+    while(1){
+        for(uint8_t i=0;i<SCREEN_SIZE;i+=5){
+            for(uint8_t j=0;j<SCREEN_SIZE - fnt::fontSizes[ROBOTO11];j+=5){
+                char *text = "Testing text";
+                SSD1351::TextProperties_t properties = SSD1351::TextProperties_t(ROBOTO11, SSD1351::getColour(23, 80, 12));
+                screen.addText(i, j, text, 13, true, properties);
+                screen.draw();
+                Thread::wait(500);
+            }
+        }
         //light = sensorL.getLux();
         //humidity = sensorH.waitForHumidity();
         //temperature = sensorH.waitForTemperature();
