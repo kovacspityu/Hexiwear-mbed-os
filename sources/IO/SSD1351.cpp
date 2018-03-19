@@ -167,7 +167,7 @@ void SSD1351::clearScreen(){
 
 Error SSD1351::addText(uint8_t xPosition, uint8_t yPosition, char* text, uint16_t textLength, bool topOrBottom, TextProperties_t textProperties){
     uint16_t *lines = new uint16_t[textLength];
-    memset(lines, 0, sizeof(uint16_t));
+    memset(lines, 0, 2*sizeof(uint16_t));
     uint16_t counter = 0;
     //TODO Check if the \n characters are correctly removed from the text sent to addTextInternal
     for(uint8_t i=0;i<textLength;i++){
@@ -177,29 +177,19 @@ Error SSD1351::addText(uint8_t xPosition, uint8_t yPosition, char* text, uint16_
         }
     }
     Error error = NO_ERROR;
-    Error tempError = NO_ERROR;
-    if(lines[0]){
-        for(uint16_t i=0;i<textLength;i++){
-        if(lines[i]){
-            char *partialText = new char[lines[i] - lines[i-1] - 2];
-            for(uint16_t j=lines[i-1] + 1;j<lines[i];j++){
-                partialText[j - lines[i-1] - 1] = lines[j];
-            }
-            tempError = addTextInternal(xPosition, yPosition + fnt::fontSizes[textProperties.index] * (i+1), partialText, lines[i] - lines[i-1] - 2, topOrBottom, textProperties);
-            error = (Error) (error|tempError);
-            delete[] partialText;
-        }
-        else{break;}
-        }
+    error = addTextInternal(xPosition, yPosition, text, lines[0], topOrBottom, textProperties);
+    for(uint16_t i=0;i<counter - 1;i++){
+        if(lines[i+1] - lines[i] - 1==0){continue;}
+        error = (Error) (addTextInternal(xPosition, yPosition + fnt::fontSizes[textProperties.index] * (i+1), text + lines[i] + 1, lines[i+1] - lines[i] - 1, topOrBottom, textProperties));
     }
-    else{
-        error = addTextInternal(xPosition, yPosition, text, textLength, topOrBottom, textProperties);
-    }
+    error = (Error) (error|addTextInternal(xPosition, yPosition + fnt::fontSizes[textProperties.index]*(counter), text + lines[counter-1] + 1, textLength - lines[counter - 1] - 1, topOrBottom, textProperties));
     delete[] lines;
     return error;
 }
 
 Error SSD1351::addBox(uint8_t xPosition, uint8_t yPosition, uint8_t width, uint8_t height, uint16_t internalColour, uint8_t internalThickness, bool topOrBottom, uint16_t externalColour, uint8_t externalThickness){
+    //TODO The box isn't drawn correctly, the lower corners seem to be drawn above the upper ones, FIX
+    
     Error error = addLine(xPosition + internalThickness, yPosition, width - 2*internalThickness, 0, internalColour, internalThickness, topOrBottom, externalColour, externalThickness);
     error = (Error) (error|addLine(xPosition + width, yPosition + internalThickness, height - 2*internalThickness, 90, internalColour, internalThickness, topOrBottom, externalColour, externalThickness));
     error = (Error) (error|addLine(xPosition + internalThickness, yPosition + height, width - 2*internalThickness, 0, internalColour, internalThickness, topOrBottom, externalColour, externalThickness));
@@ -492,13 +482,16 @@ void SSD1351::calculateLineParameters(const uint16_t angle, const uint8_t length
 }
 
 Error SSD1351::addTextInternal(uint8_t xPosition, uint8_t yPosition, char* text, uint16_t textLength, bool topOrBottom, TextProperties_t textProperties){
+    if(textLength==0){return NO_ERROR;}
     Font* currentFont = &fnt::fontDatabase[textProperties.index];
     uint16_t *textSpace = calculateTextSpace(text, textLength, textProperties);
     Error error = boundaryCheck(xPosition, yPosition, textSpace[0], textSpace[1]);
     delete[] textSpace;
     uint16_t currentPosition = xPosition + yPosition*SCREEN_SIZE;
     for(uint16_t i=0;i<textLength;i++){
-        uint8_t currentIndex = ((uint8_t) text[i]) - FONT_OFFSET;
+        if(text[i]==0){continue;}
+        uint8_t currentIndex = (text[i] >= FONT_OFFSET && text[i]<=NUMBER_OF_CHARACTERS) ? text[i] : '?';
+        currentIndex-=FONT_OFFSET;
         currentPosition+= currentFont->xPosition[currentIndex] + currentFont->yPosition[currentIndex]*SCREEN_SIZE;
         for(uint j=0;j<currentFont->width[currentIndex] * currentFont->height[currentIndex];j++){
             if(!topOrBottom && (*activeScreenBuffer)[currentPosition + j%currentFont->width[currentIndex]  + div(j, currentFont->width[currentIndex]).quot*SCREEN_SIZE]){}
@@ -514,8 +507,12 @@ Error SSD1351::addTextInternal(uint8_t xPosition, uint8_t yPosition, char* text,
 
 uint16_t* SSD1351::calculateTextSpace(char *text, uint16_t textLength, TextProperties_t textProperties){
     uint16_t resultX=0;
+    uint8_t currentIndex;
     for(uint16_t i=0;i<textLength; i++){
-        resultX+=(fnt::fontDatabase[textProperties.index]).width[((uint8_t) text[i]) - FONT_OFFSET];
+        if(text[i]==0){continue;}
+        currentIndex = (text[i] >= FONT_OFFSET && text[i]<=NUMBER_OF_CHARACTERS) ? text[i] : '?';
+        currentIndex-=FONT_OFFSET;
+        resultX+=(fnt::fontDatabase[textProperties.index]).width[currentIndex];
     }
     uint16_t *result = new uint16_t[2];
     result[0] = resultX;

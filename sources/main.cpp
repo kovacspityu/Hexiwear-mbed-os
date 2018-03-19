@@ -160,15 +160,9 @@ int main(){
     //float light;
     //float humidity;
     while(1){
-        for(uint8_t i=0;i<SCREEN_SIZE;i+=5){
-            for(uint8_t j=0;j<SCREEN_SIZE - fnt::fontSizes[ROBOTO11];j+=5){
-                char *text = "Testing text";
-                SSD1351::TextProperties_t properties = SSD1351::TextProperties_t(ROBOTO11, SSD1351::getColour(23, 80, 12));
-                screen.addText(i, j, text, 13, true, properties);
-                screen.draw();
-                Thread::wait(500);
-            }
-        }
+        screen.addBox(5, 5, 50, 50, SSD1351::getColour(120, 20, 30), 1, true, SSD1351::getColour(0, 80, 12), 1);
+        screen.draw();
+        Thread::wait(500); 
         //light = sensorL.getLux();
         //humidity = sensorH.waitForHumidity();
         //temperature = sensorH.waitForTemperature();
