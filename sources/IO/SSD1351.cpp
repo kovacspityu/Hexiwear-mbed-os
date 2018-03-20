@@ -171,6 +171,7 @@ Error SSD1351::addText(uint8_t xPosition, uint8_t yPosition, char* text, uint16_
     uint16_t counter = 0;
     //TODO Check if the \n characters are correctly removed from the text sent to addTextInternal
     for(uint8_t i=0;i<textLength;i++){
+        if(text[i] == 0){break;}
         if(text[i] == '\n'){
             lines[counter] = i;
             counter++;
@@ -489,7 +490,7 @@ Error SSD1351::addTextInternal(uint8_t xPosition, uint8_t yPosition, char* text,
     delete[] textSpace;
     uint16_t currentPosition = xPosition + yPosition*SCREEN_SIZE;
     for(uint16_t i=0;i<textLength;i++){
-        if(text[i]==0){continue;}
+        if(text[i]==0){break;}
         uint8_t currentIndex = (text[i] >= FONT_OFFSET && text[i]<=NUMBER_OF_CHARACTERS) ? text[i] : '?';
         currentIndex-=FONT_OFFSET;
         currentPosition+= currentFont->xPosition[currentIndex] + currentFont->yPosition[currentIndex]*SCREEN_SIZE;
