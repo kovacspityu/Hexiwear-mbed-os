@@ -169,7 +169,6 @@ Error SSD1351::addText(uint8_t xPosition, uint8_t yPosition, char* text, uint16_
     uint16_t *lines = new uint16_t[textLength];
     memset(lines, 0, 2*sizeof(uint16_t));
     uint16_t counter = 0;
-    //TODO Check if the \n characters are correctly removed from the text sent to addTextInternal
     for(uint8_t i=0;i<textLength;i++){
         if(text[i] == 0){break;}
         if(text[i] == '\n'){
@@ -189,32 +188,31 @@ Error SSD1351::addText(uint8_t xPosition, uint8_t yPosition, char* text, uint16_
 }
 
 Error SSD1351::addBox(uint8_t xPosition, uint8_t yPosition, uint8_t width, uint8_t height, uint16_t internalColour, uint8_t internalThickness, bool topOrBottom, uint16_t externalColour, uint8_t externalThickness){
-    //TODO The box isn't drawn correctly, the lower corners seem to be drawn above the upper ones, FIX
     
-    Error error = addLine(xPosition + internalThickness, yPosition, width - 2*internalThickness, 0, internalColour, internalThickness, topOrBottom, externalColour, externalThickness);
-    error = (Error) (error|addLine(xPosition + width, yPosition + internalThickness, height - 2*internalThickness, 90, internalColour, internalThickness, topOrBottom, externalColour, externalThickness));
-    error = (Error) (error|addLine(xPosition + internalThickness, yPosition + height, width - 2*internalThickness, 0, internalColour, internalThickness, topOrBottom, externalColour, externalThickness));
-    error = (Error) (error|addLine(xPosition, yPosition + internalThickness, height - 2*internalThickness, 90, internalColour, internalThickness, topOrBottom, externalColour, externalThickness));
+    Error            error=addLine(xPosition + internalThickness, yPosition, width - 2*internalThickness + 1, 0, internalColour, internalThickness, topOrBottom, externalColour, externalThickness);
+    error = (Error) (error|addLine(xPosition + width, yPosition + internalThickness, height - 2*internalThickness + 1, 90, internalColour, internalThickness, topOrBottom, externalColour, externalThickness));
+    error = (Error) (error|addLine(xPosition + internalThickness, yPosition + height, width - 2*internalThickness + 1, 0, internalColour, internalThickness, topOrBottom, externalColour, externalThickness));
+    error = (Error) (error|addLine(xPosition, yPosition + internalThickness, height - 2*internalThickness + 1, 90, internalColour, internalThickness, topOrBottom, externalColour, externalThickness));
     //Each of the subsequent groups fills in the three areas at the corners on that delimit the box, 
     //in order the one that is vertically outside together with the one that is both vertically and horizontally outside, 
     //the one to the side, and finally the internal corners.
     
     //Left uppermost corner
-    error = (Error) (error|fillArea(xPosition - internalThickness - externalThickness, yPosition - internalThickness - externalThickness, 2*internalThickness + externalThickness, externalThickness, externalColour, topOrBottom));
-    error = (Error) (error|fillArea(xPosition - internalThickness - externalThickness, yPosition - internalThickness, externalThickness, 2*internalThickness, externalColour, topOrBottom));
-    error = (Error) (error|fillArea(xPosition - internalThickness, yPosition - internalThickness, 2*internalThickness, 2*internalThickness, internalColour, topOrBottom));
+    error = (Error) (error|fillArea(xPosition - internalThickness + 1 - externalThickness, yPosition - internalThickness + 1 - externalThickness, 2*internalThickness + externalThickness, externalThickness, externalColour, topOrBottom));
+    error = (Error) (error|fillArea(xPosition - internalThickness + 1 - externalThickness, yPosition - internalThickness + 1, externalThickness, 2*internalThickness, externalColour, topOrBottom));
+    error = (Error) (error|fillArea(xPosition - internalThickness + 1, yPosition - internalThickness + 1, 2*internalThickness - 1, 2*internalThickness - 1, internalColour, topOrBottom));
     //Right uppermost corner
-    error = (Error) (error|fillArea(xPosition + width - internalThickness, yPosition - internalThickness - externalThickness, 2*internalThickness + externalThickness, externalThickness, externalColour, topOrBottom));
-    error = (Error) (error|fillArea(xPosition + width + internalThickness, yPosition - internalThickness, externalThickness, 2*internalThickness, externalColour, topOrBottom));
-    error = (Error) (error|fillArea(xPosition + width - internalThickness, yPosition - internalThickness, 2*internalThickness, 2*internalThickness, internalColour, topOrBottom));
+    error = (Error) (error|fillArea(xPosition + width - internalThickness + 1, yPosition - internalThickness + 1 - externalThickness, 2*internalThickness - 1 + externalThickness, externalThickness, externalColour, topOrBottom));
+    error = (Error) (error|fillArea(xPosition + width + internalThickness, yPosition - internalThickness + 1, externalThickness, 2*internalThickness - 1, externalColour, topOrBottom));
+    error = (Error) (error|fillArea(xPosition + width - internalThickness + 1, yPosition - internalThickness + 1, 2*internalThickness - 1, 2*internalThickness - 1, internalColour, topOrBottom));
     //Left lowermost corner
-    error = (Error) (error|fillArea(xPosition - internalThickness - externalThickness, yPosition + internalThickness , 2*internalThickness + externalThickness, externalThickness, externalColour, topOrBottom));
-    error = (Error) (error|fillArea(xPosition - internalThickness - externalThickness, yPosition - internalThickness, externalThickness, 2*internalThickness, externalColour, topOrBottom));
-    error = (Error) (error|fillArea(xPosition - internalThickness, yPosition - internalThickness, 2*internalThickness, 2*internalThickness, internalColour, topOrBottom));   
+    error = (Error) (error|fillArea(xPosition - internalThickness + 1 - externalThickness, yPosition + height + internalThickness , 2*internalThickness + externalThickness, externalThickness, externalColour, topOrBottom));
+    error = (Error) (error|fillArea(xPosition - internalThickness + 1 - externalThickness, yPosition + height - internalThickness + 1, externalThickness, 2*internalThickness - 1, externalColour, topOrBottom));
+    error = (Error) (error|fillArea(xPosition - internalThickness + 1, yPosition + height - internalThickness + 1, 2*internalThickness - 1, 2*internalThickness - 1, internalColour, topOrBottom));   
     //Right lowermost corner
-    error = (Error) (error|fillArea(xPosition + width - internalThickness, yPosition + internalThickness, 2*internalThickness + externalThickness, externalThickness, externalColour, topOrBottom));
-    error = (Error) (error|fillArea(xPosition + width + internalThickness, yPosition - internalThickness, externalThickness, 2*internalThickness, externalColour, topOrBottom));
-    error = (Error) (error|fillArea(xPosition + width - internalThickness, yPosition - internalThickness, 2*internalThickness, 2*internalThickness, internalColour, topOrBottom));
+    error = (Error) (error|fillArea(xPosition + width - internalThickness + 1, yPosition + height + internalThickness, 2*internalThickness - 1 + externalThickness, externalThickness, externalColour, topOrBottom));
+    error = (Error) (error|fillArea(xPosition + width + internalThickness, yPosition + height - internalThickness + 1, externalThickness, 2*internalThickness - 1, externalColour, topOrBottom));
+    error = (Error) (error|fillArea(xPosition + width - internalThickness + 1, yPosition + height - internalThickness + 1, 2*internalThickness - 1, 2*internalThickness - 1, internalColour, topOrBottom));
     
     return error;
 }
@@ -299,8 +297,8 @@ Error SSD1351::fillArea(uint8_t xPosition, uint8_t yPosition, uint8_t width, uin
         tempError = (Error) (tempError | OUT_OF_BOTTOM_BORDER);
     }
     if(error!=NO_ERROR){return error;}
-    for(uint i=xPosition;i<xPosition+width;i++){
-        for(uint j=yPosition;j<yPosition+height;j++){
+    for(uint j=yPosition;j<yPosition+height;j++){
+        for(uint i=xPosition;i<xPosition+width;i++){
             if(!topOrBottom && (*activeScreenBuffer)[j*SCREEN_SIZE + i]){continue;}
             else{(*activeScreenBuffer)[j*SCREEN_SIZE + i] = colour;}
         }

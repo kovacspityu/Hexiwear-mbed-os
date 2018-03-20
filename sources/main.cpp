@@ -160,7 +160,7 @@ int main(){
     //float light;
     //float humidity;
     while(1){
-        screen.addBox(5, 5, 50, 50, SSD1351::getColour(120, 20, 30), 1, true, SSD1351::getColour(0, 80, 12), 1);
+        screen.addBox(20, 20, 30, 30, SSD1351::getColour(120, 20, 30), 4, true, SSD1351::getColour(0, 80, 12), 3);
         screen.draw();
         Thread::wait(500); 
         //light = sensorL.getLux();
