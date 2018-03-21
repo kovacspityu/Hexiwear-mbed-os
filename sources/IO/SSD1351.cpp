@@ -196,24 +196,33 @@ Error SSD1351::addBox(uint8_t xPosition, uint8_t yPosition, uint8_t width, uint8
     //Each of the subsequent groups fills in the three areas at the corners on that delimit the box, 
     //in order the one that is vertically outside together with the one that is both vertically and horizontally outside, 
     //the one to the side, and finally the internal corners.
-    
-    //Left uppermost corner
-    error = (Error) (error|fillArea(xPosition - internalThickness + 1 - externalThickness, yPosition - internalThickness + 1 - externalThickness, 2*internalThickness + externalThickness, externalThickness, externalColour, topOrBottom));
-    error = (Error) (error|fillArea(xPosition - internalThickness + 1 - externalThickness, yPosition - internalThickness + 1, externalThickness, 2*internalThickness, externalColour, topOrBottom));
-    error = (Error) (error|fillArea(xPosition - internalThickness + 1, yPosition - internalThickness + 1, 2*internalThickness - 1, 2*internalThickness - 1, internalColour, topOrBottom));
-    //Right uppermost corner
-    error = (Error) (error|fillArea(xPosition + width - internalThickness + 1, yPosition - internalThickness + 1 - externalThickness, 2*internalThickness - 1 + externalThickness, externalThickness, externalColour, topOrBottom));
-    error = (Error) (error|fillArea(xPosition + width + internalThickness, yPosition - internalThickness + 1, externalThickness, 2*internalThickness - 1, externalColour, topOrBottom));
-    error = (Error) (error|fillArea(xPosition + width - internalThickness + 1, yPosition - internalThickness + 1, 2*internalThickness - 1, 2*internalThickness - 1, internalColour, topOrBottom));
-    //Left lowermost corner
-    error = (Error) (error|fillArea(xPosition - internalThickness + 1 - externalThickness, yPosition + height + internalThickness , 2*internalThickness + externalThickness, externalThickness, externalColour, topOrBottom));
-    error = (Error) (error|fillArea(xPosition - internalThickness + 1 - externalThickness, yPosition + height - internalThickness + 1, externalThickness, 2*internalThickness - 1, externalColour, topOrBottom));
-    error = (Error) (error|fillArea(xPosition - internalThickness + 1, yPosition + height - internalThickness + 1, 2*internalThickness - 1, 2*internalThickness - 1, internalColour, topOrBottom));   
-    //Right lowermost corner
-    error = (Error) (error|fillArea(xPosition + width - internalThickness + 1, yPosition + height + internalThickness, 2*internalThickness - 1 + externalThickness, externalThickness, externalColour, topOrBottom));
-    error = (Error) (error|fillArea(xPosition + width + internalThickness, yPosition + height - internalThickness + 1, externalThickness, 2*internalThickness - 1, externalColour, topOrBottom));
-    error = (Error) (error|fillArea(xPosition + width - internalThickness + 1, yPosition + height - internalThickness + 1, 2*internalThickness - 1, 2*internalThickness - 1, internalColour, topOrBottom));
-    
+    // -------------------------------
+    //|      1
+    //|_______________________________
+    //|     |
+    //|  2  |    _____________________
+    //|     |   |   3   |
+    //|     |   |_______|______________
+    //|     |   |       |
+    //|     |   |       |
+    if(internalThickness){
+        //Left uppermost corner
+        error = (Error) (error|fillArea(xPosition - internalThickness + 1 - externalThickness, yPosition - internalThickness + 1 - externalThickness, 2*internalThickness + externalThickness, externalThickness, externalColour, topOrBottom));
+        error = (Error) (error|fillArea(xPosition - internalThickness + 1 - externalThickness, yPosition - internalThickness + 1, externalThickness, 2*internalThickness, externalColour, topOrBottom));
+        error = (Error) (error|fillArea(xPosition - internalThickness + 1, yPosition - internalThickness + 1, 2*internalThickness - 1, 2*internalThickness - 1, internalColour, topOrBottom));
+        //Right uppermost corner
+        error = (Error) (error|fillArea(xPosition + width - internalThickness + 1, yPosition - internalThickness + 1 - externalThickness, 2*internalThickness - 1 + externalThickness, externalThickness, externalColour, topOrBottom));
+        error = (Error) (error|fillArea(xPosition + width + internalThickness, yPosition - internalThickness + 1, externalThickness, 2*internalThickness - 1, externalColour, topOrBottom));
+        error = (Error) (error|fillArea(xPosition + width - internalThickness + 1, yPosition - internalThickness + 1, 2*internalThickness - 1, 2*internalThickness - 1, internalColour, topOrBottom));
+        //Left lowermost corner
+        error = (Error) (error|fillArea(xPosition - internalThickness + 1 - externalThickness, yPosition + height + internalThickness , 2*internalThickness + externalThickness, externalThickness, externalColour, topOrBottom));
+        error = (Error) (error|fillArea(xPosition - internalThickness + 1 - externalThickness, yPosition + height - internalThickness + 1, externalThickness, 2*internalThickness - 1, externalColour, topOrBottom));
+        error = (Error) (error|fillArea(xPosition - internalThickness + 1, yPosition + height - internalThickness + 1, 2*internalThickness - 1, 2*internalThickness - 1, internalColour, topOrBottom));   
+        //Right lowermost corner
+        error = (Error) (error|fillArea(xPosition + width - internalThickness + 1, yPosition + height + internalThickness, 2*internalThickness - 1 + externalThickness, externalThickness, externalColour, topOrBottom));
+        error = (Error) (error|fillArea(xPosition + width + internalThickness, yPosition + height - internalThickness + 1, externalThickness, 2*internalThickness - 1, externalColour, topOrBottom));
+        error = (Error) (error|fillArea(xPosition + width - internalThickness + 1, yPosition + height - internalThickness + 1, 2*internalThickness - 1, 2*internalThickness - 1, internalColour, topOrBottom));
+    }
     return error;
 }
 
