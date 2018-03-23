@@ -160,7 +160,12 @@ int main(){
     //float light;
     //float humidity;
     while(1){
-        screen.addBox(20, 20, 30, 30, SSD1351::getColour(120, 20, 30), 4, true, SSD1351::getColour(0, 80, 12), 3);
+        SSD1351::TextProperties_t properties = SSD1351::TextProperties_t(ROBOTO11, SSD1351::getColour(120, 20, 30));
+        //char* text = "After this statement the control is transferred to the statement immediately following the enclosing loop or switch.\n As with any block exit, all automatic storage objects declared in enclosing compound statement or in the condition of a loop/switch are destroyed, in reverse order of construction, before the execution of the first line following the enclosing loop.";
+        char* text2 = "Tanto va la gatta al lardo che ci lascia lo zampino.";
+        //screen.addText(5, 5, text2, 52, true, properties);
+        //char* text3 = "Ciao.";
+        screen.addTextInBox(text2, 52, properties, 5, 5, 70, 70, SSD1351::getColour(120, 20, 30), 0, true, SSD1351::getColour(0, 80, 12), 1);
         screen.draw();
         Thread::wait(500); 
         //light = sensorL.getLux();

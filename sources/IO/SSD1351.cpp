@@ -166,25 +166,7 @@ void SSD1351::clearScreen(){
 
 
 Error SSD1351::addText(uint8_t xPosition, uint8_t yPosition, char* text, uint16_t textLength, bool topOrBottom, TextProperties_t textProperties){
-    uint16_t *lines = new uint16_t[textLength];
-    memset(lines, 0, 2*sizeof(uint16_t));
-    uint16_t counter = 0;
-    for(uint8_t i=0;i<textLength;i++){
-        if(text[i] == 0){break;}
-        if(text[i] == '\n'){
-            lines[counter] = i;
-            counter++;
-        }
-    }
-    Error error = NO_ERROR;
-    error = addTextInternal(xPosition, yPosition, text, lines[0], topOrBottom, textProperties);
-    for(uint16_t i=0;i<counter - 1;i++){
-        if(lines[i+1] - lines[i] - 1==0){continue;}
-        error = (Error) (addTextInternal(xPosition, yPosition + fnt::fontSizes[textProperties.index] * (i+1), text + lines[i] + 1, lines[i+1] - lines[i] - 1, topOrBottom, textProperties));
-    }
-    error = (Error) (error|addTextInternal(xPosition, yPosition + fnt::fontSizes[textProperties.index]*(counter), text + lines[counter-1] + 1, textLength - lines[counter - 1] - 1, topOrBottom, textProperties));
-    delete[] lines;
-    return error;
+    return addText(xPosition, yPosition, text, textLength, topOrBottom, textProperties, SCREEN_SIZE);
 }
 
 Error SSD1351::addBox(uint8_t xPosition, uint8_t yPosition, uint8_t width, uint8_t height, uint16_t internalColour, uint8_t internalThickness, bool topOrBottom, uint16_t externalColour, uint8_t externalThickness){
@@ -228,7 +210,7 @@ Error SSD1351::addBox(uint8_t xPosition, uint8_t yPosition, uint8_t width, uint8
 
 Error SSD1351::addTextInBox(char* text, uint16_t textLength, TextProperties_t textProperties, uint8_t xPosition, uint8_t yPosition, uint8_t width, uint8_t height, uint16_t internalColour, uint8_t internalThickness, bool topOrBottom, uint16_t externalColour, uint8_t externalThickness){
     Error error = addBox(xPosition, yPosition, width, height, internalColour, internalThickness, topOrBottom, externalColour, externalThickness);
-    error = (Error) (error|addText(xPosition + internalThickness, yPosition + internalThickness + fnt::fontSizes[textProperties.index], text, textLength, topOrBottom, textProperties));
+    error = (Error) (error|addText(xPosition + internalThickness + externalThickness, yPosition + internalThickness + externalThickness, text, textLength, topOrBottom, textProperties, width + xPosition));
     return error;
 }
 
@@ -411,10 +393,10 @@ Error SSD1351::boundaryCheck(uint8_t xPosition, uint8_t yPosition, int16_t delta
     if(minY < 0)                {error = (Error) (error| OUT_OF_TOP_BORDER);}             
     if(maxY > SCREEN_SIZE - 1)  {error = (Error) (error| OUT_OF_BOTTOM_BORDER);}
     
-    if(minX < xStartActive)  {xStartActive = minX;}
-    if(maxX > xEndActive)    {xEndActive   = maxX;}
-    if(minY < yStartActive)  {yStartActive = minY;}
-    if(maxY > yEndActive)    {yEndActive   = maxY;}
+    if(minX < xStartActive && !(error&OUT_OF_LEFT_BORDER))  {xStartActive = minX;}
+    if(maxX > xEndActive && !(error&OUT_OF_RIGHT_BORDER))    {xEndActive   = maxX;}
+    if(minY < yStartActive && !(error&OUT_OF_TOP_BORDER))  {yStartActive = minY;}
+    if(maxY > yEndActive && !(error&OUT_OF_BOTTOM_BORDER))    {yEndActive   = maxY;}
 
     return error;
 }
@@ -489,36 +471,81 @@ void SSD1351::calculateLineParameters(const uint16_t angle, const uint8_t length
     }
 }
 
-Error SSD1351::addTextInternal(uint8_t xPosition, uint8_t yPosition, char* text, uint16_t textLength, bool topOrBottom, TextProperties_t textProperties){
-    if(textLength==0){return NO_ERROR;}
-    Font* currentFont = &fnt::fontDatabase[textProperties.index];
-    uint16_t *textSpace = calculateTextSpace(text, textLength, textProperties);
-    Error error = boundaryCheck(xPosition, yPosition, textSpace[0], textSpace[1]);
-    delete[] textSpace;
-    uint16_t currentPosition = xPosition + yPosition*SCREEN_SIZE;
+Error SSD1351::addText(uint8_t xPosition, uint8_t yPosition, char* text, uint16_t textLength, bool topOrBottom, TextProperties_t textProperties, uint8_t edge){
+    //TODO Check if the for(i) cycle covers the entirety of the text correctly, and what happens if the text consists of just '\n' characters.
+    uint16_t *lines = new uint16_t[textLength];
+    fill(lines, lines + textLength, textLength + 1);
+    lines[0] = 0;
+    uint16_t counter = 1;
     for(uint16_t i=0;i<textLength;i++){
-        if(text[i]==0){break;}
-        uint8_t currentIndex = (text[i] >= FONT_OFFSET && text[i]<=NUMBER_OF_CHARACTERS) ? text[i] : '?';
-        currentIndex-=FONT_OFFSET;
-        currentPosition+= currentFont->xPosition[currentIndex] + currentFont->yPosition[currentIndex]*SCREEN_SIZE;
-        for(uint j=0;j<currentFont->width[currentIndex] * currentFont->height[currentIndex];j++){
-            if(!topOrBottom && (*activeScreenBuffer)[currentPosition + j%currentFont->width[currentIndex]  + div(j, currentFont->width[currentIndex]).quot*SCREEN_SIZE]){}
-            else{    
-                (*activeScreenBuffer)[currentPosition + j%currentFont->width[currentIndex]  + div(j, currentFont->width[currentIndex]).quot*SCREEN_SIZE] = 
-                textProperties.colour * (currentFont->alphabet[currentIndex][j]);
+        if(text[i] == 0){break;}
+        if(text[i] == '\n'){
+            lines[counter] = i+1;
+            counter++;
+        }
+    }
+    Error error = NO_ERROR;
+    for(uint16_t i=0;i<counter;i++){
+        if(lines[i+1] - lines[i] - 1==0){continue;}
+        uint16_t *textSpace = calculateTextSpace(text + lines[i], lines[i+1] - lines[i] - 1, textProperties);
+        Error tempError = boundaryCheck(xPosition, yPosition + fnt::fontSizes[textProperties.index] * i, textSpace[0] + SCREEN_SIZE - edge, textSpace[1]);
+        delete[] textSpace;
+        if(tempError&OUT_ALL_BUT_RIGHT){
+            error=(Error) (error|tempError);
+            break;
+            }
+        if(tempError==OUT_OF_RIGHT_BORDER){
+            for(uint16_t j=lines[i+1]-1;j>lines[i];j--){
+                if(text[j]==' '){
+                    textSpace = calculateTextSpace(text + lines[i], j - lines[i], textProperties);
+                    tempError = boundaryCheck(xPosition, yPosition + fnt::fontSizes[textProperties.index] * i, textSpace[0] + SCREEN_SIZE - edge, textSpace[1]);
+                    delete[] textSpace;
+                    if(tempError==NO_ERROR){
+                        for(uint16_t k=counter;k>i+1;k--){
+                            lines[k] = lines[k-1];
+                        }
+                        lines[i+1] = j+1;
+                        counter++;
+                        break;
+                    }
+                }
             }
         }
-        currentPosition+= currentFont->width[currentIndex] - currentFont->xPosition[currentIndex] - currentFont->yPosition[currentIndex]*SCREEN_SIZE;
+        addTextInternal(xPosition, yPosition + fnt::fontSizes[textProperties.index] * i, text + lines[i], lines[i+1] - lines[i] - 1, topOrBottom, textProperties);
+        error= (Error) (error|tempError);
     }
+    delete[] lines;
     return error;
+}
+
+void SSD1351::addTextInternal(uint8_t xPosition, uint8_t yPosition, char* text, uint16_t textLength, bool topOrBottom, TextProperties_t textProperties){
+    if(textLength==0){return;}
+    Font* currentFont = &fnt::fontDatabase[textProperties.index];
+    uint8_t currentX = xPosition;
+    uint8_t currentY = yPosition;
+    for(uint16_t i=0;i<textLength;i++){
+        if(text[i]==0){break;}
+        uint8_t currentIndex = (text[i] >= FONT_OFFSET && text[i]<=(NUMBER_OF_CHARACTERS + FONT_OFFSET)) ? text[i] : '?';
+        currentIndex-=FONT_OFFSET;
+        for(uint8_t j=0;j<currentFont->height[currentIndex];j++){
+            for(uint8_t k=0;k<currentFont->width[currentIndex];k++){
+                if(!topOrBottom && (*activeScreenBuffer)[currentX + currentFont->xPosition[currentIndex] + k + (currentY + currentFont->yPosition[currentIndex] + j)*SCREEN_SIZE]){}
+                else{    
+                    (*activeScreenBuffer)[currentX + currentFont->xPosition[currentIndex] + k + (currentY + currentFont->yPosition[currentIndex] + j)*SCREEN_SIZE] = 
+                    textProperties.colour * (currentFont->alphabet[currentIndex][k + j*currentFont->width[currentIndex]]);
+                }
+            }
+        }
+        currentX+= currentFont->width[currentIndex];
+    }
 }
 
 uint16_t* SSD1351::calculateTextSpace(char *text, uint16_t textLength, TextProperties_t textProperties){
     uint16_t resultX=0;
     uint8_t currentIndex;
     for(uint16_t i=0;i<textLength; i++){
-        if(text[i]==0){continue;}
-        currentIndex = (text[i] >= FONT_OFFSET && text[i]<=NUMBER_OF_CHARACTERS) ? text[i] : '?';
+        if(text[i]==0){break;}
+        currentIndex = (text[i] >= FONT_OFFSET && text[i]<=(NUMBER_OF_CHARACTERS + FONT_OFFSET)) ? text[i] : '?';
         currentIndex-=FONT_OFFSET;
         resultX+=(fnt::fontDatabase[textProperties.index]).width[currentIndex];
     }
