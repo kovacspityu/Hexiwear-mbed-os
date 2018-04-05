@@ -404,106 +404,24 @@ void MAX30101::updateChannels(MAX30101_Mode mode, MAX30101_Led slot1,
             break;
         }
         case MULTI_MODE:{
-            //TODO The worst of spaghetti code, need to find some way to make a slot array and give it default values
+            MAX30101_Led slot[4] = {slot1, slot2, slot3, slot4};
             mSampleTemplate.length = 0;
-            if(slot1){
-                mSampleTemplate.length++;
-                if(slot2){
+            uint8_t cycleEnd = 4;
+            for(uint8_t i=0;i<cycleEnd;){
+                if(slot[i]!=NONE_LED){
                     mSampleTemplate.length++;
-                    if(slot3){
-                        mSampleTemplate.length++;
-                        if(slot4){
-                            mSampleTemplate.length++;
-                        }
-                    }
-                    else{
-                        if(slot4){
-                            slot3=slot4;
-                            slot4=NONE_LED;
-                            mSampleTemplate.length++;
-                        }
-                    }
+                    i++;
                 }
-                else {
-                    if(slot3){
-                        slot2=slot3;
-                        slot3=NONE_LED;
-                        mSampleTemplate.length++;
-                        if(slot4){
-                            slot3=slot4;
-                            slot4=NONE_LED;
-                            mSampleTemplate.length++;
-                            break;
-                        }
-                    }
-                    else {
-                        if(slot4){
-                            slot2=slot4;
-                            slot4=NONE_LED;
-                            mSampleTemplate.length++;
-                        }
-                    }
-                }
-            }
-            else{
-                if(slot2){
-                    slot1=slot2;
-                    slot2=NONE_LED;
-                    mSampleTemplate.length++;
-                    if(slot3){
-                        slot2=slot3;
-                        slot3=NONE_LED;
-                        if(slot4){
-                            slot3=slot4;
-                            slot4=NONE_LED;
-                            mSampleTemplate.length++;
-                        }
-                    }
-                    else{
-                        if(slot4){
-                            slot2=slot4;
-                            slot4=NONE_LED;
-                            mSampleTemplate.length++;
-                        }
-                    }
-                }
-                else {
-                    if(slot3){
-                        slot1=slot3;
-                        slot3=NONE_LED;
-                        mSampleTemplate.length++;
-                        if(slot4){
-                            slot2=slot4;
-                            slot4=NONE_LED;
-                            mSampleTemplate.length++;
-                            break;
-                        }
-                    }
-                    else {
-                        if(slot4){
-                            slot1=slot4;
-                            slot4=NONE_LED;
-                            mSampleTemplate.length++;
-                        }
+                else{
+                    for(uint8_t j=i;j<cycleEnd-1;j++){
+                        slot[j]=slot[j+1];
+                        cycleEnd--;
                     }
                 }
             }
             mSampleTemplate.ledSamples = new ledSample_t[mSampleTemplate.length];
-            switch(mSampleTemplate.length){
-                //They all fall through, so from the active case to 1 gets executed 
-                case 4:{
-                    mSampleTemplate.ledSamples[3].ledType = slot4;
-                }   
-                case 3:{
-                    mSampleTemplate.ledSamples[2].ledType = slot3;
-                }
-                case 2:{
-                    mSampleTemplate.ledSamples[1].ledType = slot2;
-                }
-                case 1:{
-                    mSampleTemplate.ledSamples[0].ledType = slot1;
-                }
-                default:{break;}
+            for(uint8_t i=0;i<mSampleTemplate.length;i++){
+                mSampleTemplate.ledSamples[i].ledType = slot[i];
             }
         }
     }
