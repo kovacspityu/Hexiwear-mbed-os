@@ -9,9 +9,12 @@ const float FXOS8700CQ::TEMPERATURE_SENSITIVITY = 0.96;
 FXOS8700CQ::FXOS8700CQ(FXOS8700CQ_Mode mode, FXOS8700CQ_Range range, FXOS8700CQ_ODR dataRate) : mI2C(PTC11, PTC10), mAddress(0x1E),
  mInterruptOne(PTC1), mInterruptTwo(PTD13), mReset(PTD11){
      mI2C.frequency(400000);
+     awake=true;
+     mSleepODR = ODR50;
      setMode(mode);
      setRange(range);
      setODR(dataRate);
+     setInterrupt(PIN_TWO, I_SLEEP_WAKE, NULL);
 }
 
 void FXOS8700CQ::setMode(FXOS8700CQ_Mode mode){
@@ -77,14 +80,33 @@ void FXOS8700CQ::setRange(FXOS8700CQ_Range range){
 }
 
 void FXOS8700CQ::setODR(FXOS8700CQ_ODR dataRate){
+    // ODR1_2 is the ODR when the requested ODR==ODR1 and the system is in hybrid mode,
+    // otherwise it's not availabel
+    if(dataRate==ODR1_2){dataRate=ODR1;}
     uint8_t data;
     read(CTRL_REG_1, &data);
-    data&=~ODR1;
-    data|=dataRate;
+    data&=0b11000111;
+    data|=dataRate<<3;
     FXOS8700CQ_Mode tempMode = mMode;
     standby();
     write(CTRL_REG_1, &data);
-    mODR = dataRate;
+    if(tempMode==HYBRID){mODR= (FXOS8700CQ_ODR) (dataRate+1);}
+    mAwakeODR = dataRate;
+    setMode(tempMode);
+}
+
+void FXOS8700CQ::setAsleepODR(FXOS8700CQ_ODR dataRate){
+    if(dataRate==ODR1_2){dataRate=ODR1;}
+    if(dataRate<ODR50){dataRate=ODR50;}
+    mSleepODR=dataRate;
+    uint8_t data;
+    read(CTRL_REG_1, &data);
+    data&=0b00111111;
+    data|=(dataRate<<6);
+    FXOS8700CQ_Mode tempMode = mMode;
+    standby();
+    write(CTRL_REG_1, &data);
+    if(tempMode==HYBRID){mODR= (FXOS8700CQ_ODR) (dataRate+1);}
     setMode(tempMode);
 }
 
@@ -144,14 +166,14 @@ float FXOS8700CQ::getTemperature(){
 
 
 
-void FXOS8700CQ::setInterrupt(FXOS8700CQ_Interrupt_Pin pin, FXOS8700CQ_Interrupt name, void (*function)(), float threshold, int count, bool resetCount){
+void FXOS8700CQ::setInterrupt(FXOS8700CQ_Interrupt_Pin pin, FXOS8700CQ_Interrupt name, void (*function)(), float threshold, uint8_t count, bool resetCount){
     //TODO
     uint8_t data;
     switch(name){
         case I_NEW_DATA     : {
             break;
         }
-        case I_ACC_MAG      : {
+        case I_ACC_MAGNITUDE: {
             break;
         }
         case I_FREEFALL     : {
@@ -170,12 +192,26 @@ void FXOS8700CQ::setInterrupt(FXOS8700CQ_Interrupt_Pin pin, FXOS8700CQ_Interrupt
             break;
         }
         case I_SLEEP_WAKE   : {
+            if(mAwakeODR==ODR1){
+                if(threshold>63){threshold=63;}
+                data=lround(threshold*1000/640);
+            }
+            else{
+                if(threshold>81){threshold=81;}
+                data=lround(threshold*1000/320);
+            }
+            write(SLEEP_COUNTER, &data);
+            count&=0b11111100;
+            write(SLEEP_INT_CONFIG, &count);
+            read(CTRL_REG_2, &data);
+            data|=2;
+            write(CTRL_REG_2, &data);
             break;
         }
         case I_MAG_THRESHOLD: {
             break;
         }
-        case I_MAG_MAG      : {
+        case I_MAG_MAGNITUDE: {
             break;
         }
         case I_MAG_NEW_DATA :{
@@ -247,6 +283,7 @@ void FXOS8700CQ::removeInterrupt(FXOS8700CQ_Interrupt name){
 }
 
 void FXOS8700CQ::setInterruptFunction(void (*function)(), FXOS8700CQ_Interrupt_Pin pin){
+    if(function==NULL){return;}
     if(pin){
         FXOS8700CQInterruptOne = function;
         mThreadOne.start(callback(this, &FXOS8700CQ::interruptWrapperOne));
@@ -276,7 +313,22 @@ void FXOS8700CQ::interruptWrapper(FXOS8700CQ_Interrupt_Pin pin){
                 delete[] samples;
                 break;
             }
-            case I_FIFO: {
+            case I_ACC_MAGNITUDE: {
+                break;
+            }
+            case I_FREEFALL     : {
+            break;
+            }
+            case I_PULSE        : {
+                break;
+            }
+            case I_ORIENTATION  : {
+                break;
+            }
+            case I_TRANSIENT    : {
+
+            }
+            case I_FIFO         : {
                 uint8_t samplesNumber;
                 read(STATUS, &samplesNumber);
                 samplesNumber&=0x3F;
@@ -289,13 +341,25 @@ void FXOS8700CQ::interruptWrapper(FXOS8700CQ_Interrupt_Pin pin){
                 for(uint8_t i=0;i<3*samplesNumber;i++){
                     (*(mailArray+i))->axis = (FXOS8700CQ_Axis) (i%3);
                     (*(mailArray+i))->value = convertAcceleration(samples + 2*i);
-                    
+
                     mailBox.put(*(mailArray+i));
                 }
                 delete[] samples;
                 break;
             }
-            case I_ACC_MAG: {
+            case I_SLEEP_WAKE   : {
+                if(awake){mODR=mAwakeODR;}
+                else{mODR=mSleepODR;}
+                awake=!awake;
+                break;
+            }
+            case I_MAG_THRESHOLD: {
+                break;
+            }
+            case I_MAG_MAGNITUDE: {
+                break;
+            }
+            case I_MAG_NEW_DATA :{
                 break;
             }
         }

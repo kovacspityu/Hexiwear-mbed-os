@@ -128,7 +128,7 @@ namespace FXO{
 
     enum FXOS8700CQ_Interrupt{
         I_NEW_DATA      = 1,
-        I_ACC_MAG       = 2,
+        I_ACC_MAGNITUDE = 2,
         I_FREEFALL      = 4,
         I_PULSE         = 8,
         I_ORIENTATION   = 16,
@@ -136,7 +136,7 @@ namespace FXO{
         I_FIFO          = 64,
         I_SLEEP_WAKE    = 128,
         I_MAG_THRESHOLD = 256,
-        I_MAG_MAG       = 512,
+        I_MAG_MAGNITUDE = 512,
         I_MAG_NEW_DATA  = 1024
     };
 
@@ -178,14 +178,15 @@ namespace FXO{
     };
 
     enum FXOS8700CQ_ODR{
-        ODR800 = 0<<3,              // All numbers are approximated for readability, and valid for accelerometer and magnetic mode.
-        ODR400 = 1<<3,              // In hybrid mode the real ODR is half that expected.
-        ODR200 = 2<<3,
-        ODR100 = 3<<3,
-        ODR50  = 4<<3,
-        ODR12  = 5<<3,
-        ODR6   = 6<<3,
-        ODR1   = 7<<3
+        ODR800 = 0,              // All numbers are approximated for readability, and valid for accelerometer and magnetic mode.
+        ODR400 = 1,              // In hybrid mode the real ODR is half that expected.
+        ODR200 = 2,
+        ODR100 = 3,
+        ODR50  = 4,
+        ODR12  = 5,
+        ODR6   = 6,
+        ODR1   = 7,
+        ODR1_2 = 8
     };
 
     enum FXOS8700CQ_Acc_OSR{
