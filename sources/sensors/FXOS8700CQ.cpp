@@ -135,23 +135,24 @@ void FXOS8700CQ::setAccOversampleAsleep(FXOS8700CQ_Acc_OSR oversample){
     write(CTRL_REG_2, &data);
 }
 
-void FXOS8700CQ::setAccelerationMagnitude(uint8_t count, bool resetCount, uint8_t config, float threshold, float* reference){
+void FXOS8700CQ::setAccelerationMagnitude(FXOS8700CQ_Interrupt_Pin pin, void (*function)(), uint8_t count, bool resetCount, uint8_t config, float threshold, float* reference){
     uint16_t dummy = lround(fabs(threshold/mSensitivity));
     dummy&=0b0001111111111111;
     if(resetCount){dummy|=1<<15;}
-    write(ACC_MAGNITUDE_MSB, &dummy, 2);
+    write(ACC_MAGNITUDE_MSB, (uint8_t*) &dummy, 2);
     for(uint i=0;i<3;i++){
         dummy = lround(fabs(reference[i]/mSensitivity));
         dummy&=0b0011111111111111;
-        write((FXOS8700CQ_Address)(ACC_REF_X_MSB+2*i), &dummy, 2);
+        write((FXOS8700CQ_Address)(ACC_REF_X_MSB+2*i), (uint8_t*) &dummy, 2);
     }
     uint8_t data=lround(fabs(count/mODR));
     write(ACC_MAGNITUDE_COUNT, &data);
     config&=0b0111000;
     write(ACC_MAGNITUDE_CFG, &config);
+    setInterrupt(pin, I_ACC_MAGNITUDE, function);
 }
 
-void FXOS8700CQ::setFreefallMotion(float count, bool resetCount, uint8_t config, float threshold, float xThreshold, float yThreshold, float zThreshold){
+void FXOS8700CQ::setFreefallMotion(FXOS8700CQ_Interrupt_Pin pin, void (*function)(), float count, bool resetCount, uint8_t config, float threshold, float xThreshold, float yThreshold, float zThreshold){
     config&=0b11111000;
     write(MOTION_CFG, &config);
     uint8_t data=lround(fabs(count/mODR));
@@ -185,13 +186,14 @@ void FXOS8700CQ::setFreefallMotion(float count, bool resetCount, uint8_t config,
     }
     else{dummy&=~(1<<15);}
     write(MOTION_Z_MSB, (uint8_t*) &dummy, 2);
+    setInterrupt(pin, I_FREEFALL, function);
 }
 
-void setPulse(uint8_t config, float timing, float* threshold, float latency, float window){
+void FXOS8700CQ::setPulse(FXOS8700CQ_Interrupt_Pin pin, void (*function)(), uint8_t config, float timing, float* threshold, float latency, float window){
     write(PULSE_CFG, &config);
     uint8_t data;
     for(uint8_t i=0;i<3;i++){
-        data=lround(fabs(threshold/63));
+        data=lround(fabs(threshold[i]/63));
         write(PULSE_X_THRESHOLD, &data);
     }
     data=lround(fabs(latency/mODR));
@@ -201,6 +203,62 @@ void setPulse(uint8_t config, float timing, float* threshold, float latency, flo
     write(PULSE_TIME_LIMIT, &data);
     data=lround(fabs(window/mODR));
     write(PULSE_WINDOW, &data);
+    setInterrupt(pin, I_PULSE, function);
+}
+
+void FXOS8700CQ::setTransient(FXOS8700CQ_Interrupt_Pin pin, void (*function)(), float count, bool resetCount, uint8_t config, float threshold){
+    uint8_t data;
+    config&=31;
+    write(TRANSIENT_CFG, &config);
+    data=lround(fabs(threshold/63));
+    data&=127;
+    data|=(resetCount<<7);
+    write(TRANSIENT_THRESHOLD, &data);
+    data=lround(fabs(count/mODR));
+    write(TRANSIENT_COUNT, &data);
+    setInterrupt(pin, I_TRANSIENT, function);
+}
+
+void FXOS8700CQ::setSleepWake(FXOS8700CQ_Interrupt_Pin pin, void (*function)(), float count, bool resetCount, uint8_t config, uint8_t interrupts){
+    uint8_t data;
+    if(mAwakeODR==ODR1){
+        if(count>63){count=63;}
+        data=lround(count*1000/640);
+    }
+    else{
+        if(count>81){count=81;}
+        data=lround(count*1000/320);
+    }
+    write(SLEEP_COUNTER, &data);
+    // CTRL_REG_3 holds which interrupts can wake the sensor AND 
+    // the polarity and resistance of the interrupt pins AND a FIFO option, 
+    // so we need to make sure not to change bits 0, 1 and 7.
+    read(SLEEP_INT_CONFIG, &data);
+    data&=131;
+    interrupts<<=1;
+    interrupts&=124;
+    data|=interrupts;
+    write(SLEEP_INT_CONFIG, &data);
+    read(CTRL_REG_2, &data);
+    data|=2;
+    write(CTRL_REG_2, &data); 
+    setInterrupt(pin, I_SLEEP_WAKE, function);
+}
+
+void FXOS8700CQ::setMagneticThreshold(FXOS8700CQ_Interrupt_Pin pin, void (*function)(), float count, bool resetCount, uint8_t config, float *threshold){
+    uint16_t dummy;
+    for(uint8_t i=0;i<3;i++){
+        read((FXOS8700CQ_Address)(MAG_X_OFFSET_MSB+2*i), (uint8_t*) &dummy, 2);
+        dummy=lround(fabs(threshold[i]/0.1))-dummy;
+        dummy&=~(1<<15);
+        if(i==0){dummy|=resetCount;}
+        write((FXOS8700CQ_Address)(MAG_THRESHOLD_X_MSB+2*i), (uint8_t*) &dummy, 2);
+    }
+    uint8_t data = lround(fabs(count/mODR));
+    write(MAG_THRESHOLD_COUNT, &data);
+    config&=pin;
+    write(MAG_THRESHOLD_CFG, &config);
+    setInterrupt(pin, I_MAG_THRESHOLD, function);
 }
 
 
@@ -238,7 +296,7 @@ float FXOS8700CQ::getTemperature(){
 
 
 
-void FXOS8700CQ::setInterrupt(FXOS8700CQ_Interrupt_Pin pin, FXOS8700CQ_Interrupt name, void (*function)(), float threshold, float count, bool resetCount, uint8_t config){
+void FXOS8700CQ::setInterrupt(FXOS8700CQ_Interrupt_Pin pin, FXOS8700CQ_Interrupt name, void (*function)()){
     //TODO
     uint8_t data;
     switch(name){
@@ -246,49 +304,24 @@ void FXOS8700CQ::setInterrupt(FXOS8700CQ_Interrupt_Pin pin, FXOS8700CQ_Interrupt
             break;
         }
         case I_ACC_MAGNITUDE: {
-            setAccelerationMagnitude(count, resetCount, config, threshold);
             break;
         }
         case I_FREEFALL     : {
-            setFreefallMotion(count, resetCount, config, threshold);
             break;
         }
         case I_PULSE        : {
-            setPulse(config, timing, threshold, latency, window);
             break;
         }
         case I_ORIENTATION  : {
             break;
         }
         case I_TRANSIENT    : {
-            config&=31;
-            write(TRANSIENT_CFG, &config);
-            data=lround(fabs(threshold/63));
-            data&=127;
-            data|=(resetCount<<7);
-            write(TRANSIENT_THRESHOLD, &data);
-            data=lround(fabs(count/mODR));
-            write(TRANSIENT_COUNT, &data);
             break;
         }
         case I_FIFO         : {
             break;
         }
         case I_SLEEP_WAKE   : {
-            if(mAwakeODR==ODR1){
-                if(threshold>63){threshold=63;}
-                data=lround(threshold*1000/640);
-            }
-            else{
-                if(threshold>81){threshold=81;}
-                data=lround(threshold*1000/320);
-            }
-            write(SLEEP_COUNTER, &data);
-            count&=0b11111100;
-            write(SLEEP_INT_CONFIG, &count);
-            read(CTRL_REG_2, &data);
-            data|=2;
-            write(CTRL_REG_2, &data);
             break;
         }
         case I_MAG_THRESHOLD: {

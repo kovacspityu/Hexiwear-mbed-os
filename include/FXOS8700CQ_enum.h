@@ -177,6 +177,12 @@ namespace FXO{
         HYBRID          = 3
     };
 
+    enum FXOS8700CQ_Status{
+        S_STANDBY   = 0,
+        S_AWAKE     = 1,
+        S_ASLEEP    = 2         //TODO Needs to be checked, the docs have a typo where this is indicated as 1
+    };
+
     enum FXOS8700CQ_ODR{
         ODR800 = 0,              // All numbers are approximated for readability, and valid for accelerometer and magnetic mode.
         ODR400 = 1,              // In hybrid mode the real ODR is half that expected.
@@ -245,6 +251,14 @@ namespace FXO{
         ENABLE_SINGLE_Y = 16,
         ENABLE_DOUBLE_X = 32,
         ENABLE_SINGLE_X = 16,
+    };
+
+    enum FXOS8700CQ_Magnetic_Threshold_Config{
+        M_LATCH         = 130,
+        ABOVE_THRESHOLD = 66,
+        M_ENABLE_Z      = 34,
+        M_ENABLE_Y      = 18,
+        M_ENABLE_X      = 10
     };
     
 }

@@ -35,15 +35,18 @@ class FXOS8700CQ{
         void setMagOversample(FXOS8700CQ_Mag_OSR oversample);
         void setAccOversampleAwake(FXOS8700CQ_Acc_OSR oversample);
         void setAccOversampleAsleep(FXOS8700CQ_Acc_OSR oversample);
-        void setAccelerationMagnitude(float count, bool resetCount, uint8_t config, float threshold, float* reference);
-        void setFreefallMotion(float count, bool resetCount, uint8_t config, float threshold, float xThreshold=0, float yThreshold=0, float zThreshold=0);
-        void setPulse(uint8_t config, float timing, float* threshold, float latency, float window);
+        void setAccelerationMagnitude(FXOS8700CQ_Interrupt_Pin pin, void (*function)(), uint8_t count, bool resetCount, uint8_t config, float threshold, float* reference);
+        void setFreefallMotion(FXOS8700CQ_Interrupt_Pin pin, void (*function)(), float count, bool resetCount, uint8_t config, float threshold, float xThreshold=0, float yThreshold=0, float zThreshold=0);
+        void setPulse(FXOS8700CQ_Interrupt_Pin pin, void (*function)(), uint8_t config, float timing, float* threshold, float latency, float window);
+        void setTransient(FXOS8700CQ_Interrupt_Pin pin, void (*function)(), float count, bool resetCount, uint8_t config, float threshold);
+        void setSleepWake(FXOS8700CQ_Interrupt_Pin pin, void (*function)(), float count, bool resetCount, uint8_t config, uint8_t interrupts);
+        void setMagneticThreshold(FXOS8700CQ_Interrupt_Pin pin, void (*function)(), float count, bool resetCount, uint8_t config, float *threshold);
 
 
         float* getAcceleration();
         float* getMagnetic();
         float getTemperature();
-        void setInterrupt(FXOS8700CQ_Interrupt_Pin pin, FXOS8700CQ_Interrupt name, void (*function)(), float threshold = 0, float count = 0, bool resetCount = false, uint8_t config = 0);
+        void setInterrupt(FXOS8700CQ_Interrupt_Pin pin, FXOS8700CQ_Interrupt name, void (*function)());
         void setInterrupt(FXOS8700CQ_Interrupt_Pin pin, FXOS8700CQ_Interrupt name, void (*function)(), FXOS8700CQ_FIFO_Mode mode, uint8_t watermark = 0);
         void removeInterrupt(FXOS8700CQ_Interrupt name);
         
