@@ -212,5 +212,13 @@ namespace FXO{
         OSR_6 = 6,
         OSR_7 = 7
     };
+
+    enum FXOS8700CQ_Freefall_Config{
+        LATCH   = 128,
+        MOTION  = 64,
+        ENABLE_X= 32,
+        ENABLE_Y= 16,
+        ENABLE_Z= 8
+    };
 }
 #endif

@@ -65,7 +65,9 @@ FXOS8700CQ_Mode FXOS8700CQ::getStatus(){
 }
 
 bool FXOS8700CQ::isDataAvailable(){
-    //TODO
+    uint8_t data;
+    read(STATUS, &data);
+    return data ? true : false;
 }
 
 
@@ -133,6 +135,44 @@ void FXOS8700CQ::setAccOversampleAsleep(FXOS8700CQ_Acc_OSR oversample){
     write(CTRL_REG_2, &data);
 }
 
+void FXOS8700CQ::setFreefallMotion(uint8_t count, bool resetCount, uint8_t config, float threshold, float xThreshold, float yThreshold, float zThreshold){
+    config&=0b11111000;
+    write(MOTION_CFG, &config);
+    write(MOTION_COUNT, &count);
+    threshold=fabs(threshold);
+    xThreshold=fabs(xThreshold);
+    yThreshold=fabs(yThreshold);
+    zThreshold=fabs(zThreshold);
+    uint8_t data;
+    data = lround(xThreshold/63);
+    data&=0b01111111;
+    data|=resetCount<<7;
+    write(MOTION_THRESHOLD, &data);
+    uint16_t dummy = lround(xThreshold/63);
+    dummy<<=2;
+    if(xThreshold){
+        dummy|=1<<15;                
+    }
+    else{dummy&=~(1<<15);}
+    write(MOTION_X_MSB, (uint8_t*) &dummy, 2);
+    dummy = lround(yThreshold/63);
+    dummy<<=2;
+    if(yThreshold){
+        dummy|=1<<15;                
+    }
+    else{dummy&=~(1<<15);}
+    write(MOTION_Y_MSB, (uint8_t*) &dummy, 2);
+    dummy = lround(zThreshold/63);
+    dummy<<=2;
+    if(zThreshold){
+        dummy|=1<<15;                
+    }
+    else{dummy&=~(1<<15);}
+    write(MOTION_Z_MSB, (uint8_t*) &dummy, 2);
+}
+
+
+
 float* FXOS8700CQ::getAcceleration(){
     uint8_t *data = getRawAcceleration();
     //TODO Needs to check how many bytes are currently used for the data.
@@ -166,7 +206,7 @@ float FXOS8700CQ::getTemperature(){
 
 
 
-void FXOS8700CQ::setInterrupt(FXOS8700CQ_Interrupt_Pin pin, FXOS8700CQ_Interrupt name, void (*function)(), float threshold, uint8_t count, bool resetCount){
+void FXOS8700CQ::setInterrupt(FXOS8700CQ_Interrupt_Pin pin, FXOS8700CQ_Interrupt name, void (*function)(), float threshold, uint8_t count, bool resetCount, uint8_t config){
     //TODO
     uint8_t data;
     switch(name){
@@ -177,6 +217,7 @@ void FXOS8700CQ::setInterrupt(FXOS8700CQ_Interrupt_Pin pin, FXOS8700CQ_Interrupt
             break;
         }
         case I_FREEFALL     : {
+            setFreefallMotion(count, resetCount, config, threshold);
             break;
         }
         case I_PULSE        : {
