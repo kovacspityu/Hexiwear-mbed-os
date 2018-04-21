@@ -92,26 +92,26 @@ namespace FXO{
         MAG_CTRL_REG_2          = 0x5C,
         MAG_CTRL_REG_3          = 0x5D,
         MAG_INT_STATUS          = 0x5E,
-        ACC_VEC_DIFF_CFG        = 0x5F,
-        ACC_VEC_DIFF_MSB        = 0x60,
-        ACC_VEC_DIFF_LSB        = 0x61,
-        ACC_VEC_DIFF_COUNT      = 0x62,
-        ACC_REF_VEC_X_MSB       = 0x63,
-        ACC_REF_VEC_X_LSB       = 0x64,
-        ACC_REF_VEC_Y_MSB       = 0x65,
-        ACC_REF_VEC_Y_LSB       = 0x66,
-        ACC_REF_VEC_Z_MSB       = 0x67,
-        ACC_REF_VEC_Z_LSB       = 0x68,
-        MAG_VEC_DIFF_CFG        = 0x69,
-        MAG_VEC_DIFF_MSB        = 0x6A,
-        MAG_VEC_DIFF_LSB        = 0x6B,
-        MAG_VEC_DIFF_COUNT      = 0x6C,
-        MAG_REF_VEC_X_MSB       = 0x6D,
-        MAG_REF_VEC_X_LSB       = 0x6E,
-        MAG_REF_VEC_Y_MSB       = 0x6F,
-        MAG_REF_VEC_Y_LSB       = 0x70,
-        MAG_REF_VEC_Z_MSB       = 0x71,
-        MAG_REF_VEC_Z_LSB       = 0x72,
+        ACC_MAGNITUDE_CFG       = 0x5F,
+        ACC_MAGNITUDE_MSB       = 0x60,
+        ACC_MAGNITUDE_LSB       = 0x61,
+        ACC_MAGNITUDE_COUNT     = 0x62,
+        ACC_REF_X_MSB           = 0x63,
+        ACC_REF_X_LSB           = 0x64,
+        ACC_REF_Y_MSB           = 0x65,
+        ACC_REF_Y_LSB           = 0x66,
+        ACC_REF_Z_MSB           = 0x67,
+        ACC_REF_Z_LSB           = 0x68,
+        MAG_MAGNITUDE_CFG       = 0x69,
+        MAG_MAGNITUDE_MSB       = 0x6A,
+        MAG_MAGNITUDE_LSB       = 0x6B,
+        MAG_MAGNITUDE_COUNT     = 0x6C,
+        MAG_REF_X_MSB           = 0x6D,
+        MAG_REF_X_LSB           = 0x6E,
+        MAG_REF_Y_MSB           = 0x6F,
+        MAG_REF_Y_LSB           = 0x70,
+        MAG_REF_Z_MSB           = 0x71,
+        MAG_REF_Z_LSB           = 0x72,
         MOTION_X_MSB            = 0x73,
         MOTION_X_LSB            = 0x74,
         MOTION_Y_MSB            = 0x75,
@@ -214,11 +214,38 @@ namespace FXO{
     };
 
     enum FXOS8700CQ_Freefall_Config{
-        LATCH   = 128,
+        F_LATCH = 128,
         MOTION  = 64,
         ENABLE_X= 32,
         ENABLE_Y= 16,
         ENABLE_Z= 8
     };
+
+    enum FXOS8700CQ_Acc_Magnitude_Config{
+        A_LATCH         = 64,
+        THRESHOLD       = 32,
+        KEEP_THRESHOLD  = 16,
+        ACC_MAGNITUDE_ON= 8,
+    };
+
+    enum FXOS8700CQ_Transient_Config{
+        T_LATCH     = 16,
+        T_ENABLE_Z  = 8,
+        T_ENABLE_Y  = 4,
+        T_ENABLE_X  = 2,
+        BYPASS_HF   = 1
+    };
+
+    enum FXOS8700CQ_Pulse_Config{
+        ENABLE_LATENCY  = 128,
+        P_LATCH         = 64,
+        ENABLE_DOUBLE_Z = 32,
+        ENABLE_SINGLE_Z = 16,
+        ENABLE_DOUBLE_Y = 32,
+        ENABLE_SINGLE_Y = 16,
+        ENABLE_DOUBLE_X = 32,
+        ENABLE_SINGLE_X = 16,
+    };
+    
 }
 #endif

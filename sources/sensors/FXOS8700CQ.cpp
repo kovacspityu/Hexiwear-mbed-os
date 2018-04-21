@@ -135,15 +135,31 @@ void FXOS8700CQ::setAccOversampleAsleep(FXOS8700CQ_Acc_OSR oversample){
     write(CTRL_REG_2, &data);
 }
 
-void FXOS8700CQ::setFreefallMotion(uint8_t count, bool resetCount, uint8_t config, float threshold, float xThreshold, float yThreshold, float zThreshold){
+void FXOS8700CQ::setAccelerationMagnitude(uint8_t count, bool resetCount, uint8_t config, float threshold, float* reference){
+    uint16_t dummy = lround(fabs(threshold/mSensitivity));
+    dummy&=0b0001111111111111;
+    if(resetCount){dummy|=1<<15;}
+    write(ACC_MAGNITUDE_MSB, &dummy, 2);
+    for(uint i=0;i<3;i++){
+        dummy = lround(fabs(reference[i]/mSensitivity));
+        dummy&=0b0011111111111111;
+        write((FXOS8700CQ_Address)(ACC_REF_X_MSB+2*i), &dummy, 2);
+    }
+    uint8_t data=lround(fabs(count/mODR));
+    write(ACC_MAGNITUDE_COUNT, &data);
+    config&=0b0111000;
+    write(ACC_MAGNITUDE_CFG, &config);
+}
+
+void FXOS8700CQ::setFreefallMotion(float count, bool resetCount, uint8_t config, float threshold, float xThreshold, float yThreshold, float zThreshold){
     config&=0b11111000;
     write(MOTION_CFG, &config);
-    write(MOTION_COUNT, &count);
+    uint8_t data=lround(fabs(count/mODR));
+    write(MOTION_COUNT, &data);
     threshold=fabs(threshold);
     xThreshold=fabs(xThreshold);
     yThreshold=fabs(yThreshold);
     zThreshold=fabs(zThreshold);
-    uint8_t data;
     data = lround(xThreshold/63);
     data&=0b01111111;
     data|=resetCount<<7;
@@ -169,6 +185,22 @@ void FXOS8700CQ::setFreefallMotion(uint8_t count, bool resetCount, uint8_t confi
     }
     else{dummy&=~(1<<15);}
     write(MOTION_Z_MSB, (uint8_t*) &dummy, 2);
+}
+
+void setPulse(uint8_t config, float timing, float* threshold, float latency, float window){
+    write(PULSE_CFG, &config);
+    uint8_t data;
+    for(uint8_t i=0;i<3;i++){
+        data=lround(fabs(threshold/63));
+        write(PULSE_X_THRESHOLD, &data);
+    }
+    data=lround(fabs(latency/mODR));
+    data&=127;
+    write(PULSE_LATENCY, &data);
+    data=lround(fabs(timing/mODR));
+    write(PULSE_TIME_LIMIT, &data);
+    data=lround(fabs(window/mODR));
+    write(PULSE_WINDOW, &data);
 }
 
 
@@ -206,7 +238,7 @@ float FXOS8700CQ::getTemperature(){
 
 
 
-void FXOS8700CQ::setInterrupt(FXOS8700CQ_Interrupt_Pin pin, FXOS8700CQ_Interrupt name, void (*function)(), float threshold, uint8_t count, bool resetCount, uint8_t config){
+void FXOS8700CQ::setInterrupt(FXOS8700CQ_Interrupt_Pin pin, FXOS8700CQ_Interrupt name, void (*function)(), float threshold, float count, bool resetCount, uint8_t config){
     //TODO
     uint8_t data;
     switch(name){
@@ -214,6 +246,7 @@ void FXOS8700CQ::setInterrupt(FXOS8700CQ_Interrupt_Pin pin, FXOS8700CQ_Interrupt
             break;
         }
         case I_ACC_MAGNITUDE: {
+            setAccelerationMagnitude(count, resetCount, config, threshold);
             break;
         }
         case I_FREEFALL     : {
@@ -221,13 +254,22 @@ void FXOS8700CQ::setInterrupt(FXOS8700CQ_Interrupt_Pin pin, FXOS8700CQ_Interrupt
             break;
         }
         case I_PULSE        : {
+            setPulse(config, timing, threshold, latency, window);
             break;
         }
         case I_ORIENTATION  : {
             break;
         }
         case I_TRANSIENT    : {
-
+            config&=31;
+            write(TRANSIENT_CFG, &config);
+            data=lround(fabs(threshold/63));
+            data&=127;
+            data|=(resetCount<<7);
+            write(TRANSIENT_THRESHOLD, &data);
+            data=lround(fabs(count/mODR));
+            write(TRANSIENT_COUNT, &data);
+            break;
         }
         case I_FIFO         : {
             break;
@@ -259,6 +301,8 @@ void FXOS8700CQ::setInterrupt(FXOS8700CQ_Interrupt_Pin pin, FXOS8700CQ_Interrupt
             break;
         }
     }
+    //TODO Accelerometer interrupts are configured in INT_CONFIG, while each of the gyroscope's 
+    //TODO have their own CONFIG register.
     read(INT_CONFIG, &data);
     data|=name;
     write(INT_CONFIG, &data);
