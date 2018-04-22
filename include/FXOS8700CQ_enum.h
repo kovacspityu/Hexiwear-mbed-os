@@ -242,6 +242,48 @@ namespace FXO{
         BYPASS_HF   = 1
     };
 
+    enum FXOS8700CQ_Lockout_Angle{        // Approximated values for ease of reading, actual values below.
+        L_ANGLE_13_14    = 0,             //              13.6 - 14.5
+        L_ANGLE_17_18    = 1,             //              17.1 - 18.2
+        L_ANGLE_20_22    = 2,             //              20.7 - 22.0
+        L_ANGLE_24_26    = 3,             //              24.4 - 25.9
+        L_ANGLE_28_30    = 4,             //              28.1 - 30.0
+        L_ANGLE_32_34    = 5,             //              32.0 - 34.2
+        L_ANGLE_36_38    = 6,             //              36.1 - 38.7
+        L_ANGLE_40_43    = 7              //              40.4 - 43.4
+    };
+
+    enum FXOS8700CQ_Orientation_Angle{
+        O_ANGLE_80  = 0<<5,
+        O_ANGLE_75  = 1<<5,
+        O_ANGLE_70  = 2<<5,
+        O_ANGLE_65  = 3<<5       
+    };
+
+    enum FXOS8700CQ_Trip_Threshold{
+        T_ANGLE_15  = 0x07<<3,
+        T_ANGLE_20  = 0x09<<3,
+        T_ANGLE_30  = 0x0C<<3,
+        T_ANGLE_40  = 0x0D<<3,
+        T_ANGLE_45  = 0x0F<<3,
+        T_ANGLE_50  = 0x10<<3,
+        T_ANGLE_55  = 0x13<<3,
+        T_ANGLE_60  = 0x14<<3,
+        T_ANGLE_70  = 0x17<<3,
+        T_ANGLE_75  = 0x19<<3
+    };
+
+    enum FXOS8700CQ_Trip_Delta{
+        D_ANGLE_0   = 0,
+        D_ANGLE_4   = 1,
+        D_ANGLE_7   = 2,
+        D_ANGLE_11  = 3,
+        D_ANGLE_14  = 4,
+        D_ANGLE_17  = 5,
+        D_ANGLE_21  = 6,
+        D_ANGLE_24  = 7,
+    };
+
     enum FXOS8700CQ_Pulse_Config{
         ENABLE_LATENCY  = 128,
         P_LATCH         = 64,
@@ -259,6 +301,13 @@ namespace FXO{
         M_ENABLE_Z      = 34,
         M_ENABLE_Y      = 18,
         M_ENABLE_X      = 10
+    };
+
+    enum FXOS8700CQ_Mag_Magnitude_Config{
+        M_M_LATCH           = 74,
+        M_THRESHOLD         = 42,
+        M_KEEP_THRESHOLD    = 26,
+        M_WAKE              = 14
     };
     
 }

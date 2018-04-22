@@ -38,9 +38,11 @@ class FXOS8700CQ{
         void setAccelerationMagnitude(FXOS8700CQ_Interrupt_Pin pin, void (*function)(), uint8_t count, bool resetCount, uint8_t config, float threshold, float* reference);
         void setFreefallMotion(FXOS8700CQ_Interrupt_Pin pin, void (*function)(), float count, bool resetCount, uint8_t config, float threshold, float xThreshold=0, float yThreshold=0, float zThreshold=0);
         void setPulse(FXOS8700CQ_Interrupt_Pin pin, void (*function)(), uint8_t config, float timing, float* threshold, float latency, float window);
+        void setOrientation(FXOS8700CQ_Interrupt_Pin pin, void (*function)(), float count, bool resetCount, FXOS8700CQ_Lockout_Angle lockout, FXOS8700CQ_Orientation_Angle angle, FXOS8700CQ_Trip_Threshold threshold, FXOS8700CQ_Trip_Delta delta);
         void setTransient(FXOS8700CQ_Interrupt_Pin pin, void (*function)(), float count, bool resetCount, uint8_t config, float threshold);
         void setSleepWake(FXOS8700CQ_Interrupt_Pin pin, void (*function)(), float count, bool resetCount, uint8_t config, uint8_t interrupts);
         void setMagneticThreshold(FXOS8700CQ_Interrupt_Pin pin, void (*function)(), float count, bool resetCount, uint8_t config, float *threshold);
+        void setMagneticMagnitude(FXOS8700CQ_Interrupt_Pin pin, void (*function)(), uint8_t count, bool resetCount, uint8_t config, float threshold, float* reference);
 
 
         float* getAcceleration();

@@ -206,6 +206,17 @@ void FXOS8700CQ::setPulse(FXOS8700CQ_Interrupt_Pin pin, void (*function)(), uint
     setInterrupt(pin, I_PULSE, function);
 }
 
+void FXOS8700CQ::setOrientation(FXOS8700CQ_Interrupt_Pin pin, void (*function)(), float count, bool resetCount, FXOS8700CQ_Lockout_Angle lockout, FXOS8700CQ_Orientation_Angle angle, FXOS8700CQ_Trip_Threshold threshold, FXOS8700CQ_Trip_Delta delta){
+    uint8_t data = lround(fabs(count/mODR));
+    write(ORIENTATION_COUNT, &data);
+    data=lockout|angle;
+    write(LOCKING_ANGLES_CFG, &data);
+    data=threshold|delta;
+    write(ORIENTATION_THRESHOLD, &data);
+    data=(resetCount<<7)|64;
+    setInterrupt(pin, I_ORIENTATION, function);
+}
+
 void FXOS8700CQ::setTransient(FXOS8700CQ_Interrupt_Pin pin, void (*function)(), float count, bool resetCount, uint8_t config, float threshold){
     uint8_t data;
     config&=31;
@@ -233,6 +244,7 @@ void FXOS8700CQ::setSleepWake(FXOS8700CQ_Interrupt_Pin pin, void (*function)(), 
     // CTRL_REG_3 holds which interrupts can wake the sensor AND 
     // the polarity and resistance of the interrupt pins AND a FIFO option, 
     // so we need to make sure not to change bits 0, 1 and 7.
+    // TODO Add the interrupts that are not held in SLEEP_INT_CONFIG
     read(SLEEP_INT_CONFIG, &data);
     data&=131;
     interrupts<<=1;
@@ -249,7 +261,7 @@ void FXOS8700CQ::setMagneticThreshold(FXOS8700CQ_Interrupt_Pin pin, void (*funct
     uint16_t dummy;
     for(uint8_t i=0;i<3;i++){
         read((FXOS8700CQ_Address)(MAG_X_OFFSET_MSB+2*i), (uint8_t*) &dummy, 2);
-        dummy=lround(fabs(threshold[i]/0.1))-dummy;
+        dummy=lround(fabs(threshold[i]*10))-dummy;
         dummy&=~(1<<15);
         if(i==0){dummy|=resetCount;}
         write((FXOS8700CQ_Address)(MAG_THRESHOLD_X_MSB+2*i), (uint8_t*) &dummy, 2);
@@ -259,6 +271,22 @@ void FXOS8700CQ::setMagneticThreshold(FXOS8700CQ_Interrupt_Pin pin, void (*funct
     config&=pin;
     write(MAG_THRESHOLD_CFG, &config);
     setInterrupt(pin, I_MAG_THRESHOLD, function);
+}
+
+void FXOS8700CQ::setMagneticMagnitude(FXOS8700CQ_Interrupt_Pin pin, void (*function)(), uint8_t count, bool resetCount, uint8_t config, float threshold, float* reference){
+    uint16_t dummy = lround(fabs(threshold*10));
+    dummy&=0b0111111111111111;
+    if(resetCount){dummy|=1<<15;}
+    write(MAG_MAGNITUDE_MSB, (uint8_t*) &dummy, 2);
+    for(uint i=0;i<3;i++){
+        dummy = lround(reference[i]/mSensitivity);
+        write((FXOS8700CQ_Address)(MAG_REF_X_MSB+2*i), (uint8_t*) &dummy, 2);
+    }
+    uint8_t data=lround(fabs(count/mODR));
+    write(MAG_MAGNITUDE_COUNT, &data);
+    config|=pin;
+    write(MAG_MAGNITUDE_CFG, &config);
+    setInterrupt(pin, I_MAG_MAGNITUDE, function);
 }
 
 
