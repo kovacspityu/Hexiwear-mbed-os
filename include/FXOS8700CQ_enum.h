@@ -17,7 +17,7 @@ namespace FXO{
         WHO_AM_I                = 0x0D,
         DATA_CFG                = 0x0E,
         FILTER_CFG              = 0x0F,
-        ORIENTATION             = 0x10,
+        ORIENTATION_STATUS      = 0x10,
         ORIENTATION_CFG         = 0x11,
         ORIENTATION_COUNT       = 0x12,
         LOCKING_ANGLES_CFG      = 0x13,
@@ -121,9 +121,12 @@ namespace FXO{
     };
 
     enum FXOS8700CQ_Axis{
-        AXIS_X  = 4,
-        AXIS_Y  = 2,
-        AXIS_Z  = 1
+        MAG_AXIS_X  = 32,
+        MAG_AXIS_Y  = 16,
+        MAG_AXIS_Z  = 8,
+        ACC_AXIS_X  = 4,
+        ACC_AXIS_Y  = 2,
+        ACC_AXIS_Z  = 1
     };
 
     enum FXOS8700CQ_Interrupt{
@@ -136,8 +139,7 @@ namespace FXO{
         I_FIFO          = 64,
         I_SLEEP_WAKE    = 128,
         I_MAG_THRESHOLD = 256,
-        I_MAG_MAGNITUDE = 512,
-        I_MAG_NEW_DATA  = 1024
+        I_MAG_MAGNITUDE = 512
     };
 
     enum FXOS8700CQ_Interrupt_Pin{
@@ -240,6 +242,14 @@ namespace FXO{
         T_ENABLE_Y  = 4,
         T_ENABLE_X  = 2,
         BYPASS_HF   = 1
+    };
+
+    enum FXOS8700CQ_FIFO_Trigger_Config{
+        TRANSIENT       = 32,
+        ORIENTATION     = 16,
+        PULSE           = 8,
+        FREEFALL        = 4,
+        ACC_MAGNITUDE   = 2
     };
 
     enum FXOS8700CQ_Lockout_Angle{        // Approximated values for ease of reading, actual values below.

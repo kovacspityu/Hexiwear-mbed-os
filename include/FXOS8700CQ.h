@@ -9,9 +9,11 @@ using namespace FXO;
 class FXOS8700CQ{
 
     public:
-        FXOS8700CQ(FXOS8700CQ_Mode mode = ACCELEROMETER, FXOS8700CQ_Range range = RANGE2000, FXOS8700CQ_ODR dataRate = ODR100);
+        FXOS8700CQ(FXOS8700CQ_Mode mode = ACCELEROMETER, FXOS8700CQ_Range range = RANGE2000, FXOS8700CQ_ODR awakeODR = ODR400, FXOS8700CQ_ODR asleepODR = ODR400);
 
         static const float TEMPERATURE_SENSITIVITY;
+        static const float MAGNETIC_SENSITIVITY;
+        static const float BASE_ACC_SENSITIVITY;
         
         typedef struct{
             FXOS8700CQ_Axis axis;
@@ -30,9 +32,11 @@ class FXOS8700CQ{
         void setRange(FXOS8700CQ_Range range);
         void setLowPass(FXOS8700CQ_Low threshold);
         void setHighPass(FXOS8700CQ_High threshold);
-        void setODR(FXOS8700CQ_ODR dataRate);
+        void setAwakeODR(FXOS8700CQ_ODR dataRate);
         void setAsleepODR(FXOS8700CQ_ODR dataRate);
-        void setMagOversample(FXOS8700CQ_Mag_OSR oversample);
+        bool setAccLowNoise(bool activated=true);
+        void setMagOversampleAwake(FXOS8700CQ_Mag_OSR oversample);
+        void setMagOversampleAsleep(FXOS8700CQ_Mag_OSR oversample);
         void setAccOversampleAwake(FXOS8700CQ_Acc_OSR oversample);
         void setAccOversampleAsleep(FXOS8700CQ_Acc_OSR oversample);
         void setAccelerationMagnitude(FXOS8700CQ_Interrupt_Pin pin, void (*function)(), uint8_t count, bool resetCount, uint8_t config, float threshold, float* reference);
@@ -47,18 +51,18 @@ class FXOS8700CQ{
 
         float* getAcceleration();
         float* getMagnetic();
+        float* getAllData();
         float getTemperature();
         void setInterrupt(FXOS8700CQ_Interrupt_Pin pin, FXOS8700CQ_Interrupt name, void (*function)());
-        void setInterrupt(FXOS8700CQ_Interrupt_Pin pin, FXOS8700CQ_Interrupt name, void (*function)(), FXOS8700CQ_FIFO_Mode mode, uint8_t watermark = 0);
+        void setInterrupt(FXOS8700CQ_Interrupt_Pin pin, FXOS8700CQ_Interrupt name, void (*function)(), FXOS8700CQ_FIFO_Mode mode, uint8_t watermark = 0, uint8_t config = 0);
         void removeInterrupt(FXOS8700CQ_Interrupt name);
         
 
     private:
         I2C mI2C;
         uint8_t mAddress;
-        uint16_t activeInterruptsOne;
-        uint16_t activeInterruptsTwo;
-        float mSensitivity;
+        uint16_t activeInterrupts;
+        float mAccSensitivity;
         bool awake;
         FXOS8700CQ_ODR mODR;
         FXOS8700CQ_ODR mSleepODR;
@@ -67,22 +71,18 @@ class FXOS8700CQ{
         InterruptIn mInterruptOne;
         InterruptIn mInterruptTwo;
         DigitalIn mReset;
-        Thread mThreadOne;
-        Thread mThreadTwo;
-        void interruptWrapper(FXOS8700CQ_Interrupt_Pin pin);
-        void interruptWrapperOne();
-        void interruptWrapperTwo();
-        void (*FXOS8700CQInterruptOne)();
-        void (*FXOS8700CQInterruptTwo)();
+        Thread mThread;
+        EventFlags mEvent;
+        void interruptWrapper();
+        void (*mInterrupts[])();
 
         uint8_t* getRawAcceleration();
         uint8_t* getRawMagnetic();
+        uint8_t* getAllRawData();
         
-        void dispatchInterruptData(FXOS8700CQ_Interrupt_Pin pin);
-        void dispatchInterruptDataOne();
-        void dispatchInterruptDataTwo();
-        void setInterruptFunction(void (*function)(), FXOS8700CQ_Interrupt_Pin pin);
-        FXOS8700CQ_Interrupt identifyInterrupt(FXOS8700CQ_Interrupt_Pin pin);
+        void dispatchInterruptData();
+        void setInterruptFunction(void (*function)(), FXOS8700CQ_Interrupt name);
+        FXOS8700CQ_Interrupt identifyInterrupt();
 
         float convertAcceleration(uint8_t *rawAcc);
         float convertMagnetic(uint8_t *rawMag);

@@ -5,16 +5,23 @@
 using namespace FXO;
 
 const float FXOS8700CQ::TEMPERATURE_SENSITIVITY = 0.96;
+const float FXOS8700CQ::MAGNETIC_SENSITIVITY = 0.1;
+const float FXOS8700CQ::BASE_ACC_SENSITIVITY = 0.244;
 
-FXOS8700CQ::FXOS8700CQ(FXOS8700CQ_Mode mode, FXOS8700CQ_Range range, FXOS8700CQ_ODR dataRate) : mI2C(PTC11, PTC10), mAddress(0x1E),
- mInterruptOne(PTC1), mInterruptTwo(PTD13), mReset(PTD11){
+
+FXOS8700CQ::FXOS8700CQ(FXOS8700CQ_Mode mode, FXOS8700CQ_Range range, 
+FXOS8700CQ_ODR awakeODR, FXOS8700CQ_ODR asleepODR) : 
+mI2C(PTC11, PTC10), mAddress(0x1E), mInterruptOne(PTC1), mInterruptTwo(PTD13), mReset(PTD11){
      mI2C.frequency(400000);
      awake=true;
      mSleepODR = ODR50;
      setMode(mode);
      setRange(range);
-     setODR(dataRate);
+     setAwakeODR(awakeODR);
+     setAsleepODR(asleepODR);
      setInterrupt(PIN_TWO, I_SLEEP_WAKE, NULL);
+     uint8_t data = 32;
+     write(MAG_CTRL_REG_2, &data);
 }
 
 void FXOS8700CQ::setMode(FXOS8700CQ_Mode mode){
@@ -33,8 +40,12 @@ void FXOS8700CQ::setMode(FXOS8700CQ_Mode mode){
         read(CTRL_REG_1, &data);
         data&=~1;
         write(CTRL_REG_1, &data);
-        if(mMode==HYBRID){mSensitivity*=2;}
-        else if(mode==HYBRID){mSensitivity/=2;}
+        if(mMode==HYBRID){
+            mAccSensitivity*=2;
+            }
+        else if(mode==HYBRID){
+            mAccSensitivity/=2;
+            }
         mMode = mode;
     }
 }
@@ -72,18 +83,22 @@ bool FXOS8700CQ::isDataAvailable(){
 
 
 void FXOS8700CQ::setRange(FXOS8700CQ_Range range){
-    // TODO Implement the low noise mode in CTRL_REG_1 and deactivate it when the user asks for max range, 
-    //      as it doesn't work at max range
+    mAccSensitivity = BASE_ACC_SENSITIVITY * (1<<range);
     uint8_t data;
     read(DATA_CFG, &data);
     data&=~3;
     data|=range;
     write(DATA_CFG, &data);
+    if(range==RANGE2000){
+        read(CTRL_REG_1, &data);
+        data&=251;
+        write(CTRL_REG_1, &data);
+    }
 }
 
-void FXOS8700CQ::setODR(FXOS8700CQ_ODR dataRate){
+void FXOS8700CQ::setAwakeODR(FXOS8700CQ_ODR dataRate){
     // ODR1_2 is the ODR when the requested ODR==ODR1 and the system is in hybrid mode,
-    // otherwise it's not availabel
+    // otherwise it's not available
     if(dataRate==ODR1_2){dataRate=ODR1;}
     uint8_t data;
     read(CTRL_REG_1, &data);
@@ -112,11 +127,32 @@ void FXOS8700CQ::setAsleepODR(FXOS8700CQ_ODR dataRate){
     setMode(tempMode);
 }
 
-void FXOS8700CQ::setMagOversample(FXOS8700CQ_Mag_OSR oversample){
+bool FXOS8700CQ::setAccLowNoise(bool activated){
+    if(mAccSensitivity!=0.976){
+        uint8_t data;
+        read(CTRL_REG_1, &data);
+        if(activated){data|=4;}
+        else{data&=~4;}
+        write(CTRL_REG_1, &data);
+        return true;
+    }
+    return false;
+}
+
+void FXOS8700CQ::setMagOversampleAwake(FXOS8700CQ_Mag_OSR oversample){
     uint8_t data;
     read(MAG_CTRL_REG_1, &data);
     data&=~(OSR_7<<2);
     data|=(oversample<<2);
+    write(MAG_CTRL_REG_1, &data);
+}
+
+void FXOS8700CQ::setMagOversampleAsleep(FXOS8700CQ_Mag_OSR oversample){
+    uint8_t data;
+    read(MAG_CTRL_REG_3, &data);
+    data&=~(OSR_7<<4);
+    data|=(oversample<<4);
+    write(MAG_CTRL_REG_3, &data);
 }
 
 void FXOS8700CQ::setAccOversampleAwake(FXOS8700CQ_Acc_OSR oversample){
@@ -136,12 +172,12 @@ void FXOS8700CQ::setAccOversampleAsleep(FXOS8700CQ_Acc_OSR oversample){
 }
 
 void FXOS8700CQ::setAccelerationMagnitude(FXOS8700CQ_Interrupt_Pin pin, void (*function)(), uint8_t count, bool resetCount, uint8_t config, float threshold, float* reference){
-    uint16_t dummy = lround(fabs(threshold/mSensitivity));
+    uint16_t dummy = lround(fabs(threshold/mAccSensitivity));
     dummy&=0b0001111111111111;
     if(resetCount){dummy|=1<<15;}
     write(ACC_MAGNITUDE_MSB, (uint8_t*) &dummy, 2);
     for(uint i=0;i<3;i++){
-        dummy = lround(fabs(reference[i]/mSensitivity));
+        dummy = lround(fabs(reference[i]/mAccSensitivity));
         dummy&=0b0011111111111111;
         write((FXOS8700CQ_Address)(ACC_REF_X_MSB+2*i), (uint8_t*) &dummy, 2);
     }
@@ -244,7 +280,6 @@ void FXOS8700CQ::setSleepWake(FXOS8700CQ_Interrupt_Pin pin, void (*function)(), 
     // CTRL_REG_3 holds which interrupts can wake the sensor AND 
     // the polarity and resistance of the interrupt pins AND a FIFO option, 
     // so we need to make sure not to change bits 0, 1 and 7.
-    // TODO Add the interrupts that are not held in SLEEP_INT_CONFIG
     read(SLEEP_INT_CONFIG, &data);
     data&=131;
     interrupts<<=1;
@@ -279,7 +314,7 @@ void FXOS8700CQ::setMagneticMagnitude(FXOS8700CQ_Interrupt_Pin pin, void (*funct
     if(resetCount){dummy|=1<<15;}
     write(MAG_MAGNITUDE_MSB, (uint8_t*) &dummy, 2);
     for(uint i=0;i<3;i++){
-        dummy = lround(reference[i]/mSensitivity);
+        dummy = lround(reference[i]/MAGNETIC_SENSITIVITY);
         write((FXOS8700CQ_Address)(MAG_REF_X_MSB+2*i), (uint8_t*) &dummy, 2);
     }
     uint8_t data=lround(fabs(count/mODR));
@@ -293,7 +328,6 @@ void FXOS8700CQ::setMagneticMagnitude(FXOS8700CQ_Interrupt_Pin pin, void (*funct
 
 float* FXOS8700CQ::getAcceleration(){
     uint8_t *data = getRawAcceleration();
-    //TODO Needs to check how many bytes are currently used for the data.
     float *result = new float[3];
     for(uint i=0;i<3;i++){ 
         result[i] = convertAcceleration(data + 2*i);
@@ -304,13 +338,28 @@ float* FXOS8700CQ::getAcceleration(){
 
 float* FXOS8700CQ::getMagnetic(){
     uint8_t *data = getRawMagnetic();
-    //TODO Needs to check how many bytes are currently used for the data.
     float *result = new float[3];
     for(uint i=0;i<3;i++){ 
         result[i] = convertMagnetic(data + 2*i);
     }
     delete[] data;
     return result;
+}
+
+float* FXOS8700CQ::getAllData(){
+    if(mMode==HYBRID){
+        uint8_t *data = getAllRawData();
+        float *result = new float[6];
+        for(uint8_t i=0;i<3;i++){ 
+            result[i] = convertAcceleration(data + 2*i);
+        }
+        for(uint8_t i=3;i<6;i++){
+            result[i] = convertMagnetic(data + 2*i);
+        }
+        delete[] data;
+        return result;
+    }
+    return NULL;
 }
 
 float FXOS8700CQ::getTemperature(){
@@ -325,63 +374,27 @@ float FXOS8700CQ::getTemperature(){
 
 
 void FXOS8700CQ::setInterrupt(FXOS8700CQ_Interrupt_Pin pin, FXOS8700CQ_Interrupt name, void (*function)()){
-    //TODO
     uint8_t data;
-    switch(name){
-        case I_NEW_DATA     : {
-            break;
-        }
-        case I_ACC_MAGNITUDE: {
-            break;
-        }
-        case I_FREEFALL     : {
-            break;
-        }
-        case I_PULSE        : {
-            break;
-        }
-        case I_ORIENTATION  : {
-            break;
-        }
-        case I_TRANSIENT    : {
-            break;
-        }
-        case I_FIFO         : {
-            break;
-        }
-        case I_SLEEP_WAKE   : {
-            break;
-        }
-        case I_MAG_THRESHOLD: {
-            break;
-        }
-        case I_MAG_MAGNITUDE: {
-            break;
-        }
-        case I_MAG_NEW_DATA :{
-            break;
-        }
+    if(name<=I_SLEEP_WAKE){
+        read(INT_CONFIG, &data);
+        data|=name;
+        write(INT_CONFIG, &data);
+        read(INT_PIN_CONFIG, &data);
+        data&=~name;
+        data|=(name*pin);
+        write(INT_PIN_CONFIG, &data);
     }
-    //TODO Accelerometer interrupts are configured in INT_CONFIG, while each of the gyroscope's 
-    //TODO have their own CONFIG register.
-    read(INT_CONFIG, &data);
-    data|=name;
-    write(INT_CONFIG, &data);
-    read(INT_PIN_CONFIG, &data);
-    data&=~name;
-    data|=(name*pin);
-    write(INT_PIN_CONFIG, &data);
-    if(pin==PIN_ONE){activeInterruptsOne |= name;
-        mInterruptOne.fall(callback(this, &FXOS8700CQ::dispatchInterruptDataOne));
+    activeInterrupts |= name;
+    if(pin==PIN_ONE){
+        mInterruptOne.fall(callback(this, &FXOS8700CQ::dispatchInterruptData));
     }
-    else{activeInterruptsTwo &= ~name;
-        mInterruptTwo.fall(callback(this, &FXOS8700CQ::dispatchInterruptDataTwo));
+    else{
+        mInterruptTwo.fall(callback(this, &FXOS8700CQ::dispatchInterruptData));
     }
-    setInterruptFunction(function, pin);
-    
+    setInterruptFunction(function, name);  
 }
 
-void FXOS8700CQ::setInterrupt(FXOS8700CQ_Interrupt_Pin pin, FXOS8700CQ_Interrupt name, void (*function)(), FXOS8700CQ_FIFO_Mode mode, uint8_t watermark){
+void FXOS8700CQ::setInterrupt(FXOS8700CQ_Interrupt_Pin pin, FXOS8700CQ_Interrupt name, void (*function)(), FXOS8700CQ_FIFO_Mode mode, uint8_t watermark, uint8_t config){
     
     if(name!=I_FIFO){return;}
     
@@ -395,56 +408,57 @@ void FXOS8700CQ::setInterrupt(FXOS8700CQ_Interrupt_Pin pin, FXOS8700CQ_Interrupt
     write(INT_PIN_CONFIG, &data);
     data = watermark | (mode<<5);
     write(FIFO_SETUP, &data);
-    if(pin==PIN_ONE){activeInterruptsOne |= name;
-        mInterruptOne.fall(callback(this, &FXOS8700CQ::dispatchInterruptDataOne));
+    activeInterrupts |= name;
+    if(mode==TRIGGER){
+        config&=62;
+        write(FIFO_TRIGGER, &config);
     }
-    else{activeInterruptsTwo &= ~name;
-        mInterruptTwo.fall(callback(this, &FXOS8700CQ::dispatchInterruptDataTwo));
+    if(pin==PIN_ONE){
+        mInterruptOne.fall(callback(this, &FXOS8700CQ::dispatchInterruptData));
     }
-    setInterruptFunction(function, pin);
+    else{
+        mInterruptTwo.fall(callback(this, &FXOS8700CQ::dispatchInterruptData));
+    }
+    setInterruptFunction(function, name);
 }
 
 
 void FXOS8700CQ::removeInterrupt(FXOS8700CQ_Interrupt name){
-    //TODO
     uint8_t data;
-    if(name==I_FIFO){
-//TODO
+    if(name<=I_SLEEP_WAKE){    
+        read(INT_CONFIG, &data);
+        data &= ~(name);
+        write(INT_CONFIG, &data);
     }
-    read(INT_CONFIG, &data);
-    data &= ~(name);
-    write(INT_CONFIG, &data);
-    if(activeInterruptsOne&name){activeInterruptsOne &= ~name;}
-    else{activeInterruptsTwo &= ~name;}
-    if(!activeInterruptsOne){
-        mInterruptOne.fall(NULL);
-        mThreadOne.terminate();
-        FXOS8700CQInterruptOne = NULL;
-    }
-    if(!activeInterruptsTwo){
-        mInterruptTwo.fall(NULL);
-        mThreadTwo.terminate();
-        FXOS8700CQInterruptTwo = NULL;
-    }
-}
-
-void FXOS8700CQ::setInterruptFunction(void (*function)(), FXOS8700CQ_Interrupt_Pin pin){
-    if(function==NULL){return;}
-    if(pin){
-        FXOS8700CQInterruptOne = function;
-        mThreadOne.start(callback(this, &FXOS8700CQ::interruptWrapperOne));
+    else if(name==I_MAG_THRESHOLD){
+        read(MAG_THRESHOLD_CFG, &data);
+        data&=253;
+        write(MAG_THRESHOLD_CFG, &data);
     }
     else{
-        FXOS8700CQInterruptTwo = function;
-        mThreadTwo.start(callback(this, &FXOS8700CQ::interruptWrapperTwo));
+        read(MAG_MAGNITUDE_CFG, &data);
+        data&=253;
+        write(MAG_MAGNITUDE_CFG, &data);
+    }
+    if(activeInterrupts&name){activeInterrupts &= ~name;}
+    if(!activeInterrupts){
+        mInterruptOne.fall(NULL);
+        mInterruptTwo.fall(NULL);
+        mThread.terminate();
+        mInterrupts[lround(log2(name))] = NULL;
     }
 }
 
-void FXOS8700CQ::interruptWrapper(FXOS8700CQ_Interrupt_Pin pin){
+void FXOS8700CQ::setInterruptFunction(void (*function)(), FXOS8700CQ_Interrupt name){
+    if(function==NULL){return;}
+    mInterrupts[lround(log2(name))] = function;
+}
+
+void FXOS8700CQ::interruptWrapper(){
     //TODO
     while(1){
-        Thread::signal_wait(0x01);
-        switch(identifyInterrupt(pin)){
+        FXOS8700CQ_Interrupt name = (FXOS8700CQ_Interrupt) (1<<mEvent.wait_any());
+        switch(name){
             case I_NEW_DATA: {
                 uint8_t data;
                 read(STATUS, &data);
@@ -477,7 +491,7 @@ void FXOS8700CQ::interruptWrapper(FXOS8700CQ_Interrupt_Pin pin){
             case I_FIFO         : {
                 uint8_t samplesNumber;
                 read(STATUS, &samplesNumber);
-                samplesNumber&=0x3F;
+                samplesNumber&=63;
                 mail_t **mailArray = new mail_t*[3*samplesNumber];
                 for(int i=0;i<2*samplesNumber;i++){
                     *(mailArray+i)= mailBox.alloc();
@@ -505,65 +519,53 @@ void FXOS8700CQ::interruptWrapper(FXOS8700CQ_Interrupt_Pin pin){
             case I_MAG_MAGNITUDE: {
                 break;
             }
-            case I_MAG_NEW_DATA :{
-                break;
-            }
         }
-        if(pin){FXOS8700CQInterruptOne();}
-        else{FXOS8700CQInterruptTwo();}
+        (*mInterrupts[lround(log2(name))])();
     }
 }
 
-void FXOS8700CQ::dispatchInterruptDataOne(){
-        dispatchInterruptData(PIN_ONE);
-}
-    
-void FXOS8700CQ::dispatchInterruptDataTwo(){
-        dispatchInterruptData(PIN_TWO);
-}
 
-FXOS8700CQ_Interrupt FXOS8700CQ::identifyInterrupt(FXOS8700CQ_Interrupt_Pin pin){
+FXOS8700CQ_Interrupt FXOS8700CQ::identifyInterrupt(){
     uint8_t data;
     read(INT_STATUS, &data);
-    if(pin==PIN_ONE){if(activeInterruptsOne & data){return (FXOS8700CQ_Interrupt) (activeInterruptsOne & data);}}
-    else{if(activeInterruptsTwo & data) {return (FXOS8700CQ_Interrupt) (activeInterruptsTwo & data);}}
+    if(activeInterrupts & data){return (FXOS8700CQ_Interrupt) (activeInterrupts & data);}
     read(MAG_INT_STATUS, &data);
-    if(pin==PIN_ONE){return (FXOS8700CQ_Interrupt) (activeInterruptsOne & data<<8);}
-    else{return (FXOS8700CQ_Interrupt) (activeInterruptsTwo & data<<8);}
+    return (FXOS8700CQ_Interrupt) (activeInterrupts & data<<8);
 }
 
-void FXOS8700CQ::dispatchInterruptData(FXOS8700CQ_Interrupt_Pin pin){
-    if(pin){mThreadOne.signal_set(0x01);}
-    else{mThreadTwo.signal_set(0x01);}
+void FXOS8700CQ::dispatchInterruptData(){
+    mEvent.set(lround(log2(identifyInterrupt())));
 }
 
 
 
 uint8_t* FXOS8700CQ::getRawAcceleration(){
-    //TODO Determine if the data is 3 or 6 bytes depending on the current precision
     uint8_t *data = new uint8_t[6];
     read(ACC_X_MSB, data, 6);
     return data;
 }
 
 uint8_t* FXOS8700CQ::getRawMagnetic(){
-    //TODO Determine if the data is 3 or 6 bytes depending on the current precision
     uint8_t *data = new uint8_t[6];
     read(MAG_X_MSB, data, 6);
     return data;
 }
 
+uint8_t* FXOS8700CQ::getAllRawData(){
+    uint8_t *data = new uint8_t[12];
+    read(ACC_X_MSB, data, 12);
+    return data;
+}
+
 
 float FXOS8700CQ::convertAcceleration(uint8_t *rawAcc){
-//TODO Needs to check whether we have 3 or 6 bytes to convert.
-    float result = mSensitivity * (~(((rawAcc[0])<<8)  + ((rawAcc[1])>>2)) + 1);
+    float result = mAccSensitivity * (~(((rawAcc[0])<<8)  + ((rawAcc[1])>>2)) + 1);
     return result;
 }
 
 float FXOS8700CQ::convertMagnetic(uint8_t *rawMag){
-//TODO Needs to check whether we have 3 or 6 bytes to convert.
-    float result = mSensitivity * (~(((rawMag[0])<<8)  + ((rawMag[1])>>2)) + 1);;
-        return result;
+    float result = MAGNETIC_SENSITIVITY * (~(((rawMag[0])<<8)  + ((rawMag[1])>>2)) + 1);;
+    return result;
 }
 
 
