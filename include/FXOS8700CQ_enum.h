@@ -2,7 +2,8 @@
 #define _FXOS8700CQ_enum_
 
 namespace FXO{
-    enum FXOS8700CQ_Address{
+    
+    enum Address{
         STATUS                  = 0x00,   //Acts as either DR_STATUS or FIFO_STATUS depending on if in FIFO mode.
         X_MSB                   = 0x01,
         X_LSB                   = 0x02,
@@ -120,7 +121,7 @@ namespace FXO{
         MOTION_Z_LSB            = 0x78,
     };
 
-    enum FXOS8700CQ_Axis{
+    enum Axis{
         MAG_AXIS_X  = 32,
         MAG_AXIS_Y  = 16,
         MAG_AXIS_Z  = 8,
@@ -129,7 +130,7 @@ namespace FXO{
         ACC_AXIS_Z  = 1
     };
 
-    enum FXOS8700CQ_Interrupt{
+    enum Interrupt{
         I_NEW_DATA      = 1,
         I_ACC_MAGNITUDE = 2,
         I_FREEFALL      = 4,
@@ -142,53 +143,53 @@ namespace FXO{
         I_MAG_MAGNITUDE = 512
     };
 
-    enum FXOS8700CQ_Interrupt_Pin{
+    enum Interrupt_Pin{
         PIN_ONE = 1,
         PIN_TWO = 0
     };
 
-    enum FXOS8700CQ_Low{
+    enum Low{
                         //OSR=  800 Hz | 400 Hz | 200 Hz | 100 Hz | 50 Hz | 25 Hz | 12.5 Hz |
     LOW0 = 0b00<<6,    //      256    | 128    | 64     | 32     | 16    | 8     | 4       |                                            
     LOW1 = 0b01<<6,    //      128    | 64     | 32     | 16     | 8     | 4     | -       |
     LOW2 = 0b10<<6     //      64     | 32     | 16     | 8      | 4     | -     | -       |
     };
 
-    enum FXOS8700CQ_High{
-        //All the values for an active High Pass also contain the bit that activates High Pass itself.
+    enum High{
+    //All the values for an active High Pass also contain the bit that activates High Pass itself.
 
                             //OSR =  800 Hz | 400 Hz | 200 Hz | 100 Hz | 50 Hz | 25 Hz | 12.5 Hz |
-    HIGH0   = 0b001<<2,   //       15     | 7.5    | 3.75   | 1.875  | 0.937 | 0.468 | 0.234   |                                            
-    HIGH1   = 0b011<<2,   //       7.7    | 3.85   | 1.925  | 0.963  | 0.481 | 0.241 | 0.120   |
-    HIGH2   = 0b101<<2,   //       3.9    | 1.95   | 0.975  | 0.488  | 0.244 | 0.122 | 0.061   |
-    HIGH3   = 0b111<<2,   //       1.98   | 0.99   | 0.495  | 0.248  | 0.124 | 0.062 | 0.031   |
+    HIGH0   = 0b001<<2,     //       15     | 7.5    | 3.75   | 1.875  | 0.937 | 0.468 | 0.234   |                                            
+    HIGH1   = 0b011<<2,     //       7.7    | 3.85   | 1.925  | 0.963  | 0.481 | 0.241 | 0.120   |
+    HIGH2   = 0b101<<2,     //       3.9    | 1.95   | 0.975  | 0.488  | 0.244 | 0.122 | 0.061   |
+    HIGH3   = 0b111<<2,     //       1.98   | 0.99   | 0.495  | 0.248  | 0.124 | 0.062 | 0.031   |
     HIGHOFF = 0b000<<2
     };
 
-    enum FXOS8700CQ_Range{
+    enum Range{
                                     // Nominal Sensitivity      Range
         RANGE2000   = 0,            // ±0.244 mg/LSB            ±2 g
         RANGE1000   = 1,            // ±0.488 mg/LSB            ±4 g
         RANGE500    = 2             // ±0.976 mg/LSB            ±8 g
     };
 
-    enum FXOS8700CQ_Mode{
+    enum Mode{
         STANDBY         = 2,
         ACCELEROMETER   = 0,
         MAGNETOMETER    = 1,
         HYBRID          = 3
     };
 
-    enum FXOS8700CQ_Status{
+    enum Status{
         S_STANDBY   = 0,
         S_AWAKE     = 1,
         S_ASLEEP    = 2         //TODO Needs to be checked, the docs have a typo where this is indicated as 1
     };
 
-    enum FXOS8700CQ_ODR{
-        ODR800 = 0,              // All numbers are approximated for readability, and valid for accelerometer and magnetic mode.
-        ODR400 = 1,              // In hybrid mode the real ODR is half that expected.
-        ODR200 = 2,
+    enum ODR{
+        ODR800 = 0,             // All numbers are approximated for readability, and valid for both 
+        ODR400 = 1,             // accelerometer and magnetic mode.
+        ODR200 = 2,             // In hybrid mode the real ODR is half that expected.
         ODR100 = 3,
         ODR50  = 4,
         ODR12  = 5,
@@ -197,20 +198,20 @@ namespace FXO{
         ODR1_2 = 8
     };
 
-    enum FXOS8700CQ_Acc_OSR{
+    enum Acc_OSR{
         OSR_LOWEST  = 1,
         OSR_LOW     = 3,
         OSR_NORMAL  = 0,
         OSR_HIGH    = 2
     };
 
-    enum FXOS8700CQ_FIFO_Mode{
+    enum FIFO_Mode{
         CIRCULAR    = 1,
         NO_OVERFLOW = 2,
         TRIGGER     = 3
     };
 
-    enum FXOS8700CQ_Mag_OSR{
+    enum Mag_OSR{
         OSR_0 = 0,    
         OSR_1 = 1,
         OSR_2 = 2,
@@ -221,7 +222,7 @@ namespace FXO{
         OSR_7 = 7
     };
 
-    enum FXOS8700CQ_Freefall_Config{
+    enum Freefall_Config{
         F_LATCH = 128,
         MOTION  = 64,
         ENABLE_X= 32,
@@ -229,14 +230,14 @@ namespace FXO{
         ENABLE_Z= 8
     };
 
-    enum FXOS8700CQ_Acc_Magnitude_Config{
+    enum Acc_Magnitude_Config{
         A_LATCH         = 64,
         THRESHOLD       = 32,
         KEEP_THRESHOLD  = 16,
         ACC_MAGNITUDE_ON= 8,
     };
 
-    enum FXOS8700CQ_Transient_Config{
+    enum Transient_Config{
         T_LATCH     = 16,
         T_ENABLE_Z  = 8,
         T_ENABLE_Y  = 4,
@@ -244,7 +245,7 @@ namespace FXO{
         BYPASS_HF   = 1
     };
 
-    enum FXOS8700CQ_FIFO_Trigger_Config{
+    enum FIFO_Trigger_Config{
         TRANSIENT       = 32,
         ORIENTATION     = 16,
         PULSE           = 8,
@@ -252,7 +253,7 @@ namespace FXO{
         ACC_MAGNITUDE   = 2
     };
 
-    enum FXOS8700CQ_Lockout_Angle{        // Approximated values for ease of reading, actual values below.
+    enum Lockout_Angle{        // Approximated values for ease of reading, actual values below.
         L_ANGLE_13_14    = 0,             //              13.6 - 14.5
         L_ANGLE_17_18    = 1,             //              17.1 - 18.2
         L_ANGLE_20_22    = 2,             //              20.7 - 22.0
@@ -263,14 +264,14 @@ namespace FXO{
         L_ANGLE_40_43    = 7              //              40.4 - 43.4
     };
 
-    enum FXOS8700CQ_Orientation_Angle{
+    enum Orientation_Angle{
         O_ANGLE_80  = 0<<5,
         O_ANGLE_75  = 1<<5,
         O_ANGLE_70  = 2<<5,
         O_ANGLE_65  = 3<<5       
     };
 
-    enum FXOS8700CQ_Trip_Threshold{
+    enum Trip_Threshold{
         T_ANGLE_15  = 0x07<<3,
         T_ANGLE_20  = 0x09<<3,
         T_ANGLE_30  = 0x0C<<3,
@@ -283,7 +284,7 @@ namespace FXO{
         T_ANGLE_75  = 0x19<<3
     };
 
-    enum FXOS8700CQ_Trip_Delta{
+    enum Trip_Delta{
         D_ANGLE_0   = 0,
         D_ANGLE_4   = 1,
         D_ANGLE_7   = 2,
@@ -294,7 +295,7 @@ namespace FXO{
         D_ANGLE_24  = 7,
     };
 
-    enum FXOS8700CQ_Pulse_Config{
+    enum Pulse_Config{
         ENABLE_LATENCY  = 128,
         P_LATCH         = 64,
         ENABLE_DOUBLE_Z = 32,
@@ -305,7 +306,7 @@ namespace FXO{
         ENABLE_SINGLE_X = 16,
     };
 
-    enum FXOS8700CQ_Magnetic_Threshold_Config{
+    enum Magnetic_Threshold_Config{
         M_LATCH         = 130,
         ABOVE_THRESHOLD = 66,
         M_ENABLE_Z      = 34,
@@ -313,7 +314,7 @@ namespace FXO{
         M_ENABLE_X      = 10
     };
 
-    enum FXOS8700CQ_Mag_Magnitude_Config{
+    enum Mag_Magnitude_Config{
         M_M_LATCH           = 74,
         M_THRESHOLD         = 42,
         M_KEEP_THRESHOLD    = 26,
