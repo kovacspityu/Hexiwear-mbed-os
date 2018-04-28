@@ -3,7 +3,7 @@
 
 namespace W25{
 
-    enum W25Q64FV_Command{
+    enum Command{
         WRITE_EN            = 0x06,     // Necessary before every other command that changes memory or non volatile status register bits
         VOL_SR_WRITE_EN     = 0x50,     // Necessary to change volatile status registers bits and non volatile bits in a volatile manner
         WRITE_DISABLE       = 0x04,     // Undoes a previous WRITE_EN
