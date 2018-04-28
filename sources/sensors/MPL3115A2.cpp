@@ -9,7 +9,7 @@ bool MPL3115A2::visFIFO = false;
 uint8_t MPL3115A2::activeInterruptsOne = 0;
 uint8_t MPL3115A2::activeInterruptsTwo = 0;
 
-MPL3115A2::MPL3115A2(MPL3315A2_Mode mode, MPL3315A2_Os_Ratio ratio, MPL3115A2_Time_Step timeStep) : 
+MPL3115A2::MPL3115A2(Mode mode, Os_Ratio ratio, Time_Step timeStep) : 
 mI2C(I2C_SDA, I2C_SCL), mAddress(0xC0), mInterruptOne(PTD12), mInterruptTwo(PTD10)
 {
     fullReset();
@@ -80,13 +80,13 @@ uint8_t MPL3115A2::getStatus(){
     return data;
 }
 
-MPL3315A2_Os_Ratio MPL3115A2::getOsR(){
+Os_Ratio MPL3115A2::getOsR(){
     uint8_t data;
     read(CTRL_REG_1, &data, 1);
-    return static_cast<MPL3315A2_Os_Ratio>((data&0b00111000)>>3);
+    return static_cast<Os_Ratio>((data&0b00111000)>>3);
 }
 
-void MPL3115A2::setOsR(MPL3315A2_Os_Ratio ratio){
+void MPL3115A2::setOsR(Os_Ratio ratio){
     standby();
     uint8_t data;
     read(CTRL_REG_1, &data, 1);
@@ -96,14 +96,14 @@ void MPL3115A2::setOsR(MPL3315A2_Os_Ratio ratio){
     setActive();
 }
 
-MPL3115A2_Time_Step MPL3115A2::getTimeStep(){
+Time_Step MPL3115A2::getTimeStep(){
     uint8_t data;
     read(CTRL_REG_2, &data);
     data&=0b00001111;
-    return static_cast<MPL3115A2_Time_Step>(data);
+    return static_cast<Time_Step>(data);
 }
 
-void MPL3115A2::setTimeStep(MPL3115A2_Time_Step timeStep){
+void MPL3115A2::setTimeStep(Time_Step timeStep){
     uint8_t data;
     read(CTRL_REG_2, &data);
     data|=timeStep;
@@ -131,7 +131,7 @@ float MPL3115A2::getData(){
 
 float MPL3115A2::getTemperature(){
     uint8_t offset;
-    MPL3115A2_Address address;
+    Address address;
     if(isFIFO()){
         offset=3;
         address = PRESSURE_MSB;
@@ -228,7 +228,7 @@ void MPL3115A2::setAltitudeOffset(int8_t altitude){
     write(PRESSURE_OFFSET, &ualtitude); 
 }
 
-void MPL3115A2::setInterrupt(MPL3115A2_Interrupt_Pin pin, MPL3115A2_Interrupt name, void (*function)(), float target){
+void MPL3115A2::setInterrupt(Interrupt_Pin pin, Interrupt name, void (*function)(), float target){
     standby();
     uint8_t data;
     read(CTRL_REG_5, &data);
@@ -382,7 +382,7 @@ void MPL3115A2::setInterrupt(MPL3115A2_Interrupt_Pin pin, MPL3115A2_Interrupt na
     setInterruptFunction(function, pin);
     setActive();
 }
-void MPL3115A2::setInterrupt(MPL3115A2_Interrupt_Pin pin, MPL3115A2_Interrupt name, void (*function)(), bool overflow, uint8_t watermark){
+void MPL3115A2::setInterrupt(Interrupt_Pin pin, Interrupt name, void (*function)(), bool overflow, uint8_t watermark){
     if(name==I_FIFO){
         standby();
         uint8_t data=0;
@@ -396,7 +396,7 @@ void MPL3115A2::setInterrupt(MPL3115A2_Interrupt_Pin pin, MPL3115A2_Interrupt na
 }
 
 
-void MPL3115A2::removeInterrupt(MPL3115A2_Interrupt name){
+void MPL3115A2::removeInterrupt(Interrupt name){
     uint8_t data;
     if(name==I_FIFO){
         data = 0;
@@ -420,7 +420,7 @@ void MPL3115A2::removeInterrupt(MPL3115A2_Interrupt name){
     }
 }
 
-void MPL3115A2::setInterruptFunction(void (*function)(), MPL3115A2_Interrupt_Pin pin){
+void MPL3115A2::setInterruptFunction(void (*function)(), Interrupt_Pin pin){
     if(pin){
         MPL3115A2InterruptOne = function;
         threadOne.start(callback(this, &MPL3115A2::interruptWrapperOne));
@@ -437,7 +437,7 @@ void MPL3115A2::interruptWrapperOne(){
 void MPL3115A2::interruptWrapperTwo(){
     interruptWrapper(PIN_TWO);
 }
-void MPL3115A2::interruptWrapper(MPL3115A2_Interrupt_Pin pin){
+void MPL3115A2::interruptWrapper(Interrupt_Pin pin){
     while(1){
         Thread::signal_wait(0x01);
         mail_t *mail = mailBox.alloc();
@@ -535,7 +535,7 @@ void MPL3115A2::dispatchInterruptDataTwo(){
     dispatchInterruptData(PIN_TWO);
 }
 
-void MPL3115A2::setMode(MPL3315A2_Mode mode){
+void MPL3115A2::setMode(Mode mode){
     uint8_t data;
     read(CTRL_REG_1, &data);
     standby();
@@ -594,19 +594,19 @@ uint8_t MPL3115A2::convertTemperatureD2I(float temperature){
     return (~lround(temperature)) + 1;
 }
 
-MPL3115A2_Interrupt MPL3115A2::identifyInterrupt(MPL3115A2_Interrupt_Pin pin){
+Interrupt MPL3115A2::identifyInterrupt(Interrupt_Pin pin){
     uint8_t data;
     read(INTERRUPT_STATUS, &data);
-    if(pin==PIN_ONE){return static_cast<MPL3115A2_Interrupt> (lround(activeInterruptsOne & data));}
-    else{return static_cast<MPL3115A2_Interrupt> (lround(activeInterruptsTwo & data));}
+    if(pin==PIN_ONE){return static_cast<Interrupt> (lround(activeInterruptsOne & data));}
+    else{return static_cast<Interrupt> (lround(activeInterruptsTwo & data));}
     }
 
-void MPL3115A2::dispatchInterruptData(MPL3115A2_Interrupt_Pin pin){
+void MPL3115A2::dispatchInterruptData(Interrupt_Pin pin){
     if(pin){threadOne.signal_set(0x01);}
     else{threadTwo.signal_set(0x01);}
 }
 
-int MPL3115A2::write(MPL3115A2_Address address, uint8_t *data, int length){
+int MPL3115A2::write(Address address, uint8_t *data, int length){
     uint8_t *bigData = new uint8_t[length+1];
     *bigData = address;
     for(int i = 0; i < length; i++){
@@ -617,7 +617,7 @@ int MPL3115A2::write(MPL3115A2_Address address, uint8_t *data, int length){
     return result; 
 }
 
-void MPL3115A2::read(MPL3115A2_Address address, uint8_t *data, int length){
+void MPL3115A2::read(Address address, uint8_t *data, int length){
     uint8_t addressP[] = {address}; 
     mI2C.write(mAddress, (char*) addressP, 1, true);
     mI2C.read(mAddress, (char*) data, length);

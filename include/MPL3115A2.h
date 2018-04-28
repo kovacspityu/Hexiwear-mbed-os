@@ -3,7 +3,6 @@
 #include "MPL3115A2_enum.h"
 #include "mbed.h"
 
-using namespace MPL;
 
 /*! @class MPL3115A2 
 Class that implements the MPL3115A2 sensor. */
@@ -15,12 +14,12 @@ class MPL3115A2
     @param ratio The ratio the sensor starts in, defaults to OS_512_MS
     @param timeStep The time step the sensor starts in, defaults to TS_1S
     */
-    MPL3115A2(MPL3315A2_Mode mode = BAROMETER, MPL3315A2_Os_Ratio ratio = OS_512_MS, MPL3115A2_Time_Step timeStep = TS_1S);
+    MPL3115A2(MPL::Mode mode = MPL::BAROMETER, MPL::Os_Ratio ratio = MPL::OS_512_MS, MPL::Time_Step timeStep = MPL::TS_1S);
 
     /*! @struct mail_t Contains a single sensor measurement.
     */
     typedef struct {
-        MPL3115A2_Data_Type type;
+        MPL::Data_Type type;
         float value;
     } mail_t;
     /*! The Mail container for the data measurements.
@@ -77,24 +76,24 @@ class MPL3115A2
         @returns the register as a uint8_t*/
     uint8_t getStatus();
     /*! Gets the current Oversample
-    @returns the Oversample as a MPL3315A2_Os_Ratio*/
-    MPL3315A2_Os_Ratio getOsR();
+    @returns the Oversample as a MPL::Os_Ratio*/
+    MPL::Os_Ratio getOsR();
     /*! Sets the Oversample
     @param ratio the Oversample desired.*/
-    void setOsR(MPL3315A2_Os_Ratio ratio);
+    void setOsR(MPL::Os_Ratio ratio);
     /*! Gets the current time step between measurements.
-    @returns the measurement as a MPL3115A2_Time_Step*/
-    MPL3115A2_Time_Step getTimeStep();
+    @returns the measurement as a MPL::Time_Step*/
+    MPL::Time_Step getTimeStep();
     /*! Sets the time step between measurements.
     @param timeStep the time step desired.*/
-    void setTimeStep(MPL3115A2_Time_Step timeStep);
+    void setTimeStep(MPL::Time_Step timeStep);
     /*! Activates an interrupt and attaches a function to it.
         The function will need to get the measurements themselves from mailBox
     @param pin the pin that will emit the signal for the interrupt
     @param name the interrupt type
     @param function the function to call when the data has been saved in the mailBox
     @param target optional value for specific interrupts that have a threshold or window value to check against, defaults to 0.*/
-    void setInterrupt(MPL3115A2_Interrupt_Pin pin, MPL3115A2_Interrupt name, void (*function)(), float target = 0);   
+    void setInterrupt(MPL::Interrupt_Pin pin, MPL::Interrupt name, void (*function)(), float target = 0);   
     /*! Activates the FIFO interrupt and attaches a function to it.
         It's an overloads the other method in case of FIFO interrupt, as it uses different parameters.
     @param pin the pin that will emit the signal for the interrupt
@@ -103,10 +102,10 @@ class MPL3115A2
     @param overflow allows the FIFO buffer to be overflowed if true
     @param watermark sends an interrupts signal after watermark number of measurements
                      have been recorded, defaults to inactive */ 
-    void setInterrupt(MPL3115A2_Interrupt_Pin pin, MPL3115A2_Interrupt name, void (*function)(), bool overflow, uint8_t watermark = 0);
+    void setInterrupt(MPL::Interrupt_Pin pin, MPL::Interrupt name, void (*function)(), bool overflow, uint8_t watermark = 0);
     /*! Deactivates an interrupt.
     @param name the interrupt name to deactivate.*/
-    void removeInterrupt(MPL3115A2_Interrupt name);
+    void removeInterrupt(MPL::Interrupt name);
     /*! Gets the internal variable storing the MPL3115A2 sensor current mode.
     @returns true if the MPL3115A2 sensor is in ALTIMETER mode.*/
     bool isAltimeter();
@@ -116,7 +115,7 @@ class MPL3115A2
     bool isFIFO();
     /*! Sets the MPL3115A2 sensor mode.
     @param mode the desired mode.*/
-    void setMode(MPL3315A2_Mode mode);
+    void setMode(MPL::Mode mode);
     /*! Sets the reference sea level pressure used
         in internal calculations to determine altitude.
         @param pressure the sea level pressure at the user's coordinates.
@@ -156,18 +155,18 @@ class MPL3115A2
                 that have been configured on each pin of the MPL3115A2 sensor,
                 shared among all class instances.*/
     static uint8_t activeInterruptsOne, activeInterruptsTwo;
-    void interruptWrapper(MPL3115A2_Interrupt_Pin pin);
+    void interruptWrapper(MPL::Interrupt_Pin pin);
     void interruptWrapperOne();
     void interruptWrapperTwo();
     void (*MPL3115A2InterruptOne)();
     void (*MPL3115A2InterruptTwo)();
     
-    void read(MPL3115A2_Address address, uint8_t *data, int length = 1);
-    int write(MPL3115A2_Address address, uint8_t *data, int length = 1);
+    void read(MPL::Address address, uint8_t *data, int length = 1);
+    int write(MPL::Address address, uint8_t *data, int length = 1);
 
-    void dispatchInterruptData(MPL3115A2_Interrupt_Pin pin);
-    MPL3115A2_Interrupt identifyInterrupt(MPL3115A2_Interrupt_Pin pin);
-    void setInterruptFunction(void (*function)(), MPL3115A2_Interrupt_Pin pin);
+    void dispatchInterruptData(MPL::Interrupt_Pin pin);
+    MPL::Interrupt identifyInterrupt(MPL::Interrupt_Pin pin);
+    void setInterruptFunction(void (*function)(), MPL::Interrupt_Pin pin);
     void dispatchInterruptDataOne();
     void dispatchInterruptDataTwo();
 

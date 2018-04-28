@@ -3,7 +3,7 @@
 
 namespace MPL{
 
-    enum MPL3115A2_Address
+    enum Address
     {
         STATUS                      = 0x00,
         PRESSURE_MSB                = 0x01,             ALTITUDE_MSB                = 0x01,
@@ -52,13 +52,13 @@ namespace MPL{
         TEMPERATURE_OFFSET          = 0x2C,
         ALTITUDE_OFFSET             = 0x2D
     };
-    enum MPL3315A2_Mode
+    enum Mode
     {
         ALTIMETER    = 0x01,
         BAROMETER    = 0x00
     };
 
-    enum MPL3315A2_Os_Ratio
+    enum Os_Ratio
     {
         OS_6_MS     = 0x00,       // 6 ms
         OS_10_MS    = 0x01,       // 10 ms
@@ -70,7 +70,7 @@ namespace MPL{
         OS_512_MS   = 0x07        // 512 ms
     };
 
-    enum MPL3115A2_Interrupt
+    enum Interrupt
     {
         I_NEW_DATA                  = 0x80,
         I_FIFO                      = 0x40,
@@ -82,7 +82,7 @@ namespace MPL{
         I_TEMPERATURE_CHANGE        = 0x01
     };
 
-    enum MPL3115A2_Time_Step
+    enum Time_Step
     {
     //It's just 2 to the power of the byte value, the names are for avoiding to do mental math
         TS_1S       = 0x00,
@@ -103,16 +103,17 @@ namespace MPL{
         TS_9H_46M   = 0x0F
     };
 
-    enum MPL3115A2_Interrupt_Pin{
+    enum Interrupt_Pin{
     PIN_ONE = 0x01,
     PIN_TWO = 0x00
     };
 
-    enum MPL3115A2_Data_Type{
-                TYPE_PRESSURE    = 0,
-                TYPE_ALTITUDE    = 1,
-                TYPE_TEMPERATURE = 2
-            };
+    enum Data_Type{
+        TYPE_PRESSURE    = 0,
+        TYPE_ALTITUDE    = 1,
+        TYPE_TEMPERATURE = 2
+    };
+    
 }
 
 #endif
