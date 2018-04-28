@@ -217,6 +217,7 @@ OBJECTS += ./mbed-os/platform/mbed_stats.o
 OBJECTS += ./mbed-os/platform/mbed_wait_api_no_rtos.o
 OBJECTS += ./mbed-os/platform/mbed_wait_api_rtos.o
 OBJECTS += ./mbed-os/rtos/ConditionVariable.o
+OBJECTS += ./mbed-os/rtos/EventFlags.o
 OBJECTS += ./mbed-os/rtos/Kernel.o
 OBJECTS += ./mbed-os/rtos/Mutex.o
 OBJECTS += ./mbed-os/rtos/RtosTimer.o
