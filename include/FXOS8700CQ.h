@@ -69,7 +69,7 @@ class FXOS8700CQ{
         FXO::Mode mMode;
         InterruptIn mInterruptOne;
         InterruptIn mInterruptTwo;
-        DigitalIn mReset;
+        DigitalOut mReset;
         Thread mThread;
         EventFlags mEvent;
         void interruptWrapper();

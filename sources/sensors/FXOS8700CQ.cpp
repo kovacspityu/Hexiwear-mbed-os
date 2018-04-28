@@ -18,12 +18,15 @@ mI2C(PTC11, PTC10), mAddress(0x1E<<1), mInterruptOne(PTC1), mInterruptTwo(PTD13)
      for(uint8_t i=0;i<10;i++){
          mInterrupts[i] = NULL;
      }
-     mSleepODR = ODR50;
+     mAwakeODR = awakeODR;
+     mSleepODR = asleepODR;
+     mMode = STANDBY;
      setMode(mode);
      setRange(range);
      setAwakeODR(awakeODR);
      setAsleepODR(asleepODR);
      setInterrupt(PIN_TWO, I_SLEEP_WAKE, NULL);
+     // Sets up the autoincrement mode for data.
      uint8_t data = 32;
      write(MAG_CTRL_REG_2, &data);
 }
@@ -42,14 +45,16 @@ void FXOS8700CQ::setMode(Mode mode){
         data|=mode;
         write(MAG_CTRL_REG_1, &data);
         read(CTRL_REG_1, &data);
-        data&=~1;
+        data|=1;
         write(CTRL_REG_1, &data);
-        if(mMode==HYBRID){
-            mAccSensitivity*=2;
-            }
+        // The ODR is halved in HYBRID mode.
+        if(mMode==HYBRID && mode!=HYBRID){
+            mODR = (ODR) (mODR/2);
+        }
+        // Go back to normal ODR if coming out of HYBRID mode.
         else if(mode==HYBRID){
-            mAccSensitivity/=2;
-            }
+            mODR = (ODR) (mODR*2);
+        }
         mMode = mode;
     }
 }

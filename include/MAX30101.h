@@ -48,9 +48,9 @@ MAX::Led slot3 = MAX::NONE_LED, MAX::Led slot4 = MAX::NONE_LED);
         void setOversample(MAX::Oversample oversample);
         void setFIFORollover(bool fifoRollover);
         void setFIFOThreshold(uint8_t fifoThreshold);
-        void setMode(MAX::Mode mode, MAX::Led slot1 = MAX::NONE_LED, 
-            MAX::Led slot2 = MAX::NONE_LED, MAX::Led slot3 = MAX::NONE_LED, 
-            MAX::Led slot4 = MAX::NONE_LED);
+        void setMode(   MAX::Mode mode, MAX::Led slot1 = MAX::NONE_LED, 
+                        MAX::Led slot2 = MAX::NONE_LED, MAX::Led slot3 = MAX::NONE_LED, 
+                        MAX::Led slot4 = MAX::NONE_LED);
         void setPulseAmplitude(uint8_t redAmplitude, uint8_t irAmplitude, 
                             uint8_t greenAmplitude = 0, uint8_t pilotAmplitude = 0);
         void setPulseWidth(MAX::Pulse_Width width);
