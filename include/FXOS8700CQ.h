@@ -27,6 +27,8 @@ class FXOS8700CQ{
         void setHybrid();
         FXO::Mode getStatus();
         bool isDataAvailable();
+        void softReset();
+        void hardReset();
 
         void setRange(FXO::Range range);
         void setLowPass(FXO::Low threshold);
@@ -38,12 +40,14 @@ class FXOS8700CQ{
         void setMagOversampleAsleep(FXO::Mag_OSR oversample);
         void setAccOversampleAwake(FXO::Acc_OSR oversample);
         void setAccOversampleAsleep(FXO::Acc_OSR oversample);
+        void setNewData(FXO::Interrupt_Pin pin, void (*function)());
         void setAccelerationMagnitude(FXO::Interrupt_Pin pin, void (*function)(), uint8_t count, bool resetCount, uint8_t config, float threshold, float* reference);
         void setFreefallMotion(FXO::Interrupt_Pin pin, void (*function)(), float count, bool resetCount, uint8_t config, float threshold, float xThreshold=0, float yThreshold=0, float zThreshold=0);
         void setPulse(FXO::Interrupt_Pin pin, void (*function)(), uint8_t config, float timing, float* threshold, float latency, float window);
         void setOrientation(FXO::Interrupt_Pin pin, void (*function)(), float count, bool resetCount, FXO::Lockout_Angle lockout, FXO::Orientation_Angle angle, FXO::Trip_Threshold threshold, FXO::Trip_Delta delta);
         void setTransient(FXO::Interrupt_Pin pin, void (*function)(), float count, bool resetCount, uint8_t config, float threshold);
-        void setSleepWake(FXO::Interrupt_Pin pin, void (*function)(), float count, bool resetCount, uint8_t config, uint8_t interrupts);
+        void setFIFO(FXO::Interrupt_Pin pin, void (*function)(), FXO::FIFO_Mode mode, uint8_t watermark = 0, uint8_t config = 0);
+        void setSleepWake(FXO::Interrupt_Pin pin, void (*function)(), float count, bool resetCount, uint8_t interrupts);
         void setMagneticThreshold(FXO::Interrupt_Pin pin, void (*function)(), float count, bool resetCount, uint8_t config, float *threshold);
         void setMagneticMagnitude(FXO::Interrupt_Pin pin, void (*function)(), uint8_t count, bool resetCount, uint8_t config, float threshold, float* reference);
 
@@ -52,8 +56,6 @@ class FXOS8700CQ{
         float* getMagnetic();
         float* getAllData();
         float getTemperature();
-        void setInterrupt(FXO::Interrupt_Pin pin, FXO::Interrupt name, void (*function)());
-        void setInterrupt(FXO::Interrupt_Pin pin, FXO::Interrupt name, void (*function)(), FXO::FIFO_Mode mode, uint8_t watermark = 0, uint8_t config = 0);
         void removeInterrupt(FXO::Interrupt name);
         
 
@@ -80,9 +82,11 @@ class FXOS8700CQ{
         uint8_t* getAllRawData();
         
         void dispatchInterruptData();
+        void setInterrupt(FXO::Interrupt_Pin pin, FXO::Interrupt name, void (*function)());
         void setInterruptFunction(void (*function)(), FXO::Interrupt name);
         FXO::Interrupt identifyInterrupt();
 
+        float convertFIFOAcceleration(uint8_t *rawAcc);
         float convertAcceleration(uint8_t *rawAcc);
         float convertMagnetic(uint8_t *rawMag);
 

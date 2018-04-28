@@ -4,7 +4,7 @@
 namespace FXO{
     
     enum Address{
-        STATUS                  = 0x00,   //Acts as either DR_STATUS or FIFO_STATUS depending on if in FIFO mode.
+        DR_STATUS               = 0x00,   //Acts as either DR_STATUS or FIFO_STATUS depending on if in FIFO mode.
         X_MSB                   = 0x01,
         X_LSB                   = 0x02,
         Y_MSB                   = 0x03,
