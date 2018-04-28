@@ -5,7 +5,7 @@
 
 using namespace TSL;
 
-TSL2561::TSL2561(TSL2561_Gain gain, TSL2561_Os_Rate rate) : mPower(PTB12),
+TSL2561::TSL2561(Gain gain, Os_Rate rate) : mPower(PTB12),
 mI2C(PTB1, PTB0), mInterrupt(PTC0), mAddress(0x52), mGain(gain), mRate(rate)
 {
     mPower = 0;
@@ -47,7 +47,7 @@ void TSL2561::reset(){
     powerUp();
 }
 
-void TSL2561::setGain(TSL2561_Gain gain){
+void TSL2561::setGain(Gain gain){
     uint8_t data;
     read(TIMING, &data);
     if(gain){data |= (gain<<4);}
@@ -56,7 +56,7 @@ void TSL2561::setGain(TSL2561_Gain gain){
     mGain = gain;
 }
 
-void TSL2561::setOSRate(TSL2561_Os_Rate rate){
+void TSL2561::setOSRate(Os_Rate rate){
     uint8_t data;
     read(TIMING, &data);
     data &= ~(3);
@@ -67,11 +67,11 @@ void TSL2561::setOSRate(TSL2561_Os_Rate rate){
 }
 
 /* TODO
-void TSL2561::setInterrupt(float lowThreshold, float highThreshold, TSL2561_Interrupt_Length persistence){
+void TSL2561::setInterrupt(float lowThreshold, float highThreshold, Interrupt_Length persistence){
 
 }*/
 
-void TSL2561::setInterrupt(int lowPercentage, int highPercentage, TSL2561_Interrupt_Length persistance, void (*function)()){
+void TSL2561::setInterrupt(int lowPercentage, int highPercentage, Interrupt_Length persistance, void (*function)()){
     uint8_t data[4];
     getRawLux(data);
     data[2] = uint8_t(lround(((data[0] / 100) * highPercentage)));
@@ -177,12 +177,12 @@ void TSL2561::dispatchInterruptData(){
 void TSL2561::dispatchWrongSensitivity(float lux){
     if(lux<0.1f){
         if(mGain == LOW_GAIN){setGain(HIGH_GAIN);}
-        else{if(mRate!=OS_400MS){setOSRate((TSL2561_Os_Rate)(mRate+1));}}
+        else{if(mRate!=OS_400MS){setOSRate((Os_Rate)(mRate+1));}}
         return;
     }
     if(lux>=20500){
             if((mRate==OS_14MS)&&(mGain==HIGH_GAIN)){setGain(LOW_GAIN);}
-            else if(mRate!=OS_14MS){setOSRate((TSL2561_Os_Rate)(mRate-1));}
+            else if(mRate!=OS_14MS){setOSRate((Os_Rate)(mRate-1));}
     }
 }
 
@@ -205,12 +205,12 @@ void TSL2561::wait(){
     wait_us(waitingTime);
 }
 
-void TSL2561::read(TSL2561_Address address, uint8_t *data, int length){
+void TSL2561::read(Address address, uint8_t *data, int length){
     mI2C.write(mAddress, (char*) &address, 1);
     mI2C.read(mAddress, (char*) data, length);
 }
 
-int TSL2561::write(TSL2561_Address address, uint8_t *data, int length){
+int TSL2561::write(Address address, uint8_t *data, int length){
     uint8_t *bigData = new uint8_t[length+1];
     *bigData = address;
     for(int i = 0; i < length; i++){

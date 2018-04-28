@@ -3,7 +3,7 @@
 
 namespace TSL{
 
-    enum TSL2561_Address
+    enum Address
     {
         CONTROL             = 0xA0,
         TIMING              = 0xA1,
@@ -19,7 +19,7 @@ namespace TSL{
         INFRARED_DATA_MSB   = 0xAF
     };
 
-    enum TSL2561_Interrupt_Length{
+    enum Interrupt_Length{
         ALWAYS          = 0b0000,
         ONE_CYCLE       = 0b0001,
         TWO_CYCLES      = 0b0010,
@@ -38,14 +38,14 @@ namespace TSL{
         FIFTEEN_CYCLES  = 0b1111
     };
 
-    enum TSL2561_Os_Rate
+    enum Os_Rate
     {
         OS_14MS     = 0,    // 13.7 mS      0.034   times the normalized value
         OS_100MS    = 1,    // 101  mS      0.252   times the normalized value
         OS_400MS    = 2     // 402  mS      1       times the normalized value
     };
 
-    enum TSL2561_Gain
+    enum Gain
     {
         LOW_GAIN    = 0,    // x1  gain 
         HIGH_GAIN   = 1     // x16 gain

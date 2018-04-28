@@ -4,11 +4,10 @@
 #include "mbed.h"
 #include "rtos.h"
 
-using namespace TSL;
 
 class TSL2561{
     public:
-        TSL2561(TSL2561_Gain gain = LOW_GAIN, TSL2561_Os_Rate rate = OS_400MS);
+        TSL2561(TSL::Gain gain = TSL::LOW_GAIN, TSL::Os_Rate rate = TSL::OS_400MS);
         
         Mail<float, 16> mailBox;
 
@@ -17,10 +16,10 @@ class TSL2561{
         void powerUp();
         void powerDown();
         void reset();
-        void setGain(TSL2561_Gain gain);
-        void setOSRate(TSL2561_Os_Rate rate);
-        //void setInterrupt(float lowThreshold, float highThreshold, TSL2561_Interrupt_Length persistence);
-        void setInterrupt(int lowPercentage, int highPercentage, TSL2561_Interrupt_Length persistance, void (*function)());
+        void setGain(TSL::Gain gain);
+        void setOSRate(TSL::Os_Rate rate);
+        //void setInterrupt(float lowThreshold, float highThreshold, TSL::Interrupt_Length persistence);
+        void setInterrupt(int lowPercentage, int highPercentage, TSL::Interrupt_Length persistance, void (*function)());
         void removeInterrupt();
 
         void setDebugInterrupt(void (*function)());
@@ -31,8 +30,8 @@ class TSL2561{
         I2C mI2C;
         InterruptIn mInterrupt;
         uint8_t mAddress;
-        TSL2561_Gain mGain;
-        TSL2561_Os_Rate mRate;
+        TSL::Gain mGain;
+        TSL::Os_Rate mRate;
         Thread mThread;
         uint8_t mFix;
 
@@ -50,8 +49,8 @@ class TSL2561{
         void wait();
 
 
-        void read(TSL2561_Address address, uint8_t *data, int length = 1);
-        int write(TSL2561_Address address, uint8_t *data, int length = 1);
+        void read(TSL::Address address, uint8_t *data, int length = 1);
+        int write(TSL::Address address, uint8_t *data, int length = 1);
 };
 
 #endif
