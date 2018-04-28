@@ -2,7 +2,7 @@
 #define _HTU21D_ENUM_
 
 namespace HTU{
-    enum HTU21D_Command{
+    enum Command{
         WAIT_FOR_TEMPERATURE    = 0xE3,
         WAIT_FOR_HUMIDITY       = 0xE5,
         MEASURE_TEMPERATURE     = 0xF3,
@@ -12,7 +12,7 @@ namespace HTU{
         RESET            = 0xFE
     };
 
-    enum HTU21D_Resolution{
+    enum Resolution{
         H12_T14 = 0x00,
         H8_T12  = 0x01,
         H10_T13 = 0x80,

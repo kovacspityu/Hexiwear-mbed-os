@@ -4,7 +4,7 @@
 
 using namespace HTU;
 
-HTU21D::HTU21D(HTU21D_Resolution resolution) : mPower(PTB12), mI2C(PTB1, PTB0),
+HTU21D::HTU21D(Resolution resolution) : mPower(PTB12), mI2C(PTB1, PTB0),
 mAddress(0x80), mResolution(resolution) {
     mPower = 0;
     mI2C.frequency(400000);
@@ -60,7 +60,7 @@ float HTU21D::getHumidity(){
     return result;
 }
 
-void HTU21D::setResolution(HTU21D_Resolution resolution){
+void HTU21D::setResolution(Resolution resolution){
     uint8_t dummy[1] = {READ};
     uint8_t *data = new uint8_t[2];
     mI2C.write(mAddress, (char*)dummy, 1, true);
