@@ -7,9 +7,9 @@
 
 using namespace MAX;
 
-MAX30101::MAX30101(MAX30101_Mode mode, MAX30101_Oversample oversample,
-    bool fifoRollover, uint8_t fifoThreshold, MAX30101_Led slot1, MAX30101_Led slot2,
-    MAX30101_Led slot3, MAX30101_Led slot4) : mPower(PTA29), mI2C(PTB1, PTB0),
+MAX30101::MAX30101(Mode mode, Oversample oversample,
+    bool fifoRollover, uint8_t fifoThreshold, Led slot1, Led slot2,
+    Led slot3, Led slot4) : mPower(PTA29), mI2C(PTB1, PTB0),
     mInterrupt(PTB18), mAddress(0xAE), mResolution(3), mTemperature(25){
     mPower = 1;
     mI2C.frequency(400000);
@@ -136,7 +136,7 @@ MAX30101::mail_t *MAX30101::getData(uint8_t numberOfSamples){
     }
 }
 
-void MAX30101::setOversample(MAX30101_Oversample oversample){
+void MAX30101::setOversample(Oversample oversample){
     uint8_t data;
     read(FIFO_CONFIG, &data);
     data&=0x1F;
@@ -161,8 +161,8 @@ void MAX30101::setFIFOThreshold(uint8_t fifoThreshold){
     write(FIFO_CONFIG, &data);
 }
 
-void MAX30101::setMode(MAX30101_Mode mode, MAX30101_Led slot1, 
-    MAX30101_Led slot2, MAX30101_Led slot3, MAX30101_Led slot4){
+void MAX30101::setMode(Mode mode, Led slot1, 
+    Led slot2, Led slot3, Led slot4){
     uint8_t data;
     read(MODE_CONFIG, &data);
     data&=0xF8;
@@ -187,7 +187,7 @@ void MAX30101::setPulseAmplitude(uint8_t redAmplitude, uint8_t irAmplitude,
     data = 0;
 }
 
-void MAX30101::setPulseWidth(MAX30101_Pulse_Width width){
+void MAX30101::setPulseWidth(Pulse_Width width){
     uint8_t data;
     read(OXYGEN_CONFIG, &data);
     data&=0xFC;
@@ -195,7 +195,7 @@ void MAX30101::setPulseWidth(MAX30101_Pulse_Width width){
     write(OXYGEN_CONFIG, &data); 
 }
 
-void MAX30101::setOxygenRate(MAX30101_Oxygen_Rate rate){
+void MAX30101::setOxygenRate(Oxygen_Rate rate){
     uint8_t data;
     read(OXYGEN_CONFIG, &data);
     data&=0xE3;
@@ -204,7 +204,7 @@ void MAX30101::setOxygenRate(MAX30101_Oxygen_Rate rate){
     mSampleRate = rate;
 }
 
-void MAX30101::setOxygenRange(MAX30101_Oxygen_Range range){
+void MAX30101::setOxygenRange(Oxygen_Range range){
     uint8_t data;
     read(OXYGEN_CONFIG, &data);
     data&=0x9F;
@@ -216,7 +216,7 @@ void MAX30101::setProximityDelay(uint8_t delay){
     write(LED_TIMING, &delay);
 }
 
-void MAX30101::setMultiLedTiming(MAX30101_Led slot1, MAX30101_Led slot2, MAX30101_Led slot3, MAX30101_Led slot4){
+void MAX30101::setMultiLedTiming(Led slot1, Led slot2, Led slot3, Led slot4){
     setMode(MULTI_MODE);
     uint8_t *data = new uint8_t[2];
     data[0] = slot1 + (slot2<<4);
@@ -229,7 +229,7 @@ void MAX30101::setMultiLedTiming(MAX30101_Led slot1, MAX30101_Led slot2, MAX3010
 
 
 
-void MAX30101::setInterrupt(MAX30101_Interrupt interrupt, void (*function)(), uint8_t threshold, bool fifoRollover){
+void MAX30101::setInterrupt(Interrupt interrupt, void (*function)(), uint8_t threshold, bool fifoRollover){
     if(interrupt!=1){
         uint8_t *data = new uint8_t[2];
         read(INTERRUPT_CONFIG, data, 2);
@@ -261,7 +261,7 @@ void MAX30101::setInterrupt(MAX30101_Interrupt interrupt, void (*function)(), ui
     setInterruptFunction(function);
 }
 
-void MAX30101::removeInterrupt(MAX30101_Interrupt interrupt){
+void MAX30101::removeInterrupt(Interrupt interrupt){
     if(interrupt==1){return;}
     uint8_t *data = new uint8_t[2];
     read(INTERRUPT_CONFIG, data, 2);
@@ -381,8 +381,8 @@ void MAX30101::dispatchInterruptData(){
 }
 
 
-void MAX30101::updateChannels(MAX30101_Mode mode, MAX30101_Led slot1, 
-    MAX30101_Led slot2, MAX30101_Led slot3, MAX30101_Led slot4){
+void MAX30101::updateChannels(Mode mode, Led slot1, 
+    Led slot2, Led slot3, Led slot4){
     //TODO The docs are vague on whether the HR_MODE can use 
     //other leds than the red one.
     if(mSampleTemplate.ledSamples!=NULL){
@@ -404,7 +404,7 @@ void MAX30101::updateChannels(MAX30101_Mode mode, MAX30101_Led slot1,
             break;
         }
         case MULTI_MODE:{
-            MAX30101_Led slot[4] = {slot1, slot2, slot3, slot4};
+            Led slot[4] = {slot1, slot2, slot3, slot4};
             mSampleTemplate.length = 0;
             uint8_t cycleEnd = 4;
             for(uint8_t i=0;i<cycleEnd;){
@@ -434,12 +434,12 @@ void MAX30101::clearFIFOCounters(){
     write(FIFO_WRITE_PTR, &data);
 }
 
-void MAX30101::read(MAX30101_Address address, uint8_t* data, int length){
+void MAX30101::read(Address address, uint8_t* data, int length){
     mI2C.write(mAddress, (char*) &address, 1);
     mI2C.read(mAddress, (char*) data, length);
 }
 
-int MAX30101::write(MAX30101_Address address, uint8_t* data, int length){
+int MAX30101::write(Address address, uint8_t* data, int length){
     uint8_t *bigData = new uint8_t[length+1];
     *bigData = address;
     for(int i = 0; i < length; i++){

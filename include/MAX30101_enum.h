@@ -3,7 +3,7 @@
 
 namespace MAX{
 
-    enum MAX30101_Address{
+    enum Address{
         INTERRUPT_STATUS    =   0x00,       //  2 Bytes
         INTERRUPT_CONFIG    =   0x02,       //  2 Bytes
         FIFO_WRITE_PTR      =   0x04,
@@ -23,7 +23,7 @@ namespace MAX{
         PART_ID             =   0xFF
     };
 
-    enum MAX30101_Interrupt{
+    enum Interrupt{
         I_FIFO_FULL     =   1<<7,
         I_NEW_DATA      =   1<<6,
         I_LIGHT         =   1<<5,
@@ -32,20 +32,20 @@ namespace MAX{
         I_TEMPERATURE   =   1<<1
     };
 
-    enum MAX30101_Mode{
+    enum Mode{
         HR_MODE     =   2,
         OX_MODE     =   3,
         MULTI_MODE  =   7
     };
 
-    enum MAX30101_Oxygen_Range{
+    enum Oxygen_Range{
         RANGE_2048    =   0,
         RANGE_4096    =   1,
         RANGE_8192    =   2,
         RANGE_16384   =   3
     };
 
-    enum MAX30101_Oxygen_Rate{
+    enum Oxygen_Rate{
         OX_RATE_50      =    000, 
         OX_RATE_100     =    001, 
         OX_RATE_200     =    010, 
@@ -56,7 +56,7 @@ namespace MAX{
         OX_RATE_3200    =    111 
     };
 
-    enum MAX30101_Pulse_Width{
+    enum Pulse_Width{
                                     //      Pulse Width     Resolution (bits)
         PULSE_WDT_69  =   00,   //      (68.95)         15
         PULSE_WDT_118 =   01,   //      (117.78)        16
@@ -64,7 +64,7 @@ namespace MAX{
         PULSE_WDT_411 =   11    //      (410.75)        18
     };
 
-    enum MAX30101_Led{
+    enum Led{
         // The P refers to Pilot Led, whose amplitude 
         // is specified in the P_LED_CONFIG register
         NONE_LED    =   0b000,
@@ -76,7 +76,7 @@ namespace MAX{
         P_GREEN_LED =   0b111
     };
 
-    enum MAX30101_Oversample{
+    enum Oversample{
         OVERSAMPLE_1    =   0b000,
         OVERSAMPLE_2    =   0b001,
         OVERSAMPLE_4    =   0b010,

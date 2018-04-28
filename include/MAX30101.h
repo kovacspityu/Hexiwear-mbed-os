@@ -8,18 +8,17 @@
 #define MIN_HEART_FREQUENCY 50u
 #define MAX_HEART_FREQUENCY 200u
 
-using namespace MAX;
 
 class MAX30101{
     public:
-        MAX30101(MAX30101_Mode mode = HR_MODE, MAX30101_Oversample oversample = OVERSAMPLE_1,
-bool fifoRollover = false, uint8_t fifoThreshold = 0, MAX30101_Led slot1 = RED_LED, MAX30101_Led slot2 = NONE_LED,
-MAX30101_Led slot3 = NONE_LED, MAX30101_Led slot4 = NONE_LED);
+        MAX30101(MAX::Mode mode = MAX::HR_MODE, MAX::Oversample oversample = MAX::OVERSAMPLE_1,
+bool fifoRollover = false, uint8_t fifoThreshold = 0, MAX::Led slot1 = MAX::RED_LED, MAX::Led slot2 = MAX::NONE_LED,
+MAX::Led slot3 = MAX::NONE_LED, MAX::Led slot4 = MAX::NONE_LED);
 
         ~MAX30101();
         
         typedef struct{
-            MAX30101_Led ledType;
+            MAX::Led ledType;
             uint32_t value;
         } ledSample_t;
 
@@ -46,22 +45,22 @@ MAX30101_Led slot3 = NONE_LED, MAX30101_Led slot4 = NONE_LED);
         mail_t getSampleTemplate();
         mail_t* getData(uint8_t numberOfSamples = 0);
 
-        void setOversample(MAX30101_Oversample oversample);
+        void setOversample(MAX::Oversample oversample);
         void setFIFORollover(bool fifoRollover);
         void setFIFOThreshold(uint8_t fifoThreshold);
-        void setMode(MAX30101_Mode mode, MAX30101_Led slot1 = NONE_LED, 
-            MAX30101_Led slot2 = NONE_LED, MAX30101_Led slot3 = NONE_LED, 
-            MAX30101_Led slot4 = NONE_LED);
+        void setMode(MAX::Mode mode, MAX::Led slot1 = MAX::NONE_LED, 
+            MAX::Led slot2 = MAX::NONE_LED, MAX::Led slot3 = MAX::NONE_LED, 
+            MAX::Led slot4 = MAX::NONE_LED);
         void setPulseAmplitude(uint8_t redAmplitude, uint8_t irAmplitude, 
                             uint8_t greenAmplitude = 0, uint8_t pilotAmplitude = 0);
-        void setPulseWidth(MAX30101_Pulse_Width width);
-        void setOxygenRate(MAX30101_Oxygen_Rate rate);
-        void setOxygenRange(MAX30101_Oxygen_Range range);
+        void setPulseWidth(MAX::Pulse_Width width);
+        void setOxygenRate(MAX::Oxygen_Rate rate);
+        void setOxygenRange(MAX::Oxygen_Range range);
         void setProximityDelay(uint8_t delay);
-        void setMultiLedTiming(MAX30101_Led slot1, MAX30101_Led slot2, MAX30101_Led slot3, MAX30101_Led slot4);
+        void setMultiLedTiming(MAX::Led slot1, MAX::Led slot2, MAX::Led slot3, MAX::Led slot4);
 
-        void setInterrupt(MAX30101_Interrupt interrupt, void (*function)(), uint8_t threshold = 0, bool fifoRollover = false);
-        void removeInterrupt(MAX30101_Interrupt interrupt);
+        void setInterrupt(MAX::Interrupt interrupt, void (*function)(), uint8_t threshold = 0, bool fifoRollover = false);
+        void removeInterrupt(MAX::Interrupt interrupt);
 
         uint8_t combineLeds(uint8AndFloat* leds, uint8_t length);
 
@@ -74,7 +73,7 @@ MAX30101_Led slot3 = NONE_LED, MAX30101_Led slot4 = NONE_LED);
         Thread mThread;
         uint8_t mResolution;
         float mTemperature;
-        MAX30101_Oxygen_Rate mSampleRate;
+        MAX::Oxygen_Rate mSampleRate;
         Ticker mTicker;
         mail_t mSampleTemplate;
 
@@ -89,12 +88,12 @@ MAX30101_Led slot3 = NONE_LED, MAX30101_Led slot4 = NONE_LED);
         void dispatchInterruptData();
 
         void clearFIFOCounters();
-        void updateChannels(MAX30101_Mode mode, MAX30101_Led slot1 = NONE_LED, 
-                            MAX30101_Led slot2 = NONE_LED, MAX30101_Led slot3 = NONE_LED, 
-                            MAX30101_Led slot4 = NONE_LED);
+        void updateChannels(MAX::Mode mode, MAX::Led slot1 = MAX::NONE_LED, 
+                            MAX::Led slot2 = MAX::NONE_LED, MAX::Led slot3 = MAX::NONE_LED, 
+                            MAX::Led slot4 = MAX::NONE_LED);
         
-        int write(MAX30101_Address address, uint8_t *data, int length = 1);
-        void read(MAX30101_Address address, uint8_t *data, int length = 1);
+        int write(MAX::Address address, uint8_t *data, int length = 1);
+        void read(MAX::Address address, uint8_t *data, int length = 1);
 
 };
 
