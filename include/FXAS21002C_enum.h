@@ -3,7 +3,7 @@
 
 namespace FXA{
 
-    enum FXAS21002C_Address{
+    enum Address{
         STATUS                  = 0x00,   //Aliases either DR_STATUS or FIFO_STATUS depending on if in FIFO mode.
         X_ANGLE_MSB             = 0x01,
         X_ANGLE_LSB             = 0x02,
@@ -28,31 +28,31 @@ namespace FXA{
         CTRL_REG_3              = 0x15
     };
 
-    enum FXAS21002C_Axis{
+    enum Axis{
         AXIS_X  = 0,
         AXIS_Y  = 1,
         AXIS_Z  = 2
     };
 
-    enum FXAS21002C_Interrupt{
+    enum Interrupt{
         I_NEW_DATA  = 1,
         I_THRESHOLD = 2,
         I_FIFO      = 4
     };
 
-    enum FXAS21002C_Interrupt_Pin{
+    enum Interrupt_Pin{
         PIN_ONE = 1,
         PIN_TWO = 0
     };
 
-    enum FXAS21002C_Low{
+    enum Low{
                         //OSR=  800 Hz | 400 Hz | 200 Hz | 100 Hz | 50 Hz | 25 Hz | 12.5 Hz |
     LOW0 = 0b00<<6,    //      256    | 128    | 64     | 32     | 16    | 8     | 4       |                                            
     LOW1 = 0b01<<6,    //      128    | 64     | 32     | 16     | 8     | 4     | -       |
     LOW2 = 0b10<<6     //      64     | 32     | 16     | 8      | 4     | -     | -       |
     };
 
-    enum FXAS21002C_High{
+    enum High{
         //All the values for an active High Pass also contain the bit that activates High Pass itself.
 
                             //OSR =  800 Hz | 400 Hz | 200 Hz | 100 Hz | 50 Hz | 25 Hz | 12.5 Hz |
@@ -63,7 +63,7 @@ namespace FXA{
     HIGHOFF = 0b000<<2
     };
 
-    enum FXAS21002C_Range{
+    enum Range{
                                     //  Nominal Sensitivity (mdps/LSB)
         RANGE2000   = 0b000,       //  62.5
         RANGE1000   = 0b001,       //  31.25
@@ -73,14 +73,14 @@ namespace FXA{
         RANGE4000   = 0b100,       //  125.0
     };
 
-    enum FXAS21002C_Mode{
+    enum Mode{
 
         STANDBY = 0b00,
         READY   = 0b01,
         ACTIVE  = 0b11
     };
 
-    enum FXAS21002C_ODR{
+    enum ODR{
         ODR800 = 0<<2,
         ODR400 = 1<<2,
         ODR200 = 2<<2,

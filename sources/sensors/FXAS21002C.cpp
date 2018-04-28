@@ -1,8 +1,10 @@
+#include "FXAS21002C_enum.h"
 #include "FXAS21002C.h"
+#include "mbed.h"
 
 using namespace FXA;
 
-FXAS21002C::FXAS21002C(FXAS21002C_Range range, FXAS21002C_ODR dataRate): 
+FXAS21002C::FXAS21002C(Range range, ODR dataRate): 
 mI2C(I2C_SDA, I2C_SCL), mAddress(0x40), mInterruptOne(PTD1), mInterruptTwo(PTC18){
     standby();
     setRange(range);
@@ -52,11 +54,11 @@ void FXAS21002C::setReady(){
     write(CTRL_REG_1, &data);
 }
 
-FXAS21002C_Mode FXAS21002C::getStatus(){
+Mode FXAS21002C::getStatus(){
     uint8_t data;
     read(CTRL_REG_1, &data);
     data&=0b11;
-    return (FXAS21002C_Mode)data;
+    return (Mode)data;
 }
 
 bool FXAS21002C::isDataAvailable(){
@@ -65,7 +67,7 @@ bool FXAS21002C::isDataAvailable(){
     return data&0b00001000;
 }
 
-void FXAS21002C::setRange(FXAS21002C_Range range){
+void FXAS21002C::setRange(Range range){
     bool mActive = false;
     if(getStatus()==ACTIVE){
         setReady();
@@ -77,7 +79,7 @@ void FXAS21002C::setRange(FXAS21002C_Range range){
             data|=1;
             mSensitivity*=2;
             write(CTRL_REG_3, &data);
-            range=(FXAS21002C_Range)(range&~4);
+            range=(Range)(range&~4);
         }
     }
     read(CTRL_REG_0, &data);
@@ -91,7 +93,7 @@ void FXAS21002C::setRange(FXAS21002C_Range range){
     }
 }
 
-void FXAS21002C::setLowPass(FXAS21002C_Low threshold){
+void FXAS21002C::setLowPass(Low threshold){
     bool mActive = false;
     if(getStatus()==ACTIVE){
         setReady();
@@ -106,7 +108,7 @@ void FXAS21002C::setLowPass(FXAS21002C_Low threshold){
     }
 }
 
-void FXAS21002C::setHighPass(FXAS21002C_High threshold){
+void FXAS21002C::setHighPass(High threshold){
     bool mActive = false;
     if(getStatus()==ACTIVE){
         setReady();
@@ -121,7 +123,7 @@ void FXAS21002C::setHighPass(FXAS21002C_High threshold){
     }
 }
 
-void FXAS21002C::setODR(FXAS21002C_ODR dataRate){
+void FXAS21002C::setODR(ODR dataRate){
     bool mActive = false;
     if(getStatus()==ACTIVE){
         setReady();
@@ -176,7 +178,7 @@ int16_t *FXAS21002C::getRawData(){
     return result;
 }
 
-void FXAS21002C::setInterrupt(FXAS21002C_Interrupt_Pin pin, FXAS21002C_Interrupt name, void (*function)(), float threshold, int count, bool resetCount){
+void FXAS21002C::setInterrupt(Interrupt_Pin pin, Interrupt name, void (*function)(), float threshold, int count, bool resetCount){
     standby();
     uint8_t data;
     switch(name){
@@ -218,7 +220,7 @@ void FXAS21002C::setInterrupt(FXAS21002C_Interrupt_Pin pin, FXAS21002C_Interrupt
     setReady();
 }
 
-void FXAS21002C::removeInterrupt(FXAS21002C_Interrupt name){
+void FXAS21002C::removeInterrupt(Interrupt name){
     uint8_t data;
     if(name==I_FIFO){
 //TODO
@@ -240,7 +242,7 @@ void FXAS21002C::removeInterrupt(FXAS21002C_Interrupt name){
     }
 }
 
-void FXAS21002C::setInterruptFunction(void (*function)(), FXAS21002C_Interrupt_Pin pin){
+void FXAS21002C::setInterruptFunction(void (*function)(), Interrupt_Pin pin){
     if(pin){
         FXAS21002CInterruptOne = function;
         mThreadOne.start(callback(this, &FXAS21002C::interruptWrapperOne));
@@ -251,7 +253,7 @@ void FXAS21002C::setInterruptFunction(void (*function)(), FXAS21002C_Interrupt_P
     }
 }
 
-void FXAS21002C::interruptWrapper(FXAS21002C_Interrupt_Pin pin){
+void FXAS21002C::interruptWrapper(Interrupt_Pin pin){
     while(1){
         //TODO
         Thread::signal_wait(0x01);
@@ -264,7 +266,7 @@ void FXAS21002C::interruptWrapper(FXAS21002C_Interrupt_Pin pin){
                 for(int i=0;i<3;i++){
                     if(data&(1<<i)){
                         mail_t *mail = mailBox.alloc();
-                        mail->axis = (FXAS21002C_Axis) i;
+                        mail->axis = (Axis) i;
                         mail->value = samples[i];
                     }
                 }
@@ -282,7 +284,7 @@ void FXAS21002C::interruptWrapper(FXAS21002C_Interrupt_Pin pin){
                 uint8_t *samples = new uint8_t[6*samplesNumber];
                 read(X_ANGLE_MSB, samples, 6*samplesNumber);
                 for(int i=0;i<3*samplesNumber;i++){
-                    (*(mailArray+i))->axis = (FXAS21002C_Axis) (i%3);
+                    (*(mailArray+i))->axis = (Axis) (i%3);
                     (*(mailArray+i))->value = convertToAngle(*samples+2*i);
                     
                     mailBox.put(*(mailArray+i));
@@ -307,14 +309,14 @@ void FXAS21002C::dispatchInterruptDataTwo(){
         dispatchInterruptData(PIN_TWO);
 }
 
-FXAS21002C_Interrupt FXAS21002C::identifyInterrupt(FXAS21002C_Interrupt_Pin pin){
+Interrupt FXAS21002C::identifyInterrupt(Interrupt_Pin pin){
     uint8_t data;
     read(INTERRUPT_STATUS, &data);
-    if(pin==PIN_ONE){return (FXAS21002C_Interrupt) (activeInterruptsOne & data);}
-    else{return (FXAS21002C_Interrupt) (activeInterruptsTwo & data);}
+    if(pin==PIN_ONE){return (Interrupt) (activeInterruptsOne & data);}
+    else{return (Interrupt) (activeInterruptsTwo & data);}
     }
 
-void FXAS21002C::dispatchInterruptData(FXAS21002C_Interrupt_Pin pin){
+void FXAS21002C::dispatchInterruptData(Interrupt_Pin pin){
     if(pin){mThreadOne.signal_set(0x01);}
     else{mThreadTwo.signal_set(0x01);}
 }
@@ -328,7 +330,7 @@ float FXAS21002C::convertToRadian(int16_t rawAngle){
     return mSensitivity * rawAngle * M_PI / 180;
 }
 
-int FXAS21002C::write(FXAS21002C_Address address, uint8_t *data, int length){
+int FXAS21002C::write(Address address, uint8_t *data, int length){
     uint8_t *bigData = new uint8_t[length+1];
     *bigData = address;
     for(int i = 0; i < length; i++){
@@ -339,7 +341,7 @@ int FXAS21002C::write(FXAS21002C_Address address, uint8_t *data, int length){
     return result; 
 }
 
-void FXAS21002C::read(FXAS21002C_Address address, uint8_t *data, int length){
+void FXAS21002C::read(Address address, uint8_t *data, int length){
     uint8_t addressP[] = {address}; 
     mI2C.write(mAddress, (char*) addressP, 1, true);
     mI2C.read(mAddress, (char*) data, length);

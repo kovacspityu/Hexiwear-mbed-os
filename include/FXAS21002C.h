@@ -4,15 +4,14 @@
 #include "mbed.h"
 #include "FXAS21002C_enum.h"
 
-using namespace FXA;
 
 class FXAS21002C{
 
     public:
-        FXAS21002C(FXAS21002C_Range range = RANGE2000, FXAS21002C_ODR dataRate = ODR100);
+        FXAS21002C(FXA::Range range = FXA::RANGE2000, FXA::ODR dataRate = FXA::ODR100);
 
         typedef struct{
-            FXAS21002C_Axis axis;
+            FXA::Axis axis;
             float value;
         } mail_t;
         Mail<mail_t, 24> mailBox;
@@ -20,19 +19,19 @@ class FXAS21002C{
         void standby();
         void setActive();
         void setReady();
-        FXAS21002C_Mode getStatus();
+        FXA::Mode getStatus();
         bool isDataAvailable();
 
-        void setRange(FXAS21002C_Range range);
-        void setLowPass(FXAS21002C_Low threshold);
-        void setHighPass(FXAS21002C_High threshold);
-        void setODR(FXAS21002C_ODR dataRate);
+        void setRange(FXA::Range range);
+        void setLowPass(FXA::Low threshold);
+        void setHighPass(FXA::High threshold);
+        void setODR(FXA::ODR dataRate);
 
         float* getAngles();
         float* getRadians();
         int8_t* getTemperature();
-        void setInterrupt(FXAS21002C_Interrupt_Pin pin, FXAS21002C_Interrupt name, void (*function)(), float threshold = 0, int count = 0, bool resetCount = false);
-        void removeInterrupt(FXAS21002C_Interrupt name);
+        void setInterrupt(FXA::Interrupt_Pin pin, FXA::Interrupt name, void (*function)(), float threshold = 0, int count = 0, bool resetCount = false);
+        void removeInterrupt(FXA::Interrupt name);
         
 
     private:
@@ -46,27 +45,26 @@ class FXAS21002C{
         InterruptIn mInterruptTwo;
         Thread mThreadOne;
         Thread mThreadTwo;
-        void interruptWrapper(FXAS21002C_Interrupt_Pin pin);
+        void interruptWrapper(FXA::Interrupt_Pin pin);
         void interruptWrapperOne();
         void interruptWrapperTwo();
         void (*FXAS21002CInterruptOne)();
         void (*FXAS21002CInterruptTwo)();
 
         int16_t* getRawData();
-        void dispatchInterruptData(FXAS21002C_Interrupt_Pin pin);
+        void dispatchInterruptData(FXA::Interrupt_Pin pin);
         void dispatchInterruptDataOne();
         void dispatchInterruptDataTwo();
-        void setInterruptFunction(void (*function)(), FXAS21002C_Interrupt_Pin pin);
-        FXAS21002C_Interrupt identifyInterrupt(FXAS21002C_Interrupt_Pin pin);
+        void setInterruptFunction(void (*function)(), FXA::Interrupt_Pin pin);
+        FXA::Interrupt identifyInterrupt(FXA::Interrupt_Pin pin);
 
         float convertToAngle(int16_t rawAngle);
         float convertToRadian(int16_t rawAngle);
 
-        void read(FXAS21002C_Address address, uint8_t *data, int length = 1);
-        int write(FXAS21002C_Address address, uint8_t *data, int length = 1);
+        void read(FXA::Address address, uint8_t *data, int length = 1);
+        int write(FXA::Address address, uint8_t *data, int length = 1);
 
 };
-
 
 
 #endif
