@@ -114,7 +114,7 @@ void FXOS8700CQ::hardReset(){
 
 
 void FXOS8700CQ::setRange(Range range){
-    mAccSensitivity = BASE_ACC_SENSITIVITY * (1<<range);
+    mRange = range;
     uint8_t data;
     read(DATA_CFG, &data);
     data&=~3;
@@ -165,7 +165,7 @@ void FXOS8700CQ::setAsleepODR(ODR dataRate){
 }
 
 bool FXOS8700CQ::setAccLowNoise(bool activated){
-    if(mAccSensitivity!=0.976){
+    if(mRange!=RANGE500){
         uint8_t data;
         Mode tempMode = mMode;
         standby();
@@ -218,12 +218,12 @@ void FXOS8700CQ::setNewData(Interrupt_Pin pin, void (*function)()){
 }
 
 void FXOS8700CQ::setAccelerationMagnitude(Interrupt_Pin pin, void (*function)(), uint8_t count, bool resetCount, uint8_t config, float threshold, float* reference){
-    uint16_t dummy = lround(fabs(threshold/mAccSensitivity));
+    uint16_t dummy = lround(fabs(threshold/(BASE_ACC_SENSITIVITY * (1<<mRange))));
     dummy&=0b0001111111111111;
     if(resetCount){dummy|=1<<15;}
     write(ACC_MAGNITUDE_MSB, (uint8_t*) &dummy, 2);
     for(uint i=0;i<3;i++){
-        dummy = lround(fabs(reference[i]/mAccSensitivity));
+        dummy = lround(fabs(reference[i]/(BASE_ACC_SENSITIVITY * (1<<mRange))));
         dummy&=0b0011111111111111;
         write((Address)(ACC_REF_X_MSB+2*i), (uint8_t*) &dummy, 2);
     }
@@ -748,12 +748,12 @@ uint8_t* FXOS8700CQ::getAllRawData(){
 }
 
 float FXOS8700CQ::convertFIFOAcceleration(uint8_t *rawAcc){
-    float result = mAccSensitivity * (~(((rawAcc[0])<<6)  + ((rawAcc[1])>>2)) + 1);
+    float result = (BASE_ACC_SENSITIVITY * (1<<mRange)) * (~(((rawAcc[0])<<6)  + ((rawAcc[1])>>2)) + 1);
     return result;
 }
 
 float FXOS8700CQ::convertAcceleration(uint8_t *rawAcc){
-    float result = mAccSensitivity * (~(((rawAcc[0])<<8)  + ((rawAcc[1])>>2)) + 1);
+    float result = (BASE_ACC_SENSITIVITY * (1<<mRange)) * (~(((rawAcc[0])<<8)  + ((rawAcc[1])>>2)) + 1);
     return result;
 }
 

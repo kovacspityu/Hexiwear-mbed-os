@@ -67,7 +67,7 @@ class FXOS8700CQ{
         I2C mI2C;
         uint8_t mAddress;
         uint16_t activeInterrupts;
-        float mAccSensitivity;
+        FXO::Range mRange;
         bool awake;
         FXO::ODR mODR;
         FXO::ODR mSleepODR;
