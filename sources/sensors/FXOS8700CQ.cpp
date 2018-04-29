@@ -271,11 +271,14 @@ void FXOS8700CQ::setFreefallMotion(Interrupt_Pin pin, void (*function)(), float 
     setInterrupt(pin, I_FREEFALL, function);
 }
 
-void FXOS8700CQ::setPulse(Interrupt_Pin pin, void (*function)(), uint8_t config, float timing, float* threshold, float latency, float window){
-    //TODO The FILTER_CFG register holds config on whether the high-pass and low-pass
-    //TODO filters are applied to the pulse function, it needs to be implemented.
-    write(PULSE_CFG, &config);
-    uint8_t data;
+void FXOS8700CQ::setPulse(Interrupt_Pin pin, void (*function)(), uint16_t config, float timing, float* threshold, float latency, float window){
+    uint8_t data = config&255;
+    write(PULSE_CFG, &data);
+    // FILTER_CFG holds the High-Pass threshold too, so we need to move bits around a bit.
+    read(FILTER_CFG, &data);
+    data&=3;
+    data|=((config&768)<<4);
+    write(FILTER_CFG, &data);
     for(uint8_t i=0;i<3;i++){
         data=lround(fabs(threshold[i]/63));
         write(PULSE_X_THRESHOLD, &data);

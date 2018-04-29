@@ -296,6 +296,8 @@ namespace FXO{
     };
 
     enum Pulse_Config{
+        ENABLE_HIGH_PASS= 512,
+        ENABLE_LOW_PASS = 256,
         ENABLE_LATENCY  = 128,
         P_LATCH         = 64,
         ENABLE_DOUBLE_Z = 32,
