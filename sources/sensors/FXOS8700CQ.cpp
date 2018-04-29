@@ -272,6 +272,8 @@ void FXOS8700CQ::setFreefallMotion(Interrupt_Pin pin, void (*function)(), float 
 }
 
 void FXOS8700CQ::setPulse(Interrupt_Pin pin, void (*function)(), uint8_t config, float timing, float* threshold, float latency, float window){
+    //TODO The FILTER_CFG register holds config on whether the high-pass and low-pass
+    //TODO filters are applied to the pulse function, it needs to be implemented.
     write(PULSE_CFG, &config);
     uint8_t data;
     for(uint8_t i=0;i<3;i++){
@@ -542,39 +544,114 @@ void FXOS8700CQ::interruptWrapper(){
     while(1){
         Thread::signal_wait(0x01);
         Interrupt name = identifyInterrupt();
+        uint8_t data;
         switch(name){
             case I_NEW_DATA: {
-                uint8_t data;
-                read(DR_STATUS, &data);
-                float *samples = getAcceleration();
-                for(int i=0;i<3;i++){
-                    if(data&(1<<i)){
+                if(mMode==ACCELEROMETER){
+                    read(DR_STATUS, &data);
+                    float *samples = getAcceleration();
+                    for(uint8_t i=0;i<3;i++){
                         mail_t *mail = mailBox.alloc();
-                        mail->axis = (Axis) i;
+                        mail->axis = (Axis) (1<<(2-i));
                         mail->value = samples[i];
                         mailBox.put(mail);
                     }
+                    delete[] samples;
                 }
-                read(MAG_DR_STATUS, &data);
-                delete[] samples;
+                else if(mMode==MAGNETOMETER){
+                    read(MAG_DR_STATUS, &data);
+                    float *samples = getMagnetic();
+                    for(uint8_t i=0;i<3;i++){
+                        mail_t *mail = mailBox.alloc();
+                        mail->axis = (Axis) (1<<(5-i));
+                        mail->value = samples[i];
+                        mailBox.put(mail);
+                    }
+                    delete[] samples;
+                }
+                else if(mMode==HYBRID){
+                    read(DR_STATUS, &data);
+                    read(MAG_DR_STATUS, &data);
+                    float *samples = getAllData();
+                    for(uint8_t i=0;i<3;i++){
+                        mail_t *mail = mailBox.alloc();
+                        mail->axis = (Axis) (1<<(2-i));
+                        mail->value = samples[i];
+                        mailBox.put(mail);
+                    }
+                    for(uint8_t i=0;i<3;i++){
+                        mail_t *mail = mailBox.alloc();
+                        mail->axis = (Axis) (1<<(5-i));
+                        mail->value = samples[i];
+                        mailBox.put(mail);
+                    }
+                    delete[] samples;
+                }
                 break;
             }
             case I_ACC_MAGNITUDE: {
+                float *samples = getAcceleration();
+                    for(uint8_t i=0;i<3;i++){
+                        mail_t *mail = mailBox.alloc();
+                        mail->axis = (Axis) (1<<(2-i));
+                        mail->value = samples[i];
+                        mailBox.put(mail);
+                    }
+                delete[] samples;
                 break;
             }
-            case I_FREEFALL     : {
-            break;
-            }
-            case I_PULSE        : {
+            case I_FREEFALL: {
+                read(MOTION_INT_STATUS, &data);
+                //TODO It's possible to use this interrupt more quickly by just giving info
+                //TODO on the direction and polarity of the events, without reading the actual values.
+                //TODO It's gonna depend on the use case.
+                float *samples = getAcceleration();
+                    for(uint8_t i=0;i<3;i++){
+                        if(data&(1<<(2*i+1))){
+                            mail_t *mail = mailBox.alloc();
+                            mail->axis = (Axis) (1<<(2-i));
+                            mail->value = samples[i];
+                            mailBox.put(mail);
+                        }
+                    }
+                delete[] samples;
                 break;
             }
-            case I_ORIENTATION  : {
+            case I_PULSE: {
+                read(PULSE_INTERRUPT, &data);
+                for(uint8_t i=0;i<3;i++){
+                    if(data&(i+4)){
+                        mail_t *mail = mailBox.alloc();
+                        mail->axis = (Axis) (1<<(2-i));
+                        mail->value = (data&8) + 1;
+                        if(data&(1<<i)){mail->value=-mail->value;}
+                        mailBox.put(mail);
+                    }
+                }
                 break;
             }
-            case I_TRANSIENT    : {
-
+            case I_ORIENTATION: {
+                read(ORIENTATION_STATUS, &data);
+                if(data&64){
+                    //TODO Z-Lockout has happened, requires input from outside to fix it.
+                }
+                else{
+                    //TODO Need to convert the orientation into useful data.
+                }
+                break;
             }
-            case I_FIFO         : {
+            case I_TRANSIENT: {
+                read(TRANSIENT_INT_STATUS, &data);
+                for(uint8_t i=0;i<3;i++){
+                    if(data&(2*i+1)){
+                        mail_t *mail = mailBox.alloc();
+                        mail->axis = (Axis) (1<<(2-i));
+                        mail->value = (data&i) ? -1 : 1;
+                        mailBox.put(mail);
+                    }
+                }
+            }
+            case I_FIFO: {
                 uint8_t samplesNumber;
                 read(DR_STATUS, &samplesNumber);
                 samplesNumber&=63;
@@ -600,9 +677,31 @@ void FXOS8700CQ::interruptWrapper(){
                 break;
             }
             case I_MAG_THRESHOLD: {
+                read(MAG_THRESHOLD_INT, &data);
+                //TODO It's possible to use this interrupt more quickly by just giving info
+                //TODO on the direction and polarity of the events, without reading the actual values.
+                //TODO It's gonna depend on the use case.
+                float *samples = getMagnetic();
+                for(uint8_t i=0;i<3;i++){
+                    if(data&(1<<(2*i+1))){
+                        mail_t *mail = mailBox.alloc();
+                        mail->axis = (Axis) (1<<(5-i));
+                        mail->value = samples[i];
+                        mailBox.put(mail);
+                    }
+                }
+                delete[] samples;
                 break;
             }
             case I_MAG_MAGNITUDE: {
+                float *samples = getMagnetic();
+                    for(uint8_t i=0;i<3;i++){
+                        mail_t *mail = mailBox.alloc();
+                        mail->axis = (Axis) (1<<(5-i));
+                        mail->value = samples[i];
+                        mailBox.put(mail);
+                    }
+                delete[] samples;
                 break;
             }
         }
