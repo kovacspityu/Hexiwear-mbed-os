@@ -300,10 +300,10 @@ namespace FXO{
         P_LATCH         = 64,
         ENABLE_DOUBLE_Z = 32,
         ENABLE_SINGLE_Z = 16,
-        ENABLE_DOUBLE_Y = 32,
-        ENABLE_SINGLE_Y = 16,
-        ENABLE_DOUBLE_X = 32,
-        ENABLE_SINGLE_X = 16,
+        ENABLE_DOUBLE_Y = 8,
+        ENABLE_SINGLE_Y = 4,
+        ENABLE_DOUBLE_X = 2,
+        ENABLE_SINGLE_X = 1,
     };
 
     enum Magnetic_Threshold_Config{
