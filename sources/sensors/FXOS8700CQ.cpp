@@ -12,24 +12,27 @@ const float FXOS8700CQ::BASE_ACC_SENSITIVITY = 0.244;
 
 FXOS8700CQ::FXOS8700CQ(Mode mode, Range range, ODR awakeODR, ODR asleepODR) : 
 mI2C(PTC11, PTC10), mAddress(0x1E<<1), mInterruptOne(PTC1), mInterruptTwo(PTD13), mReset(PTD11){
-     mI2C.frequency(400000);
-     awake=true;
-     for(uint8_t i=0;i<10;i++){
-         mInterrupts[i] = NULL;
-     }
-     hardReset();
-     mAwakeODR = awakeODR;
-     mSleepODR = asleepODR;
-     mMode = STANDBY;
-     setMode(mode);
-     setRange(range);
-     setAwakeODR(awakeODR);
-     setAsleepODR(asleepODR);
+    mI2C.frequency(400000);
+    awake=true;
+    for(uint8_t i=0;i<10;i++){
+        mInterrupts[i] = NULL;
+    }
+    hardReset();
+    mAwakeODR = awakeODR;
+    mSleepODR = asleepODR;
+    mMode = STANDBY;
+    standby();
+    uint8_t data = 0;
+    write(MAG_CTRL_REG_1, &data);
+    // Sets up the autoincrement mode for measures in HYBRID mode.
+    data = 32;
+    write(MAG_CTRL_REG_2, &data);
+    setRange(range);
+    setAwakeODR(awakeODR);
+    setAsleepODR(asleepODR);
+    setMode(mode);
      
-     setSleepWake(PIN_TWO, NULL, 500, true, 31);
-     // Sets up the autoincrement mode for measures in HYBRID mode.
-     uint8_t data = 32;
-     write(MAG_CTRL_REG_2, &data);
+    setSleepWake(PIN_TWO, NULL, 500, true, 31);
 }
 
 void FXOS8700CQ::setMode(Mode mode){
@@ -122,6 +125,14 @@ void FXOS8700CQ::setRange(Range range){
         data&=251;
         write(CTRL_REG_1, &data);
     }
+}
+
+void FXOS8700CQ::setLowPass(Low threshold){
+    //TODO
+}
+
+void FXOS8700CQ::setHighPass(High threshold){
+    //TODO
 }
 
 void FXOS8700CQ::setAwakeODR(ODR dataRate){
@@ -360,6 +371,14 @@ void FXOS8700CQ::setMagneticMagnitude(Interrupt_Pin pin, void (*function)(), uin
 }
 
 
+void FXOS8700CQ::setAccelerationOffset(float* offset){
+//TODO
+}
+
+void FXOS8700CQ::setMagneticOffset(float* offset){
+//TODO
+}
+
 
 float* FXOS8700CQ::getAcceleration(){
     uint8_t *data = getRawAcceleration();
@@ -395,6 +414,28 @@ float* FXOS8700CQ::getAllData(){
         return result;
     }
     return NULL;
+}
+
+float* FXOS8700CQ::getMaxMagnetic(){
+    uint8_t *data = new uint8_t[6];
+    read(MAG_MAX_X_MSB, data, 6);
+    float *result = new float[3];
+    for(uint i=0;i<3;i++){ 
+        result[i] = convertMagnetic(data + 2*i);
+    }
+    delete[] data;
+    return result;
+}
+
+float* FXOS8700CQ::getMinMagnetic(){
+    uint8_t *data = new uint8_t[6];
+    read(MAG_MIN_X_MSB, data, 6);
+    float *result = new float[3];
+    for(uint i=0;i<3;i++){ 
+        result[i] = convertMagnetic(data + 2*i);
+    }
+    delete[] data;
+    return result;
 }
 
 float FXOS8700CQ::getTemperature(){
@@ -464,6 +505,10 @@ void FXOS8700CQ::removeInterrupt(Interrupt name){
 
 void FXOS8700CQ::setInterrupt(Interrupt_Pin pin, Interrupt name, void (*function)()){
     uint8_t data;
+    Mode tempMode = mMode;
+    // Even though the docs say that INT_CONFIG can be changed while the sensor is active, 
+    // this is not the case.
+    standby();
     if(name<=I_SLEEP_WAKE){
         read(INT_CONFIG, &data);
         data|=name;
@@ -481,31 +526,36 @@ void FXOS8700CQ::setInterrupt(Interrupt_Pin pin, Interrupt name, void (*function
         mInterruptTwo.fall(callback(this, &FXOS8700CQ::dispatchInterruptData));
     }
     setInterruptFunction(function, name);  
+    setMode(tempMode);
 }
 
 void FXOS8700CQ::setInterruptFunction(void (*function)(), Interrupt name){
+    if(mThread.get_state()==Thread::Deleted){
+        mThread.start(callback(this, &FXOS8700CQ::interruptWrapper));
+    }
     if(function==NULL){return;}
     mInterrupts[lround(log2(name))] = function;
-    mThread.start(callback(this, &FXOS8700CQ::interruptWrapper));
 }
 
 void FXOS8700CQ::interruptWrapper(){
     //TODO
     while(1){
-        Interrupt name = (Interrupt) (1<<mEvent.wait_any());
+        Thread::signal_wait(0x01);
+        Interrupt name = identifyInterrupt();
         switch(name){
             case I_NEW_DATA: {
                 uint8_t data;
                 read(DR_STATUS, &data);
-                read(MAG_DR_STATUS, &data);
                 float *samples = getAcceleration();
                 for(int i=0;i<3;i++){
                     if(data&(1<<i)){
                         mail_t *mail = mailBox.alloc();
                         mail->axis = (Axis) i;
                         mail->value = samples[i];
+                        mailBox.put(mail);
                     }
                 }
+                read(MAG_DR_STATUS, &data);
                 delete[] samples;
                 break;
             }
@@ -572,7 +622,7 @@ Interrupt FXOS8700CQ::identifyInterrupt(){
 }
 
 void FXOS8700CQ::dispatchInterruptData(){
-    mEvent.set(lround(log2(identifyInterrupt())));
+    mThread.signal_set(0x01);
 }
 
 

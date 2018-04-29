@@ -51,10 +51,14 @@ class FXOS8700CQ{
         void setMagneticThreshold(FXO::Interrupt_Pin pin, void (*function)(), float count, bool resetCount, uint8_t config, float *threshold);
         void setMagneticMagnitude(FXO::Interrupt_Pin pin, void (*function)(), uint8_t count, bool resetCount, uint8_t config, float threshold, float* reference);
 
+        void setAccelerationOffset(float* offset);
+        void setMagneticOffset(float* offset);
 
         float* getAcceleration();
         float* getMagnetic();
         float* getAllData();
+        float* getMaxMagnetic();
+        float* getMinMagnetic();
         float getTemperature();
         void removeInterrupt(FXO::Interrupt name);
         
@@ -73,7 +77,6 @@ class FXOS8700CQ{
         InterruptIn mInterruptTwo;
         DigitalOut mReset;
         Thread mThread;
-        EventFlags mEvent;
         void interruptWrapper();
         void (*mInterrupts[10])();
 

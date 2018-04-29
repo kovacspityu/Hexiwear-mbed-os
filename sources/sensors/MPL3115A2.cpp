@@ -83,7 +83,7 @@ uint8_t MPL3115A2::getStatus(){
 Os_Ratio MPL3115A2::getOsR(){
     uint8_t data;
     read(CTRL_REG_1, &data, 1);
-    return static_cast<Os_Ratio>((data&0b00111000)>>3);
+    return (Os_Ratio)((data&0b00111000)>>3);
 }
 
 void MPL3115A2::setOsR(Os_Ratio ratio){
@@ -100,7 +100,7 @@ Time_Step MPL3115A2::getTimeStep(){
     uint8_t data;
     read(CTRL_REG_2, &data);
     data&=0b00001111;
-    return static_cast<Time_Step>(data);
+    return (Time_Step)(data);
 }
 
 void MPL3115A2::setTimeStep(Time_Step timeStep){
@@ -241,7 +241,8 @@ void MPL3115A2::setInterrupt(Interrupt_Pin pin, Interrupt name, void (*function)
             break;
         }
         case I_NEW_DATA : {
-//TODO Right now it lacks functionality, the hardware can interrupt on just new pressure/altitude or new temperature
+            //TODO Right now it lacks functionality, the hardware can interrupt on 
+            //TODO just new pressure/altitude or new temperature
             break;
         }
 
@@ -597,8 +598,8 @@ uint8_t MPL3115A2::convertTemperatureD2I(float temperature){
 Interrupt MPL3115A2::identifyInterrupt(Interrupt_Pin pin){
     uint8_t data;
     read(INTERRUPT_STATUS, &data);
-    if(pin==PIN_ONE){return static_cast<Interrupt> (lround(activeInterruptsOne & data));}
-    else{return static_cast<Interrupt> (lround(activeInterruptsTwo & data));}
+    if(pin==PIN_ONE){return (Interrupt) (lround(activeInterruptsOne & data));}
+    else{return (Interrupt) (lround(activeInterruptsTwo & data));}
     }
 
 void MPL3115A2::dispatchInterruptData(Interrupt_Pin pin){
