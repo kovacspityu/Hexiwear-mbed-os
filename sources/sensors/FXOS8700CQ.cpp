@@ -1,13 +1,14 @@
 #include "mbed.h"
 #include "FXOS8700CQ_enum.h"
 #include "FXOS8700CQ.h"
+#include <algorithm>
 
 
 using namespace FXO;
 
 const float FXOS8700CQ::TEMPERATURE_SENSITIVITY = 0.96;
 const float FXOS8700CQ::MAGNETIC_SENSITIVITY = 0.1;
-const float FXOS8700CQ::BASE_ACC_SENSITIVITY = 0.244;
+const float FXOS8700CQ::BASE_ACC_SENSITIVITY = 0.000244;
 
 
 FXOS8700CQ::FXOS8700CQ(Mode mode, Range range, ODR awakeODR, ODR asleepODR) : 
@@ -18,9 +19,14 @@ mI2C(PTC11, PTC10), mAddress(0x1E<<1), mInterruptOne(PTC1), mInterruptTwo(PTD13)
         mInterrupts[i] = NULL;
     }
     hardReset();
-    mAwakeODR = awakeODR;
-    mSleepODR = asleepODR;
-    mMode = STANDBY;
+    mAwakeODR = ODR400;
+    mSleepODR = ODR50;
+    mODR = ODR400;
+    mAccOSR = OSR_NORMAL;
+    mAccAwakeOSR = OSR_NORMAL;
+    mAccSleepOSR = OSR_NORMAL;
+    mAccOSR = OSR_NORMAL;
+    mMode = ACCELEROMETER;
     standby();
     uint8_t data = 0;
     write(MAG_CTRL_REG_1, &data);
@@ -32,38 +38,35 @@ mI2C(PTC11, PTC10), mAddress(0x1E<<1), mInterruptOne(PTC1), mInterruptTwo(PTD13)
     setAsleepODR(asleepODR);
     setMode(mode);
      
-    setSleepWake(PIN_TWO, NULL, 500, true, 31);
+    //setSleepWake(PIN_TWO, NULL, 500, true, 31);
 }
 
 void FXOS8700CQ::setMode(Mode mode){
+    if(mode==STANDBY){standby();}
     uint8_t data;
-    if(mode==STANDBY){
-        read(CTRL_REG_1, &data);
-        data&=~1;
-        write(CTRL_REG_1, &data);
+    read(MAG_CTRL_REG_1, &data);
+    data&=~3;
+    data|=mode;
+    write(MAG_CTRL_REG_1, &data);
+    read(CTRL_REG_1, &data);
+    data|=1;
+    write(CTRL_REG_1, &data);
+    // The ODR is halved in HYBRID mode.
+    if(mMode==HYBRID && mode!=HYBRID){
+        mODR = (ODR) (mODR/2);
     }
-    else{
-        read(MAG_CTRL_REG_1, &data);
-        data&=~3;
-        data|=mode;
-        write(MAG_CTRL_REG_1, &data);
-        read(CTRL_REG_1, &data);
-        data|=1;
-        write(CTRL_REG_1, &data);
-        // The ODR is halved in HYBRID mode.
-        if(mMode==HYBRID && mode!=HYBRID){
-            mODR = (ODR) (mODR/2);
-        }
-        // Go back to normal ODR if coming out of HYBRID mode.
-        else if(mode==HYBRID && mMode!=HYBRID){
-            mODR = (ODR) (mODR*2);
-        }
+    // Go back to normal ODR if coming out of HYBRID mode.
+    else if(mode==HYBRID && mMode!=HYBRID){
+        mODR = (ODR) (mODR*2);
     }
     mMode = mode;
 }
 
 void FXOS8700CQ::standby(){
-    setMode(STANDBY);
+    uint8_t data;
+    read(CTRL_REG_1, &data);
+    data&=~1;
+    write(CTRL_REG_1, &data);
 }
 
 void FXOS8700CQ::setAccelerometer(){
@@ -125,14 +128,15 @@ void FXOS8700CQ::setRange(Range range){
         data&=251;
         write(CTRL_REG_1, &data);
     }
-}
-
-void FXOS8700CQ::setLowPass(Low threshold){
-    //TODO
+    mAccSensitivity = (1<<range) * BASE_ACC_SENSITIVITY;
 }
 
 void FXOS8700CQ::setHighPass(High threshold){
-    //TODO
+    uint8_t data;
+    read(FILTER_CFG, &data);
+    data&=252;
+    data|=threshold;
+    write(FILTER_CFG, &data);
 }
 
 void FXOS8700CQ::setAwakeODR(ODR dataRate){
@@ -201,6 +205,7 @@ void FXOS8700CQ::setAccOversampleAwake(Acc_OSR oversample){
     data&=~(0b11);
     data|=oversample;
     write(CTRL_REG_2, &data);
+    mAccAwakeOSR = oversample;
 }
 
 void FXOS8700CQ::setAccOversampleAsleep(Acc_OSR oversample){
@@ -209,6 +214,7 @@ void FXOS8700CQ::setAccOversampleAsleep(Acc_OSR oversample){
     data&=~(0b11<<3);
     data|=oversample<<3;
     write(CTRL_REG_2, &data);
+    mAccSleepOSR = oversample;
 }
 
 
@@ -281,14 +287,49 @@ void FXOS8700CQ::setPulse(Interrupt_Pin pin, void (*function)(), uint16_t config
     write(FILTER_CFG, &data);
     for(uint8_t i=0;i<3;i++){
         data=lround(fabs(threshold[i]/63));
-        write(PULSE_X_THRESHOLD, &data);
+        write((Address) (PULSE_X_THRESHOLD+i), &data);
     }
-    data=lround(fabs(latency/mODR));
-    data&=127;
+    float timeStep = (1<<mODR) * 1000.0/800;
+    switch(mAccOSR){
+        case OSR_LOWEST: {
+            if(mODR>ODR50){
+                timeStep = 80;
+            }
+            break;
+        }
+        case OSR_LOW: {
+            if(mODR==ODR12){
+                timeStep = 80;
+            }
+            else if(mODR>ODR12){
+                timeStep = 160;
+            }
+            break;
+        }
+        case OSR_NORMAL: {
+            if(mODR>ODR100){
+                timeStep = 20;
+            }
+            break;
+        }
+        case OSR_HIGH: {
+           if(mODR==ODR100){
+                timeStep = 1.25;
+            }
+            else{
+                timeStep = 2.5;
+            }
+            break; 
+        }
+        default: {break;}
+    }
+    if(!(config&256)){timeStep/=4;};
+    timeStep = timeStep<0.625 ? 0.625 : timeStep;
+    data=lround(fabs(latency/timeStep));
     write(PULSE_LATENCY, &data);
-    data=lround(fabs(timing/mODR));
+    timeStep*=2;
+    data=lround(fabs(timing/timeStep));
     write(PULSE_TIME_LIMIT, &data);
-    data=lround(fabs(window/mODR));
     write(PULSE_WINDOW, &data);
     setInterrupt(pin, I_PULSE, function);
 }
@@ -376,12 +417,34 @@ void FXOS8700CQ::setMagneticMagnitude(Interrupt_Pin pin, void (*function)(), uin
 }
 
 
-void FXOS8700CQ::setAccelerationOffset(float* offset){
-//TODO
+void FXOS8700CQ::setAccelerationOffset(int16_t* offset){
+    Mode tempMode = mMode;
+    uint8_t data;
+    standby();
+    for(uint8_t i=0;i<3;i++){
+        if(offset[i]>=0){
+            data = (uint8_t) (min(offset[i], (int16_t) 254)/2);
+        }
+        else{data = (uint8_t)(max(offset[i], (int16_t) -256)/2);}
+        data= ~data + 1;
+        write((Address) (ACC_X_OFFSET + i), &data);
+    }
+    setMode(tempMode);
 }
 
 void FXOS8700CQ::setMagneticOffset(float* offset){
-//TODO
+    uint16_t dummy;
+    for(uint8_t i=0;i<3;i++){
+        if(offset[i]>=0){
+            dummy = (uint16_t) lround(min(offset[i], 1638.3f)/MAGNETIC_SENSITIVITY);
+        }
+        else{
+            dummy = (uint16_t) lround(max(offset[i], -1638.4f)/MAGNETIC_SENSITIVITY);
+        }
+        dummy = ~dummy + 1;
+        dummy = dummy<<2;
+        write((Address)(MAG_X_OFFSET_MSB+2*i), (uint8_t*) &dummy, 2);
+    }
 }
 
 
@@ -410,10 +473,10 @@ float* FXOS8700CQ::getAllData(){
         uint8_t *data = getAllRawData();
         float *result = new float[6];
         for(uint8_t i=0;i<3;i++){ 
-            result[i] = convertAcceleration(data + 2*i);
+            result[i] = convertMagnetic(data + 2*i);
         }
         for(uint8_t i=3;i<6;i++){
-            result[i] = convertMagnetic(data + 2*i);
+            result[i] = convertAcceleration(data + 2*i);
         }
         delete[] data;
         return result;
@@ -422,24 +485,22 @@ float* FXOS8700CQ::getAllData(){
 }
 
 float* FXOS8700CQ::getMaxMagnetic(){
-    uint8_t *data = new uint8_t[6];
+    uint8_t data[6];
     read(MAG_MAX_X_MSB, data, 6);
     float *result = new float[3];
     for(uint i=0;i<3;i++){ 
         result[i] = convertMagnetic(data + 2*i);
     }
-    delete[] data;
     return result;
 }
 
 float* FXOS8700CQ::getMinMagnetic(){
-    uint8_t *data = new uint8_t[6];
+    uint8_t data[6];
     read(MAG_MIN_X_MSB, data, 6);
     float *result = new float[3];
     for(uint i=0;i<3;i++){ 
         result[i] = convertMagnetic(data + 2*i);
     }
-    delete[] data;
     return result;
 }
 
@@ -456,29 +517,18 @@ float FXOS8700CQ::getTemperature(){
 
 
 void FXOS8700CQ::setFIFO(Interrupt_Pin pin, void (*function)(), FIFO_Mode mode, uint8_t watermark, uint8_t config){
-    
     uint8_t data; 
-    read(INT_CONFIG, &data);
-    data|=I_FIFO;
-    write(INT_CONFIG, &data);
-    read(INT_PIN_CONFIG, &data);
-    data&=~I_FIFO;
-    data|=(I_FIFO*pin);
-    write(INT_PIN_CONFIG, &data);
     data = watermark | (mode<<5);
     write(FIFO_SETUP, &data);
-    activeInterrupts |= I_FIFO;
+    read(SLEEP_INT_CONFIG, &data);
     if(mode==TRIGGER){
+        data|= 128;
         config&=62;
         write(FIFO_TRIGGER, &config);
     }
-    if(pin==PIN_ONE){
-        mInterruptOne.fall(callback(this, &FXOS8700CQ::dispatchInterruptData));
-    }
-    else{
-        mInterruptTwo.fall(callback(this, &FXOS8700CQ::dispatchInterruptData));
-    }
-    setInterruptFunction(function, I_FIFO);
+    else{data&=127;}
+    write(SLEEP_INT_CONFIG, &data);
+    setInterrupt(pin, I_FIFO, function);
 }
 
 
@@ -543,173 +593,188 @@ void FXOS8700CQ::setInterruptFunction(void (*function)(), Interrupt name){
 }
 
 void FXOS8700CQ::interruptWrapper(){
-    //TODO
     while(1){
         Thread::signal_wait(0x01);
         Interrupt name = identifyInterrupt();
-        uint8_t data;
-        switch(name){
-            case I_NEW_DATA: {
-                if(mMode==ACCELEROMETER){
-                    read(DR_STATUS, &data);
-                    float *samples = getAcceleration();
-                    for(uint8_t i=0;i<3;i++){
-                        mail_t *mail = mailBox.alloc();
-                        mail->axis = (Axis) (1<<(2-i));
-                        mail->value = samples[i];
-                        mailBox.put(mail);
-                    }
-                    delete[] samples;
-                }
-                else if(mMode==MAGNETOMETER){
-                    read(MAG_DR_STATUS, &data);
-                    float *samples = getMagnetic();
-                    for(uint8_t i=0;i<3;i++){
-                        mail_t *mail = mailBox.alloc();
-                        mail->axis = (Axis) (1<<(5-i));
-                        mail->value = samples[i];
-                        mailBox.put(mail);
-                    }
-                    delete[] samples;
-                }
-                else if(mMode==HYBRID){
-                    read(DR_STATUS, &data);
-                    read(MAG_DR_STATUS, &data);
-                    float *samples = getAllData();
-                    for(uint8_t i=0;i<3;i++){
-                        mail_t *mail = mailBox.alloc();
-                        mail->axis = (Axis) (1<<(2-i));
-                        mail->value = samples[i];
-                        mailBox.put(mail);
-                    }
-                    for(uint8_t i=0;i<3;i++){
-                        mail_t *mail = mailBox.alloc();
-                        mail->axis = (Axis) (1<<(5-i));
-                        mail->value = samples[i];
-                        mailBox.put(mail);
-                    }
-                    delete[] samples;
-                }
-                break;
-            }
-            case I_ACC_MAGNITUDE: {
-                float *samples = getAcceleration();
-                    for(uint8_t i=0;i<3;i++){
-                        mail_t *mail = mailBox.alloc();
-                        mail->axis = (Axis) (1<<(2-i));
-                        mail->value = samples[i];
-                        mailBox.put(mail);
-                    }
-                delete[] samples;
-                break;
-            }
-            case I_FREEFALL: {
-                read(MOTION_INT_STATUS, &data);
-                //TODO It's possible to use this interrupt more quickly by just giving info
-                //TODO on the direction and polarity of the events, without reading the actual values.
-                //TODO It's gonna depend on the use case.
-                float *samples = getAcceleration();
-                    for(uint8_t i=0;i<3;i++){
-                        if(data&(1<<(2*i+1))){
+        while(name){
+            uint8_t data;
+            switch(name){
+                case I_NEW_DATA: {
+                    if(mMode==ACCELEROMETER){
+                        uint8_t *uSamples = getRawAcceleration();
+                        float samples[3];
+                        for(uint i=0;i<3;i++){ 
+                            samples[i] = convertFIFOAcceleration(uSamples + 2*i);
+                        }
+                        delete[] uSamples;
+                        for(uint8_t i=0;i<3;i++){
                             mail_t *mail = mailBox.alloc();
                             mail->axis = (Axis) (1<<(2-i));
                             mail->value = samples[i];
                             mailBox.put(mail);
                         }
                     }
-                delete[] samples;
-                break;
-            }
-            case I_PULSE: {
-                read(PULSE_INTERRUPT, &data);
-                for(uint8_t i=0;i<3;i++){
-                    if(data&(i+4)){
-                        mail_t *mail = mailBox.alloc();
-                        mail->axis = (Axis) (1<<(2-i));
-                        mail->value = (data&8) + 1;
-                        if(data&(1<<i)){mail->value=-mail->value;}
-                        mailBox.put(mail);
+                    else if(mMode==MAGNETOMETER){
+                        float *samples = getMagnetic();
+                        for(uint8_t i=0;i<3;i++){
+                            mail_t *mail = mailBox.alloc();
+                            mail->axis = (Axis) (1<<(5-i));
+                            mail->value = samples[i];
+                            mailBox.put(mail);
+                        }
+                        delete[] samples;
                     }
-                }
-                break;
-            }
-            case I_ORIENTATION: {
-                read(ORIENTATION_STATUS, &data);
-                if(data&64){
-                    //TODO Z-Lockout has happened, requires input from outside to fix it.
-                }
-                else{
-                    //TODO Need to convert the orientation into useful data.
-                }
-                break;
-            }
-            case I_TRANSIENT: {
-                read(TRANSIENT_INT_STATUS, &data);
-                for(uint8_t i=0;i<3;i++){
-                    if(data&(2*i+1)){
-                        mail_t *mail = mailBox.alloc();
-                        mail->axis = (Axis) (1<<(2-i));
-                        mail->value = (data&i) ? -1 : 1;
-                        mailBox.put(mail);
+                    else if(mMode==HYBRID){
+                        float *samples = getAllData();
+                        for(uint8_t i=0;i<6;i++){
+                            mail_t *mail = mailBox.alloc();
+                            mail->axis = (Axis) (1<<(5-i));
+                            mail->value = samples[i];
+                            mailBox.put(mail);
+                        }
+                        delete[] samples;
                     }
+                    break;
                 }
-            }
-            case I_FIFO: {
-                uint8_t samplesNumber;
-                read(DR_STATUS, &samplesNumber);
-                samplesNumber&=63;
-                mail_t **mailArray = new mail_t*[3*samplesNumber];
-                for(int i=0;i<2*samplesNumber;i++){
-                    *(mailArray+i)= mailBox.alloc();
+                case I_ACC_MAGNITUDE: {
+                    float *samples = getAcceleration();
+                        for(uint8_t i=0;i<3;i++){
+                            mail_t *mail = mailBox.alloc();
+                            mail->axis = (Axis) (1<<(2-i));
+                            mail->value = samples[i];
+                            mailBox.put(mail);
+                        }
+                    delete[] samples;
+                    break;
                 }
-                uint8_t *samples = new uint8_t[6*samplesNumber];
-                read(X_MSB, samples, 6*samplesNumber);
-                for(uint8_t i=0;i<3*samplesNumber;i++){
-                    (*(mailArray+i))->axis = (Axis) (i%3);
-                    (*(mailArray+i))->value = convertFIFOAcceleration(samples + 2*i);
-
-                    mailBox.put(*(mailArray+i));
+                case I_FREEFALL: {
+                    read(MOTION_INT_STATUS, &data);
+                    //TODO It's possible to use this interrupt more quickly by just giving info
+                    //TODO on the direction and polarity of the events, without reading the actual values.
+                    //TODO It's gonna depend on the use case.
+                    float *samples = getAcceleration();
+                        for(uint8_t i=0;i<3;i++){
+                            if(data&(1<<(2*i+1))){
+                                mail_t *mail = mailBox.alloc();
+                                mail->axis = (Axis) (1<<(2-i));
+                                mail->value = samples[i];
+                                mailBox.put(mail);
+                            }
+                        }
+                    delete[] samples;
+                    break;
                 }
-                delete[] samples;
-                break;
-            }
-            case I_SLEEP_WAKE   : {
-                if(awake){mODR=mAwakeODR;}
-                else{mODR=mSleepODR;}
-                awake=!awake;
-                break;
-            }
-            case I_MAG_THRESHOLD: {
-                read(MAG_THRESHOLD_INT, &data);
-                //TODO It's possible to use this interrupt more quickly by just giving info
-                //TODO on the direction and polarity of the events, without reading the actual values.
-                //TODO It's gonna depend on the use case.
-                float *samples = getMagnetic();
-                for(uint8_t i=0;i<3;i++){
-                    if(data&(1<<(2*i+1))){
-                        mail_t *mail = mailBox.alloc();
-                        mail->axis = (Axis) (1<<(5-i));
-                        mail->value = samples[i];
-                        mailBox.put(mail);
-                    }
-                }
-                delete[] samples;
-                break;
-            }
-            case I_MAG_MAGNITUDE: {
-                float *samples = getMagnetic();
+                case I_PULSE: {
+                    read(PULSE_INTERRUPT, &data);
                     for(uint8_t i=0;i<3;i++){
-                        mail_t *mail = mailBox.alloc();
-                        mail->axis = (Axis) (1<<(5-i));
-                        mail->value = samples[i];
-                        mailBox.put(mail);
+                        if(data&(i+4)){
+                            mail_t *mail = mailBox.alloc();
+                            mail->axis = (Axis) (1<<(2-i));
+                            mail->value = (data&8) + 1;
+                            if(data&(1<<i)){mail->value=-mail->value;}
+                            mailBox.put(mail);
+                        }
                     }
-                delete[] samples;
-                break;
+                    break;
+                }
+                case I_ORIENTATION: {
+                    read(ORIENTATION_STATUS, &data);
+                    if(data&64){
+                        //TODO Z-Lockout has happened, requires input from outside to fix it.
+                    }
+                    else{
+                        //TODO Need to convert the orientation into useful data.
+                    }
+                    break;
+                }
+                case I_TRANSIENT: {
+                    read(TRANSIENT_INT_STATUS, &data);
+                    for(uint8_t i=0;i<3;i++){
+                        if(data&(2*i+1)){
+                            mail_t *mail = mailBox.alloc();
+                            mail->axis = (Axis) (1<<(2-i));
+                            mail->value = (data&i) ? -1 : 1;
+                            mailBox.put(mail);
+                        }
+                    }
+                }
+                case I_FIFO: {
+                    uint8_t samplesNumber;
+                    read(DR_STATUS, &samplesNumber);
+                    samplesNumber&=63;
+                    mail_t **mailArray = new mail_t*[3*samplesNumber];
+                    for(int i=0;i<3*samplesNumber;i++){
+                        *(mailArray+i)= mailBox.alloc();
+                    }
+                    uint8_t *samples = new uint8_t[6*samplesNumber];
+                    read(X_MSB, samples, 6*samplesNumber);
+                    switch(mMode){
+                        case HYBRID: {
+                            //Falls through because the FIFO buffer only holds acceleration samples.
+                        }
+                        case ACCELEROMETER: {    
+                            for(uint8_t i=0;i<3*samplesNumber;i++){
+                                (*(mailArray+i))->axis = (Axis) (1<<(2 - i%3));
+                                (*(mailArray+i))->value = convertFIFOAcceleration(samples + 2*i);
+        
+                                mailBox.put(*(mailArray+i));
+                            }
+                            break;
+                        }
+                        case MAGNETOMETER: {
+                            break;
+                        }
+                        default:{break;}
+                    }
+                    delete[] samples;
+                    break;
+                }
+                case I_SLEEP_WAKE   : {
+                    awake=!awake;
+                    if(awake){
+                        mODR = mAwakeODR;
+                        mAccOSR = mAccAwakeOSR;
+                        }
+                    else{
+                        mODR = mSleepODR;
+                        mAccOSR = mAccSleepOSR;
+                        }
+                    break;
+                }
+                case I_MAG_THRESHOLD: {
+                    read(MAG_THRESHOLD_INT, &data);
+                    //TODO It's possible to use this interrupt more quickly by just giving info
+                    //TODO on the direction and polarity of the events, without reading the actual values.
+                    //TODO It's gonna depend on the use case.
+                    float *samples = getMagnetic();
+                    for(uint8_t i=0;i<3;i++){
+                        if(data&(1<<(2*i+1))){
+                            mail_t *mail = mailBox.alloc();
+                            mail->axis = (Axis) (1<<(5-i));
+                            mail->value = samples[i];
+                            mailBox.put(mail);
+                        }
+                    }
+                    delete[] samples;
+                    break;
+                }
+                case I_MAG_MAGNITUDE: {
+                    float *samples = getMagnetic();
+                        for(uint8_t i=0;i<3;i++){
+                            mail_t *mail = mailBox.alloc();
+                            mail->axis = (Axis) (1<<(5-i));
+                            mail->value = samples[i];
+                            mailBox.put(mail);
+                        }
+                    delete[] samples;
+                    break;
+                }
+                case I_NO_INTERRUPT: {break;}
             }
-        }
-        if(mInterrupts[lround(log2(name))]){
-            (*mInterrupts[lround(log2(name))])();
+            if(mInterrupts[lround(log2(name))]){
+                (*mInterrupts[lround(log2(name))])();
+            }
+            name = identifyInterrupt();
         }
     }
 }
@@ -718,9 +783,20 @@ void FXOS8700CQ::interruptWrapper(){
 Interrupt FXOS8700CQ::identifyInterrupt(){
     uint8_t data;
     read(INT_STATUS, &data);
-    if(activeInterrupts & data){return (Interrupt) (activeInterrupts & data);}
+    if(activeInterrupts & data){
+        for(uint8_t i=0;i<8;i++){
+            if(data&(1<<i)){
+                return (Interrupt) (data&1<<i);
+            }
+        }
+    }
     read(MAG_INT_STATUS, &data);
-    return (Interrupt) (activeInterrupts & data<<8);
+    for(uint8_t i=0;i<8;i++){
+        if(data&(1<<i)){
+            return (Interrupt) (data&1<<i);
+        }
+    }
+    return I_NO_INTERRUPT;
 }
 
 void FXOS8700CQ::dispatchInterruptData(){
@@ -731,7 +807,7 @@ void FXOS8700CQ::dispatchInterruptData(){
 
 uint8_t* FXOS8700CQ::getRawAcceleration(){
     uint8_t *data = new uint8_t[6];
-    read(ACC_X_MSB, data, 6);
+    read(X_MSB, data, 6);
     return data;
 }
 
@@ -743,23 +819,26 @@ uint8_t* FXOS8700CQ::getRawMagnetic(){
 
 uint8_t* FXOS8700CQ::getAllRawData(){
     uint8_t *data = new uint8_t[12];
-    read(X_MSB, data, 12);
+    read(MAG_X_MSB, data, 12);
     return data;
 }
 
 float FXOS8700CQ::convertFIFOAcceleration(uint8_t *rawAcc){
-    float result = (BASE_ACC_SENSITIVITY * (1<<mRange)) * (~(((rawAcc[0])<<6)  + ((rawAcc[1])>>2)) + 1);
-    return result;
+    // 2's complement of a left-justified 14 bits number, to avoid the left most bit being read as the sign bit 
+    // we cast it to int16_t.
+    return mAccSensitivity * (((~( (int16_t) ((rawAcc[0]<<8) | rawAcc[1]) ))>>2) + 1);
 }
 
 float FXOS8700CQ::convertAcceleration(uint8_t *rawAcc){
-    float result = (BASE_ACC_SENSITIVITY * (1<<mRange)) * (~(((rawAcc[0])<<8)  + ((rawAcc[1])>>2)) + 1);
-    return result;
+    // 2's complement of a right-justified 14 bits number, to avoid the left most bit being read as the sign bit 
+    // we cast it to int16_t.
+    return mAccSensitivity * (((~( (int16_t) ((rawAcc[0]<<10) | (rawAcc[1]<<2) )))>>2) + 1);
 }
 
 float FXOS8700CQ::convertMagnetic(uint8_t *rawMag){
-    float result = MAGNETIC_SENSITIVITY * (~((rawMag[0]<<8)  + rawMag[1]) + 1);
-    return result;
+    // 2's complement of a right-justified 14 bits number, to avoid the left most bit being read as the sign bit 
+    // we cast it to int16_t.
+    return MAGNETIC_SENSITIVITY * (~( (int16_t)((rawMag[0]<<8)  | rawMag[1]) ) + 1);
 }
 
 

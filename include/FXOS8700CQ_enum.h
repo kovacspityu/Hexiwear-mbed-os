@@ -131,6 +131,7 @@ namespace FXO{
     };
 
     enum Interrupt{
+        I_NO_INTERRUPT  = 0,
         I_NEW_DATA      = 1,
         I_ACC_MAGNITUDE = 2,
         I_FREEFALL      = 4,
@@ -148,22 +149,11 @@ namespace FXO{
         PIN_TWO = 0
     };
 
-    enum Low{
-                        //OSR=  800 Hz | 400 Hz | 200 Hz | 100 Hz | 50 Hz | 25 Hz | 12.5 Hz |
-    LOW0 = 0b00<<6,    //      256    | 128    | 64     | 32     | 16    | 8     | 4       |                                            
-    LOW1 = 0b01<<6,    //      128    | 64     | 32     | 16     | 8     | 4     | -       |
-    LOW2 = 0b10<<6     //      64     | 32     | 16     | 8      | 4     | -     | -       |
-    };
-
     enum High{
-    //All the values for an active High Pass also contain the bit that activates High Pass itself.
-
-                            //OSR =  800 Hz | 400 Hz | 200 Hz | 100 Hz | 50 Hz | 25 Hz | 12.5 Hz |
-    HIGH0   = 0b001<<2,     //       15     | 7.5    | 3.75   | 1.875  | 0.937 | 0.468 | 0.234   |                                            
-    HIGH1   = 0b011<<2,     //       7.7    | 3.85   | 1.925  | 0.963  | 0.481 | 0.241 | 0.120   |
-    HIGH2   = 0b101<<2,     //       3.9    | 1.95   | 0.975  | 0.488  | 0.244 | 0.122 | 0.061   |
-    HIGH3   = 0b111<<2,     //       1.98   | 0.99   | 0.495  | 0.248  | 0.124 | 0.062 | 0.031   |
-    HIGHOFF = 0b000<<2
+        VERY_HIGH   = 0,                                        
+        HIGH        = 1,
+        LOW         = 2,
+        VERY_LOW    = 3
     };
 
     enum Range{
@@ -199,10 +189,10 @@ namespace FXO{
     };
 
     enum Acc_OSR{
-        OSR_LOWEST  = 1,
-        OSR_LOW     = 3,
-        OSR_NORMAL  = 0,
-        OSR_HIGH    = 2
+        OSR_LOWEST  = 1,        // LPLN in the Docs
+        OSR_LOW     = 3,        // LP in the Docs
+        OSR_NORMAL  = 0,        // Normal in the Docs
+        OSR_HIGH    = 2         // High Resolution in the Docs
     };
 
     enum FIFO_Mode{

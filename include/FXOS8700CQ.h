@@ -31,7 +31,6 @@ class FXOS8700CQ{
         void hardReset();
 
         void setRange(FXO::Range range);
-        void setLowPass(FXO::Low threshold);
         void setHighPass(FXO::High threshold);
         void setAwakeODR(FXO::ODR dataRate);
         void setAsleepODR(FXO::ODR dataRate);
@@ -51,7 +50,7 @@ class FXOS8700CQ{
         void setMagneticThreshold(FXO::Interrupt_Pin pin, void (*function)(), float count, bool resetCount, uint8_t config, float *threshold);
         void setMagneticMagnitude(FXO::Interrupt_Pin pin, void (*function)(), uint8_t count, bool resetCount, uint8_t config, float threshold, float* reference);
 
-        void setAccelerationOffset(float* offset);
+        void setAccelerationOffset(int16_t* offset);
         void setMagneticOffset(float* offset);
 
         float* getAcceleration();
@@ -72,7 +71,15 @@ class FXOS8700CQ{
         FXO::ODR mODR;
         FXO::ODR mSleepODR;
         FXO::ODR mAwakeODR;
+
+        FXO::Acc_OSR mAccOSR;
+        FXO::Acc_OSR mAccSleepOSR;
+        FXO::Acc_OSR mAccAwakeOSR;
+
         FXO::Mode mMode;
+        
+        float mAccSensitivity;
+
         InterruptIn mInterruptOne;
         InterruptIn mInterruptTwo;
         DigitalOut mReset;
