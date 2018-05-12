@@ -108,7 +108,7 @@ class SSD1351{
         SSD::Error shrinkLine(int16_t xStarting, int16_t yStarting, int16_t xEnd, int16_t yEnd, float coefficient, int16_t &coordinates, uint8_t &internalLength);
         SSD::Error shrinkLine(int16_t &xStarting, int16_t &yStarting, int16_t &xEnd, int16_t &yEnd, float coefficient, uint8_t &internalLength);
         SSD::Error calculateCircleParameters(uint8_t xCenter, uint8_t yCenter, uint8_t thickness, uint8_t radius, uint8_t &x1, uint8_t &x2, uint8_t &y1, uint8_t &y2);
-        SSD::Error addText(uint8_t xPosition, uint8_t yPosition, char* text, uint16_t textLength, bool topOrBottom, TextProperties_t textProperties, uint8_t edge);
+        SSD::Error addText(uint8_t xPosition, uint8_t yPosition, char* text, uint16_t textLength, bool topOrBottom, TextProperties_t textProperties, uint8_t rightEdge, uint8_t bottomEdge);
         void addTextInternal(uint8_t xPosition, uint8_t yPosition, char* text, uint16_t textLength, bool topOrBottom, TextProperties_t textProperties);
         uint16_t* calculateTextSpace(char *text, uint16_t textLength, TextProperties_t textProperties);
         

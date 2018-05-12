@@ -297,19 +297,19 @@ Error SSD1351::addRoundedBox(uint8_t xPosition, uint8_t yPosition, uint8_t width
 }
 
 Error SSD1351::addText(uint8_t xPosition, uint8_t yPosition, char* text, uint16_t textLength, bool topOrBottom, TextProperties_t textProperties){
-    return addText(xPosition, yPosition, text, textLength, topOrBottom, textProperties, SCREEN_SIZE);
+    return addText(xPosition, yPosition, text, textLength, topOrBottom, textProperties, SCREEN_SIZE, SCREEN_SIZE);
 }
 
 Error SSD1351::addTextInBox(char* text, uint16_t textLength, TextProperties_t textProperties, uint8_t xPosition, uint8_t yPosition, uint8_t width, uint8_t height, uint16_t internalColour, uint8_t internalThickness, bool topOrBottom, uint16_t externalColour, uint8_t externalThickness){
     Error error = addBox(xPosition, yPosition, width, height, internalColour, internalThickness, topOrBottom, externalColour, externalThickness);
-    error = (Error) (error|addText(xPosition + internalThickness + externalThickness, yPosition + internalThickness + externalThickness, text, textLength, topOrBottom, textProperties, width + xPosition));
+    error = (Error) (error|addText(xPosition + internalThickness + externalThickness, yPosition + internalThickness + externalThickness, text, textLength, topOrBottom, textProperties, width + xPosition, height + yPosition));
     return error;
 }
 
 Error SSD1351::addTextInRoundedBox(char* text, uint16_t textLength, TextProperties_t textProperties, uint8_t xPosition, uint8_t yPosition, uint8_t width, uint8_t height, float flexingRatio, uint16_t internalColour, uint8_t internalThickness, bool topOrBottom, uint16_t externalColour, uint8_t externalThickness){
     Error error = addRoundedBox(xPosition, yPosition, width, height, flexingRatio, internalColour, internalThickness, topOrBottom, externalColour, externalThickness);
     uint8_t delta = lround(min(width, height)*min(fabs(flexingRatio), 0.125f));
-    error = (Error) (error|addText(xPosition + internalThickness + externalThickness + delta, yPosition + internalThickness + externalThickness + delta, text, textLength, topOrBottom, textProperties, width + xPosition));
+    error = (Error) (error|addText(xPosition + internalThickness + externalThickness + delta, yPosition + internalThickness + externalThickness + delta, text, textLength, topOrBottom, textProperties, width + xPosition, height + yPosition));
     return error;
 }
 
@@ -1048,10 +1048,9 @@ Error SSD1351::calculateCircleParameters(uint8_t xCenter, uint8_t yCenter, uint8
 
 
 
-Error SSD1351::addText(uint8_t xPosition, uint8_t yPosition, char* text, uint16_t textLength, bool topOrBottom, TextProperties_t textProperties, uint8_t edge){
+Error SSD1351::addText(uint8_t xPosition, uint8_t yPosition, char* text, uint16_t textLength, bool topOrBottom, TextProperties_t textProperties, uint8_t rightEdge, uint8_t bottomEdge){
     //TODO Check what happens if the text consists of just '\n' characters.
     //TODO Deal with escape characters
-    //TODO Add a bottom edge parameter to stop drawing text if we are below the enclosing box bottom edge.
     // Finds the '\n' characters and creates a list of their positions, checks when the text goes beyond
     // horizontal border, goes back in the text until it doesn't and adds a new '\n' in the list.
     // Calls on addTextInternal for the actual writing to activeScreenBuffer.
@@ -1070,17 +1069,17 @@ Error SSD1351::addText(uint8_t xPosition, uint8_t yPosition, char* text, uint16_
     for(uint16_t i=0;i<counter;i++){
         if(lines[i+1] - lines[i] - 1==0){continue;}
         uint16_t *textSpace = calculateTextSpace(text + lines[i], lines[i+1] - lines[i] - 1, textProperties);
-        Error tempError = boundaryCheck(xPosition, yPosition + fnt::fontSizes[textProperties.index] * i, textSpace[0] + SCREEN_SIZE - edge, textSpace[1]);
+        Error tempError = boundaryCheck(xPosition, yPosition + fnt::fontSizes[textProperties.index] * i, textSpace[0] + SCREEN_SIZE - rightEdge, textSpace[1] + SCREEN_SIZE - bottomEdge);
         delete[] textSpace;
         if(tempError&OUT_ALL_BUT_RIGHT){
             error=(Error) (error|tempError);
             break;
-            }
+        }
         if(tempError==OUT_OF_RIGHT_BORDER){
             for(uint16_t j=lines[i+1]-1;j>lines[i];j--){
                 if(text[j]==' '){
                     textSpace = calculateTextSpace(text + lines[i], j - lines[i], textProperties);
-                    tempError = boundaryCheck(xPosition, yPosition + fnt::fontSizes[textProperties.index] * i, textSpace[0] + SCREEN_SIZE - edge, textSpace[1]);
+                    tempError = boundaryCheck(xPosition, yPosition + fnt::fontSizes[textProperties.index] * i, textSpace[0] + SCREEN_SIZE - rightEdge, textSpace[1] + SCREEN_SIZE - bottomEdge);
                     delete[] textSpace;
                     if(tempError==NO_ERROR){
                         for(uint16_t k=counter;k>i+1;k--){
@@ -1093,8 +1092,13 @@ Error SSD1351::addText(uint8_t xPosition, uint8_t yPosition, char* text, uint16_
                 }
             }
         }
-        addTextInternal(xPosition, yPosition + fnt::fontSizes[textProperties.index] * i, text + lines[i], lines[i+1] - lines[i] - 1, topOrBottom, textProperties);
         error= (Error) (error|tempError);
+        if(tempError&OUT_ALL_BUT_RIGHT){
+            break;
+        }
+
+        addTextInternal(xPosition, yPosition + fnt::fontSizes[textProperties.index] * i, text + lines[i], lines[i+1] - lines[i] - 1, topOrBottom, textProperties);
+        
     }
     delete[] lines;
     return error;
