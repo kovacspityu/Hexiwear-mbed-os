@@ -1,8 +1,6 @@
 #ifndef _SSD1351_enum_
 #define _SSD1351_enum_
 
-#define SCREEN_SIZE 96
-
 namespace SSD{
 
     enum Command{
@@ -12,13 +10,14 @@ namespace SSD{
         OPTIONS                 = 0xA0,
         DISPLAY_V_OFFSET        = 0xA1,     // This moves just the image across the display
         IMAGE_V_OFFSET          = 0xA2,     // Locked by default, needs COMMAND_LOCK and right option to be sent first. 
-                                                // This changes where the display starts, which is different from the above 
-                                                // IFF the active area is smaller than the physical screen.
+                                            // This changes where the display starts, which is different from the above 
+                                            // IFF the active area is smaller than the physical screen.
         DISPLAY_OFF             = 0xA4,
         DISPLAY_WHITE           = 0xA5,
         DISPLAY_ON              = 0xA6,
         DISPLAY_NEGATIVE        = 0xA7,
         SLEEP_EXTRA             = 0xAB,     // To save power, this can be used to detach the regulator of the logic voltage
+        NO_OP                   = 0xAD,
         SLEEP                   = 0xAE,
         WAKE_UP                 = 0xAF,
         PHASE_1_AND_2           = 0xB1,     // Locked by default, needs COMMAND_LOCK and right option to be sent first
@@ -50,7 +49,7 @@ namespace SSD{
         OUT_OF_TOP_LEFT_BORDER      = 9,
         OUT_OF_BOTTOM_RIGHT_BORDER  = 6,
         OUT_OF_BOTTOM_LEFT_BORDER   = 10,
-        OUT_OF_HORIZONTAL_BORDER    = 12,
+        OUT_OF_HORIZONTAL_BORDERS   = 12,
         OUT_ALL_BUT_TOP             = 14,
         OUT_ALL_BUT_BOTTOM          = 13,    
         OUT_ALL_BUT_RIGHT           = 11,
