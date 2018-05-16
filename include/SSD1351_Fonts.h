@@ -2,8 +2,9 @@
 #define _SSD1351_FONTS_
 #include "mbed.h"
 
-#define FONT_OFFSET 32
-#define NUMBER_OF_CHARACTERS 95
+#define FONT_OFFSET (32)
+#define NUMBER_OF_CHARACTERS (95)
+#define TAB_SPACES (4)
 
 
 struct Font{
@@ -12,7 +13,7 @@ struct Font{
             this->alphabet[i] = alphabet + i*size;
         }
         this->width = width;
-        (this->height) = height;
+        this->height = height;
         this->xPosition = xPosition;
         this->yPosition = yPosition;
     }

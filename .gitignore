@@ -4,3 +4,4 @@ launch.json
 mbed-os.lib
 settings.json
 tasks.json
+.DS_Store

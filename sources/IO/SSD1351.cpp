@@ -190,10 +190,10 @@ void SSD1351::dumpScreen(uint16_t *screen, uint8_t &xPosition, uint8_t &yPositio
 
 
 Error SSD1351::addBox(uint8_t xPosition, uint8_t yPosition, uint8_t width, uint8_t height, uint16_t internalColour, uint8_t internalThickness, bool topOrBottom, uint16_t externalColour, uint8_t externalThickness){
-    Error            error=addLine(xPosition + internalThickness, yPosition, width - 2*internalThickness + 1, 0, internalColour, internalThickness, topOrBottom, externalColour, externalThickness);
-    error = (Error) (error|addLine(xPosition + width, yPosition + internalThickness, height - 2*internalThickness + 1, 90, internalColour, internalThickness, topOrBottom, externalColour, externalThickness));
-    error = (Error) (error|addLine(xPosition + internalThickness, yPosition + height, width - 2*internalThickness + 1, 0, internalColour, internalThickness, topOrBottom, externalColour, externalThickness));
-    error = (Error) (error|addLine(xPosition, yPosition + internalThickness, height - 2*internalThickness + 1, 90, internalColour, internalThickness, topOrBottom, externalColour, externalThickness));
+    Error            error=addLine(xPosition + internalThickness, yPosition, width - 2*internalThickness, 0, internalColour, internalThickness, topOrBottom, externalColour, externalThickness);
+    error = (Error) (error|addLine(xPosition + width, yPosition + internalThickness, height - 2*internalThickness, 90, internalColour, internalThickness, topOrBottom, externalColour, externalThickness));
+    error = (Error) (error|addLine(xPosition + internalThickness, yPosition + height, width - 2*internalThickness, 0, internalColour, internalThickness, topOrBottom, externalColour, externalThickness));
+    error = (Error) (error|addLine(xPosition, yPosition + internalThickness, height - 2*internalThickness, 90, internalColour, internalThickness, topOrBottom, externalColour, externalThickness));
     //Each of the subsequent groups fills in the three areas at the corners on that delimit the box, 
     //in order the one that is vertically outside together with the one that is both vertically and horizontally outside, 
     //the one to the side, and finally the internal corners.
@@ -201,11 +201,11 @@ Error SSD1351::addBox(uint8_t xPosition, uint8_t yPosition, uint8_t width, uint8
     //|      1
     //|_______________________________
     //|     |
-    //|  2  |    _____________________
-    //|     |   |   3   |
-    //|     |   |_______|______________
-    //|     |   |       |
-    //|     |   |       |
+    //|  2  |      _____________________
+    //|     |     |  3  |
+    //|     |     |_____|______________
+    //|     |     |     |
+    //|     |     |     |
     if(internalThickness){
         //Left uppermost corner
         error = (Error) (error|fillArea(xPosition - internalThickness + 1 - externalThickness, yPosition - internalThickness + 1 - externalThickness, 2*internalThickness + externalThickness, externalThickness, externalColour, topOrBottom));
@@ -354,15 +354,11 @@ Error SSD1351::addLineP2P(int16_t xStarting, int16_t yStarting, int16_t xEnd, in
     externalThickness = lround(scaleFactor*externalThickness);
     Error tempError;
     int16_t coordinates;
-    for(uint8_t i=0;i<=internalThickness+externalThickness;i++){   
-        internalLength=length;
-        coordinates = xStarting+yStarting*SCREEN_SIZE + i*transversalDelta;
+    for(uint8_t i=0;i<=internalThickness+externalThickness;i++){  
         tempError = shrinkLine(xStarting + div(i*transversalDelta, SCREEN_SIZE).rem, yStarting + (i*transversalDelta)/SCREEN_SIZE, xEnd + div(i*transversalDelta, SCREEN_SIZE).rem, yEnd + (i*transversalDelta)/SCREEN_SIZE, coefficient, coordinates, internalLength);
         error=(Error) (error|tempError);
         addLineInternal(coordinates, internalLength, tangentialDelta, transversalDelta, counter, counter2, i>internalThickness ? externalColour : internalColour, topOrBottom);
         if(i){
-            internalLength=length;
-            coordinates = xStarting+yStarting*SCREEN_SIZE - i*transversalDelta;
             tempError = shrinkLine(xStarting - div(i*transversalDelta, SCREEN_SIZE).rem, yStarting - (i*transversalDelta)/SCREEN_SIZE, xEnd - div(i*transversalDelta, SCREEN_SIZE).rem, yEnd - (i*transversalDelta)/SCREEN_SIZE, coefficient, coordinates, internalLength);
             error=(Error) (error|tempError);   
             addLineInternal(coordinates, internalLength, tangentialDelta, transversalDelta, counter, counter2, i>internalThickness ? externalColour : internalColour, topOrBottom);
@@ -822,41 +818,47 @@ Error SSD1351::addCircleInternal(uint8_t xCenter, uint8_t yCenter, uint8_t radiu
     // thickness by making use of calculateLineParameters, and fills the space in between the two solutions
     // if fill==true. calculateCircleParameters is used to identify if the circle exits the screen and provides
     // the correct extremes for both coordinates.
-    //TODO Reimplement the use of these 4 coordinates to avoid spending CPU time on part of the circle that are off-screen.
+    //TODO Re-implement the use of these 4 coordinates to avoid spending CPU time on parts of the circle that are off-screen.
     uint8_t x1, x2, y1, y2;
     uint8_t thickness = internalThickness + externalThickness;
     Error error=calculateCircleParameters(xCenter, yCenter, thickness, radius, x1, x2, y1, y2);
-    int16_t xSolution, xSolutionPrevious = xCenter, xSolutionPreviousPrevious=xCenter;
-    for(uint8_t j=yCenter - radius + 2;j<=yCenter-radius/2;j++){
+    int16_t xSolution, xSolutionPrevious = xCenter - lround( sqrt( pow(radius, 2) - pow(y1 - yCenter, 2) ) ), xSolution2Previous=xSolutionPrevious;
+    int16_t coordinates;
+    uint8_t internalLength;
+    for(uint8_t j=max(x1 + 2, yCenter - radius + 2);j<=min(x2, (uint8_t) (yCenter-radius/2) );j++){
         xSolution= xCenter - lround( sqrt( pow(radius, 2) - pow(j - yCenter, 2) ) );
         // Only draws the line every two loop passes.
         if((j-yCenter + radius -2)%2==0){   
             // Draws a line between two points of the circle in the top left, then between 
             // their mirror points across the y axis, then the mirrors of those two couples across the x axis,
             // then the mirrors of those four couples across the diagonals
-            //TODO As this lines are all mirrors of each other, the deltas and counters need only be calculated once
-            //TODO and then the calls be made only to addLineInternal (and shrinkLine).
-            addLineP2P(xSolutionPreviousPrevious, j-2, xSolution, j, lineColour, internalThickness, topOrBottom, otherColour, externalThickness);
-            addLineP2P(2*xCenter - xSolutionPreviousPrevious, j-2, 2*xCenter - xSolution, j, lineColour, internalThickness, topOrBottom, otherColour, externalThickness);
-            addLineP2P(xSolutionPreviousPrevious, 2*yCenter - j+2, xSolution, 2*yCenter - j, lineColour, internalThickness, topOrBottom, otherColour, externalThickness);
-            addLineP2P(2*xCenter - xSolutionPreviousPrevious, 2*yCenter - j+2, 2*xCenter - xSolution, 2*yCenter - j, lineColour, internalThickness, topOrBottom, otherColour, externalThickness);
-            
-            addLineP2P(j-2 - yCenter + xCenter, xSolutionPreviousPrevious - xCenter + yCenter, j - yCenter + xCenter, xSolution - xCenter + yCenter, lineColour, internalThickness, topOrBottom, otherColour, externalThickness);
-            addLineP2P(j-2 - yCenter + xCenter, xCenter - xSolutionPreviousPrevious + yCenter, j - yCenter + xCenter, xCenter - xSolution + yCenter, lineColour, internalThickness, topOrBottom, otherColour, externalThickness);
-            addLineP2P(yCenter - j+2 + xCenter, xSolutionPreviousPrevious - xCenter + yCenter, yCenter - j + xCenter, xSolution - xCenter + yCenter, lineColour, internalThickness, topOrBottom, otherColour, externalThickness);
-            addLineP2P(yCenter - j+2 + xCenter, xCenter - xSolutionPreviousPrevious + yCenter, yCenter - j + xCenter, xCenter - xSolution + yCenter, lineColour, internalThickness, topOrBottom, otherColour, externalThickness);
-        
-            xSolutionPreviousPrevious = xSolution;
+            addLineP2P(xSolution2Previous, j-2, xSolution, j, lineColour, internalThickness, topOrBottom, otherColour, externalThickness);
+            addLineP2P(2*xCenter - xSolution2Previous, 2*yCenter - j+2, 2*xCenter - xSolution, 2*yCenter - j, lineColour, internalThickness, topOrBottom, otherColour, externalThickness);
+            addLineP2P(2*xCenter - xSolution2Previous, j-2, 2*xCenter - xSolution, j, lineColour, internalThickness, topOrBottom, otherColour, externalThickness);
+            addLineP2P(xSolution2Previous, 2*yCenter - j+2, xSolution, 2*yCenter - j, lineColour, internalThickness, topOrBottom, otherColour, externalThickness);
+            addLineP2P(j-2 - yCenter + xCenter, xSolution2Previous - xCenter + yCenter, j - yCenter + xCenter, xSolution - xCenter + yCenter, lineColour, internalThickness, topOrBottom, otherColour, externalThickness);
+            addLineP2P(yCenter - j+2 + xCenter, xCenter - xSolution2Previous + yCenter, yCenter - j + xCenter, xCenter - xSolution + yCenter, lineColour, internalThickness, topOrBottom, otherColour, externalThickness);
+            addLineP2P(j-2 - yCenter + xCenter, xCenter - xSolution2Previous + yCenter, j - yCenter + xCenter, xCenter - xSolution + yCenter, lineColour, internalThickness, topOrBottom, otherColour, externalThickness);
+            addLineP2P(yCenter - j+2 + xCenter, xSolution2Previous - xCenter + yCenter, yCenter - j + xCenter, xSolution - xCenter + yCenter, lineColour, internalThickness, topOrBottom, otherColour, externalThickness);
+
+            xSolution2Previous = xSolution;
         }    
         if(fill){
-            if(j>=yCenter - radius + thickness){
-                addLineP2P(xSolutionPrevious + thickness+1, j-1, 2*xCenter - xSolutionPrevious - thickness-1, j-1, otherColour, 0, topOrBottom);
-                addLineP2P(xSolutionPrevious + thickness+1, 2*yCenter - j+1, 2*xCenter - xSolutionPrevious - thickness-1, 2*yCenter - j+1, otherColour, 0, topOrBottom);
+            if(j>yCenter - radius + thickness){
+                shrinkLine(xSolution + thickness+1, j, 2*xCenter - xSolution - thickness-1, j, 0, coordinates, internalLength);
+                addLineInternal(coordinates, internalLength, 1, SCREEN_SIZE, internalLength+1, internalLength+1, otherColour, topOrBottom);
+                
+                shrinkLine(xSolution + thickness+1, 2*yCenter - j, 2*xCenter - xSolution - thickness-1, 2*yCenter - j, 0, coordinates, internalLength);
+                addLineInternal(coordinates, internalLength, 1, SCREEN_SIZE, internalLength+1, internalLength+1, otherColour, topOrBottom);
+                
             }
             if(j<=yCenter - radius/2 - thickness){
                 for(uint8_t i=xSolution;i<=xSolutionPrevious;i++){    
-                    addLineP2P(j-1 - yCenter + xCenter + thickness, i - xCenter + yCenter, yCenter - j+1 + xCenter - thickness, i - xCenter + yCenter, otherColour, 0, topOrBottom);
-                    addLineP2P(j-1 - yCenter + xCenter + thickness, xCenter - i + yCenter, yCenter - j+1 + xCenter - thickness, xCenter - i + yCenter, otherColour, 0, topOrBottom);
+                    shrinkLine(j-1 - yCenter + xCenter + thickness, i - xCenter + yCenter, yCenter - j+1 + xCenter - thickness, i - xCenter + yCenter, 0, coordinates, internalLength);
+                    addLineInternal(coordinates, internalLength, 1, SCREEN_SIZE, internalLength+1, internalLength+1, otherColour, topOrBottom);
+                
+                    shrinkLine(j-1 - yCenter + xCenter + thickness, xCenter - i + yCenter, yCenter - j+1 + xCenter - thickness, xCenter - i + yCenter, 0, coordinates, internalLength);
+                    addLineInternal(coordinates, internalLength, 1, SCREEN_SIZE, internalLength+1, internalLength+1, otherColour, topOrBottom);
                 }
             }
         }
@@ -962,13 +964,12 @@ void SSD1351::calculateLineParameters(uint8_t xStarting, uint8_t yStarting, uint
 Error SSD1351::shrinkLine(int16_t xStarting, int16_t yStarting, int16_t xEnd, int16_t yEnd, float coefficient, int16_t &coordinates, uint8_t &internalLength){
     Error error=shrinkLine(xStarting, yStarting, xEnd, yEnd, coefficient, internalLength);
     coordinates = yStarting*SCREEN_SIZE + xStarting;
-    if(internalLength){internalLength = max(abs(yEnd - yStarting), abs(xEnd - xStarting)) + 1;}
     boundaryCheck(xStarting, yStarting, xEnd - xStarting, yEnd - yStarting);
     return error;
 }
 
 Error SSD1351::shrinkLine(int16_t &xStarting, int16_t &yStarting, int16_t &xEnd, int16_t &yEnd, float coefficient, uint8_t &internalLength){
-    // Those nothing more than check where the line exits the screen, calculate the coordinates of its
+    // This function does nothing more than check where the line exits the screen, calculate the coordinates of its
     // last valid point, and substitute it for either the Starting or End coordinates.
     Error error=boundaryCheck(xStarting, yStarting, xEnd - xStarting, yEnd - yStarting);
     if(error&OUT_OF_LEFT_BORDER){
@@ -1027,6 +1028,7 @@ Error SSD1351::shrinkLine(int16_t &xStarting, int16_t &yStarting, int16_t &xEnd,
             yStarting=SCREEN_SIZE - 1;
         }
     }
+    internalLength = max(abs(yEnd - yStarting), abs(xEnd - xStarting)) + 1;
     return error;
 }
 
@@ -1050,7 +1052,6 @@ Error SSD1351::calculateCircleParameters(uint8_t xCenter, uint8_t yCenter, uint8
 
 Error SSD1351::addText(uint8_t xPosition, uint8_t yPosition, char* text, uint16_t textLength, bool topOrBottom, TextProperties_t textProperties, uint8_t rightEdge, uint8_t bottomEdge){
     //TODO Check what happens if the text consists of just '\n' characters.
-    //TODO Deal with escape characters
     // Finds the '\n' characters and creates a list of their positions, checks when the text goes beyond
     // horizontal border, goes back in the text until it doesn't and adds a new '\n' in the list.
     // Calls on addTextInternal for the actual writing to activeScreenBuffer.
@@ -1063,6 +1064,16 @@ Error SSD1351::addText(uint8_t xPosition, uint8_t yPosition, char* text, uint16_
         if(text[i] == '\n'){
             lines[counter] = i+1;
             counter++;
+            if(i<textLength-1 && text[i+1]=='\r'){
+                i++;
+            }
+        }
+        else if(text[i] == '\r'){
+            lines[counter] = i+1;
+            counter++;
+            if(i<textLength-1 && text[i+1]=='\n'){
+                i++;
+            }
         }
     }
     Error error = NO_ERROR;
@@ -1110,10 +1121,15 @@ void SSD1351::addTextInternal(uint8_t xPosition, uint8_t yPosition, char* text, 
     Font* currentFont = &fnt::fontDatabase[textProperties.index];
     uint8_t currentX = xPosition;
     uint8_t currentY = yPosition;
+    uint8_t tabLength = (currentFont->width[0] + 1) * TAB_SPACES;
     for(uint16_t i=0;i<textLength;i++){
         if(text[i]==0){break;}
-        uint8_t currentIndex = (text[i] >= FONT_OFFSET && text[i]<=(NUMBER_OF_CHARACTERS + FONT_OFFSET)) ? text[i] : '?';
-        currentIndex-=FONT_OFFSET;
+        if(text[i]=='\t' + FONT_OFFSET){
+            currentX+= tabLength - (currentX - xPosition)%tabLength;
+            continue;
+        }
+        if(text[i]<FONT_OFFSET || text[i]>NUMBER_OF_CHARACTERS + FONT_OFFSET){continue;}
+        uint8_t currentIndex = text[i] - FONT_OFFSET;
         for(uint8_t j=0;j<currentFont->height[currentIndex];j++){
             for(uint8_t k=0;k<currentFont->width[currentIndex];k++){
                 if(topOrBottom || !(*activeScreenBuffer)[currentX + currentFont->xPosition[currentIndex] + k + (currentY + currentFont->yPosition[currentIndex] + j)*SCREEN_SIZE]){ 
@@ -1131,15 +1147,19 @@ uint16_t* SSD1351::calculateTextSpace(char *text, uint16_t textLength, TextPrope
     // Adds up all the width member values from the fontDatabase corresponding to the current text index.
     uint16_t resultX=0;
     uint8_t currentIndex;
+    uint8_t tabLength = (fnt::fontDatabase[textProperties.index].width[0] + 1) * TAB_SPACES;
     for(uint16_t i=0;i<textLength; i++){
         if(text[i]==0){break;}
-        currentIndex = (text[i] >= FONT_OFFSET && text[i]<=(NUMBER_OF_CHARACTERS + FONT_OFFSET)) ? text[i] : '?';
-        currentIndex-=FONT_OFFSET;
-        resultX+=(fnt::fontDatabase[textProperties.index]).width[currentIndex];
+        if(text[i]=='\t' + FONT_OFFSET){
+            resultX+= tabLength - resultX%tabLength;
+            continue;
+        }
+        if(text[i]<FONT_OFFSET || text[i]>NUMBER_OF_CHARACTERS + FONT_OFFSET){continue;}
+        currentIndex = text[i] - FONT_OFFSET;
+        // Adds one pixel between each letter    
+        resultX+=(fnt::fontDatabase[textProperties.index]).width[currentIndex] + 1;
     }
     uint16_t *result = new uint16_t[2];
-    // Adds one pixel between each letter
-    result[0] = resultX + textLength - 1;
     result[1] = fnt::fontSizes[textProperties.index];
     return result; 
 }

@@ -711,6 +711,8 @@ void FXOS8700CQ::interruptWrapper(){
                     switch(mMode){
                         case HYBRID: {
                             //Falls through because the FIFO buffer only holds acceleration samples.
+                            //TODO It shouldn't, as it's documented as also giving MAGNETIC_SENSITIVITY
+                            //TODO the correct bit in CTRL_REG_2 is active.
                         }
                         case ACCELEROMETER: {    
                             for(uint8_t i=0;i<3*samplesNumber;i++){
