@@ -66,10 +66,10 @@ class MPL3115A2
     @returns a float containing the minimum temperature recorded in Celsius.*/
     float getMinTemperature();
     /*! Allows access to the static variable containing the active interrupts on PIN_ONE
-    @returns activeInterruptsOne, currently superflous as the variable is public*/
+    @returns activeInterruptsOne*/
     uint8_t getActiveInterruptsOne();
     /*! Allows access to the static variable containing the active interrupts on PIN_TWO
-    @returns activeInterruptsTwo, currently superflous as the variable is public*/
+    @returns activeInterruptsTwo*/
     uint8_t getActiveInterruptsTwo();
     /*! Reads the DR_STATUS register, which contains info on new measurements and
         data having been overwritten without being read.
@@ -162,7 +162,7 @@ class MPL3115A2
     void (*MPL3115A2InterruptTwo)();
     
     void read(MPL::Address address, uint8_t *data, int length = 1);
-    int write(MPL::Address address, uint8_t *data, int length = 1);
+    int  write(MPL::Address address, uint8_t *data, int length = 1);
 
     void dispatchInterruptData(MPL::Interrupt_Pin pin);
     MPL::Interrupt identifyInterrupt(MPL::Interrupt_Pin pin);

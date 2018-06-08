@@ -383,6 +383,7 @@ void MPL3115A2::setInterrupt(Interrupt_Pin pin, Interrupt name, void (*function)
     setInterruptFunction(function, pin);
     setActive();
 }
+
 void MPL3115A2::setInterrupt(Interrupt_Pin pin, Interrupt name, void (*function)(), bool overflow, uint8_t watermark){
     if(name==I_FIFO){
         standby();
@@ -424,11 +425,11 @@ void MPL3115A2::removeInterrupt(Interrupt name){
 void MPL3115A2::setInterruptFunction(void (*function)(), Interrupt_Pin pin){
     if(pin){
         MPL3115A2InterruptOne = function;
-        threadOne.start(callback(this, &MPL3115A2::interruptWrapperOne));
+        if(threadOne.get_state()==Thread::Deleted){threadOne.start(callback(this, &MPL3115A2::interruptWrapperOne));}
     }
     else{
         MPL3115A2InterruptTwo = function;
-        threadTwo.start(callback(this, &MPL3115A2::interruptWrapperTwo));
+        if(threadTwo.get_state()==Thread::Deleted){threadTwo.start(callback(this, &MPL3115A2::interruptWrapperTwo));}
     }
 }
 
@@ -584,7 +585,7 @@ float MPL3115A2::convertTemperatureI2D(uint8_t *temperature){
 }
 
 void MPL3115A2::convertAltitudeD2I(float altitude, uint8_t* out){
-    *out = (uint8_t)((~lround(altitude)) + 1); 
+    *out = (uint8_t) ((~lround(altitude)) + 1); 
 }
 
 void MPL3115A2::convertPressureD2I(float pressure, uint8_t* out){

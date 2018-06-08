@@ -104,8 +104,8 @@ namespace MPL{
     };
 
     enum Interrupt_Pin{
-    PIN_ONE = 0x01,
-    PIN_TWO = 0x00
+    PIN_ONE = 1,
+    PIN_TWO = 0
     };
 
     enum Data_Type{
