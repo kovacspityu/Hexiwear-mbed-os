@@ -82,31 +82,31 @@ for f in range(len(fonts)):
                         result.write("\n    };\n\n")
                     else:
                         result.write(", ")
-                result.write("    Font " + s + "= Font(" + str(max(widths)*max(heights)) +", &(" + s + "Alphabet[0][0]), " + s + "Widths, " + s + "Heights, " + s + "XPositions, " + s + "YPositions);\n" )
-result.write("    Font fontList[] = {\n    ")
+                result.write("    Font " + s + "= Font(" + str(max(widths)*max(heights)) +", &(" + s + "Alphabet[0][0]), " + s + "Widths, " + s + "Heights, " + s + "XPositions, " + s + "YPositions);\n\n" )
+result.write("    Font fontList[] = {\n")
 counter = 0
 for i in range(len(fonts)):
-    sizes = [x for x in fonts[f].iterdir() if x.is_dir()]
+    sizes = [x for x in fonts[i].iterdir() if x.is_dir()]
     for j in range(len(sizes)):
         resultEnum.write("    " + fonts[i].name.upper() + sizes[j].name + " =    " + str(counter))
         counter = counter + 1
-        result.write("    " + fonts[i].name + sizes[j].name)
+        result.write("        " + fonts[i].name + sizes[j].name)
         if i == len(fonts) - 1 and j == len(sizes) - 1:
             resultEnum.write("\n}; \n")
             result.write("\n    };\n\n")
         else:
             resultEnum.write(", \n")
-            result.write(", ")
+            result.write(", \n")
 result.write("    FontDatabase fontDatabase = fontList;\n")
 result.write("    const uint8_t fontSizes[] = {\n")
 for i in range(len(fonts)):
-    sizes = [x for x in fonts[f].iterdir() if x.is_dir()]
+    sizes = [x for x in fonts[i].iterdir() if x.is_dir()]
     for j in range(len(sizes)):
         result.write("        " + sizes[j].name)
         if j == len(sizes) - 1 and i == len(fonts) - 1:
             result.write("\n    };\n")
         else:
-            result.write(", ")
+            result.write(", \n")
 resultEnum.write("\n\n#endif\n")
 resultEnum.close()
 result.write("}\n")
