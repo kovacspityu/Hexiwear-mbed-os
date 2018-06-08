@@ -132,11 +132,17 @@ void FXOS8700CQ::setRange(Range range){
 }
 
 void FXOS8700CQ::setHighPass(High threshold){
+    Mode tempMode = mMode;
+    standby();
     uint8_t data;
     read(FILTER_CFG, &data);
     data&=252;
     data|=threshold;
     write(FILTER_CFG, &data);
+    read(DATA_CFG, &data);
+    data|=16;
+    write(DATA_CFG, &data);
+    setMode(tempMode);
 }
 
 void FXOS8700CQ::setAwakeODR(ODR dataRate){
@@ -278,13 +284,16 @@ void FXOS8700CQ::setFreefallMotion(Interrupt_Pin pin, void (*function)(), float 
 }
 
 void FXOS8700CQ::setPulse(Interrupt_Pin pin, void (*function)(), uint16_t config, float timing, float* threshold, float latency, float window){
+    Mode tempMode = mMode;
+    standby();
     uint8_t data = config&255;
     write(PULSE_CFG, &data);
-    // FILTER_CFG holds the High-Pass threshold too, so we need to move bits around a bit.
+    // FILTER_CFG holds the High-Pass threshold too, so we need to move bits around.
     read(FILTER_CFG, &data);
     data&=3;
-    data|=((config&768)<<4);
+    data|=((config&768)>>4);
     write(FILTER_CFG, &data);
+    read(FILTER_CFG, &data);
     for(uint8_t i=0;i<3;i++){
         data=lround(fabs(threshold[i]/63));
         write((Address) (PULSE_X_THRESHOLD+i), &data);
@@ -332,6 +341,7 @@ void FXOS8700CQ::setPulse(Interrupt_Pin pin, void (*function)(), uint16_t config
     write(PULSE_TIME_LIMIT, &data);
     write(PULSE_WINDOW, &data);
     setInterrupt(pin, I_PULSE, function);
+    setMode(tempMode);
 }
 
 void FXOS8700CQ::setOrientation(Interrupt_Pin pin, void (*function)(), float count, bool resetCount, Lockout_Angle lockout, Orientation_Angle angle, Trip_Threshold threshold, Trip_Delta delta){
