@@ -37,26 +37,19 @@ class FXAS21002C{
     private:
         I2C mI2C;
         uint8_t mAddress;
-        uint8_t activeInterruptsOne;
-        uint8_t activeInterruptsTwo;
+        static uint8_t activeInterrupts;
         float mSensitivity;
         float mODR;
         InterruptIn mInterruptOne;
         InterruptIn mInterruptTwo;
-        Thread mThreadOne;
-        Thread mThreadTwo;
-        void interruptWrapper(FXA::Interrupt_Pin pin);
-        void interruptWrapperOne();
-        void interruptWrapperTwo();
-        void (*FXAS21002CInterruptOne)();
-        void (*FXAS21002CInterruptTwo)();
+        Thread mThread;
+        void interruptWrapper();
+        void (*FXAS21002CInterrupt)();
 
         int16_t* getRawData();
-        void dispatchInterruptData(FXA::Interrupt_Pin pin);
-        void dispatchInterruptDataOne();
-        void dispatchInterruptDataTwo();
-        void setInterruptFunction(void (*function)(), FXA::Interrupt_Pin pin);
-        FXA::Interrupt identifyInterrupt(FXA::Interrupt_Pin pin);
+        void dispatchInterruptData();
+        void setInterruptFunction(void (*function)());
+        FXA::Interrupt identifyInterrupt();
 
         float convertToAngle(int16_t rawAngle);
         float convertToRadian(int16_t rawAngle);

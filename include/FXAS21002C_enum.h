@@ -35,9 +35,10 @@ namespace FXA{
     };
 
     enum Interrupt{
-        I_NEW_DATA  = 1,
-        I_THRESHOLD = 2,
-        I_FIFO      = 4
+        I_NO_INTERRUPT  = 0,
+        I_NEW_DATA      = 1,
+        I_THRESHOLD     = 2,
+        I_FIFO          = 4
     };
 
     enum Interrupt_Pin{

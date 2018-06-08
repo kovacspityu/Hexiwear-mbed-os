@@ -179,6 +179,7 @@ int16_t *FXAS21002C::getRawData(){
 }
 
 void FXAS21002C::setInterrupt(Interrupt_Pin pin, Interrupt name, void (*function)(), float threshold, int count, bool resetCount){
+    if(name==I_NO_INTERRUPT){return;}
     standby();
     uint8_t data;
     switch(name){
@@ -204,19 +205,21 @@ void FXAS21002C::setInterrupt(Interrupt_Pin pin, Interrupt name, void (*function
             write(RT_INT_CONFIG, &data);
             break;
         }
+        case I_NO_INTERRUPT: {break;}
     }
     read(CTRL_REG_2, &data);
     data|=(1<<(2*name));
     if(pin == PIN_ONE){data|=(1<<(2*name+1));}
     else{data&=~(1<<(2*name+1));}
     write(CTRL_REG_2, &data);
-    if(pin==PIN_ONE){activeInterruptsOne |= name;
-        mInterruptOne.fall(callback(this, &FXAS21002C::dispatchInterruptDataOne));
+    activeInterrupts |= name;
+    if(pin==PIN_ONE){
+        mInterruptOne.fall(callback(this, &FXAS21002C::dispatchInterruptData));
     }
-    else{activeInterruptsTwo &= ~name;
-        mInterruptTwo.fall(callback(this, &FXAS21002C::dispatchInterruptDataTwo));
+    else{
+        mInterruptTwo.fall(callback(this, &FXAS21002C::dispatchInterruptData));
     }
-    setInterruptFunction(function, pin);
+    setInterruptFunction(function);
     setReady();
 }
 
@@ -228,97 +231,82 @@ void FXAS21002C::removeInterrupt(Interrupt name){
     read(CTRL_REG_2, &data);
     data &= ~(1<<(2*name));
     write(CTRL_REG_2, &data);
-    if(activeInterruptsOne&name){activeInterruptsOne &= ~name;}
-    else{activeInterruptsTwo &=~ name;}
-    if(!activeInterruptsOne){
+    activeInterrupts &= ~name;
+    if(!activeInterrupts){
         mInterruptOne.fall(NULL);
-        mThreadOne.terminate();
-        FXAS21002CInterruptOne = NULL;
-    }
-    if(!activeInterruptsTwo){
+        mThread.terminate();
+        FXAS21002CInterrupt = NULL;
         mInterruptTwo.fall(NULL);
-        mThreadTwo.terminate();
-        FXAS21002CInterruptTwo = NULL;
     }
 }
 
-void FXAS21002C::setInterruptFunction(void (*function)(), Interrupt_Pin pin){
-    if(pin){
-        FXAS21002CInterruptOne = function;
-        mThreadOne.start(callback(this, &FXAS21002C::interruptWrapperOne));
-    }
-    else{
-        FXAS21002CInterruptTwo = function;
-        mThreadTwo.start(callback(this, &FXAS21002C::interruptWrapperTwo));
-    }
+void FXAS21002C::setInterruptFunction(void (*function)()){
+    FXAS21002CInterrupt = function;
+    if(mThread.get_state()==Thread::Deleted)mThread.start(callback(this, &FXAS21002C::interruptWrapper));
 }
 
-void FXAS21002C::interruptWrapper(Interrupt_Pin pin){
+void FXAS21002C::interruptWrapper(){
     while(1){
         //TODO
         Thread::signal_wait(0x01);
-        switch(identifyInterrupt(pin)){
-            case I_NEW_DATA: {
-                uint8_t data;
-                read(DR_STATUS, &data);
-                float *samples = new float[3];
-                samples=getAngles();
-                for(int i=0;i<3;i++){
-                    if(data&(1<<i)){
-                        mail_t *mail = mailBox.alloc();
-                        mail->axis = (Axis) i;
-                        mail->value = samples[i];
+        uint8_t name = identifyInterrupt();
+        while(name){
+            switch(name){
+                case I_NEW_DATA: {
+                    uint8_t data;
+                    read(DR_STATUS, &data);
+                    float *samples = new float[3];
+                    samples=getAngles();
+                    for(int i=0;i<3;i++){
+                        if(data&(1<<i)){
+                            mail_t *mail = mailBox.alloc();
+                            mail->axis = (Axis) i;
+                            mail->value = samples[i];
+                        }
                     }
+                    delete[] samples;
+                    break;
                 }
-                delete[] samples;
-                break;
-            }
-            case I_FIFO: {
-                uint8_t samplesNumber;
-                read(FIFO_STATUS, &samplesNumber);
-                samplesNumber&=0x3F;
-                mail_t **mailArray = new mail_t*[3*samplesNumber];
-                for(int i=0;i<2*samplesNumber;i++){
-                    *(mailArray+i)= mailBox.alloc();
+                case I_FIFO: {
+                    uint8_t samplesNumber;
+                    read(FIFO_STATUS, &samplesNumber);
+                    samplesNumber&=0x3F;
+                    mail_t **mailArray = new mail_t*[3*samplesNumber];
+                    for(int i=0;i<2*samplesNumber;i++){
+                        *(mailArray+i)= mailBox.alloc();
+                    }
+                    uint8_t *samples = new uint8_t[6*samplesNumber];
+                    read(X_ANGLE_MSB, samples, 6*samplesNumber);
+                    for(int i=0;i<3*samplesNumber;i++){
+                        (*(mailArray+i))->axis = (Axis) (i%3);
+                        (*(mailArray+i))->value = convertToAngle(*samples+2*i);
+                        
+                        mailBox.put(*(mailArray+i));
+                    }
+                    delete[] samples;
+                    break;
                 }
-                uint8_t *samples = new uint8_t[6*samplesNumber];
-                read(X_ANGLE_MSB, samples, 6*samplesNumber);
-                for(int i=0;i<3*samplesNumber;i++){
-                    (*(mailArray+i))->axis = (Axis) (i%3);
-                    (*(mailArray+i))->value = convertToAngle(*samples+2*i);
-                    
-                    mailBox.put(*(mailArray+i));
+                case I_THRESHOLD: {
+                    break;
                 }
-                delete[] samples;
-                break;
             }
-            case I_THRESHOLD: {
-                break;
-            }
+            FXAS21002CInterrupt();
         }
-        if(pin){FXAS21002CInterruptOne();}
-        else{FXAS21002CInterruptTwo();}
+        name = identifyInterrupt();
     }
 }
 
-void FXAS21002C::dispatchInterruptDataOne(){
-        dispatchInterruptData(PIN_ONE);
-}
-    
-void FXAS21002C::dispatchInterruptDataTwo(){
-        dispatchInterruptData(PIN_TWO);
-}
-
-Interrupt FXAS21002C::identifyInterrupt(Interrupt_Pin pin){
+Interrupt FXAS21002C::identifyInterrupt(){
     uint8_t data;
     read(INTERRUPT_STATUS, &data);
-    if(pin==PIN_ONE){return (Interrupt) (activeInterruptsOne & data);}
-    else{return (Interrupt) (activeInterruptsTwo & data);}
+    for(uint8_t i=0;i<3;i++){
+        if(data&(1<<i)){return (Interrupt) (1<<i);}
     }
+    return I_NO_INTERRUPT;
+}
 
-void FXAS21002C::dispatchInterruptData(Interrupt_Pin pin){
-    if(pin){mThreadOne.signal_set(0x01);}
-    else{mThreadTwo.signal_set(0x01);}
+void FXAS21002C::dispatchInterruptData(){
+    mThread.signal_set(0x01);
 }
 
 
