@@ -3,6 +3,8 @@
 #include "HTU21D_enum.h"
 #include "mbed.h"
 
+#define TEMPERATURE_COEFFICIENT     (-0.15f)
+#define HEAT_TRANSFER_COEFFICIENT   (0.3f)
 
 class HTU21D{
 
@@ -14,6 +16,7 @@ class HTU21D{
         float getHumidity();
 
         void setResolution(HTU::Resolution resolution);
+        void setAuxTemperature(float temperature);
         void reset();
 
 
@@ -23,6 +26,7 @@ class HTU21D{
         uint8_t mAddress;
         HTU::Resolution mResolution;
         static const uint16_t CRC_PATTERN = 0b100110001;
+        float mTemperature, auxTemperature;
 
         float convertTemperature(uint8_t *rawTemperature);
         float convertHumidity(uint8_t *rawHumidity);
