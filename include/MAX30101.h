@@ -70,7 +70,7 @@ MAX::Led slot3 = MAX::NONE_LED, MAX::Led slot4 = MAX::NONE_LED);
         I2C mI2C;
         InterruptIn mInterrupt;
         uint8_t mAddress;
-        Thread mThread;
+        Thread mThread, tThread;
         uint8_t mResolution;
         float mTemperature;
         MAX::Oxygen_Rate mSampleRate;
@@ -79,6 +79,8 @@ MAX::Led slot3 = MAX::NONE_LED, MAX::Led slot4 = MAX::NONE_LED);
 
         void startTemperatureMeasurement();
         float getTemperature();
+        void requestTemperatureMeasure();
+        void updateTemperature();
 
         void setInterruptFunction(void (*function)());
         void interruptWrapper();

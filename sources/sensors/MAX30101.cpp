@@ -17,20 +17,19 @@ MAX30101::MAX30101(Mode mode, Oversample oversample,
     updateChannels(mode, slot1, slot2, slot3, slot4);
     uint8_t data = mode;
     write(MODE_CONFIG, &data);
-    data = fifoThreshold + (((uint) fifoRollover)<<4) + (oversample<<5);
+    data = fifoThreshold | (((uint8_t) fifoRollover)<<4) | (oversample<<5);
     write(FIFO_CONFIG, &data);
     clearFIFOCounters();
-    if(mode==OX_MODE){
-        mTicker.attach(callback(this, &MAX30101::startTemperatureMeasurement), 1);
-        startTemperatureMeasurement();
-    }
-    uint8_t *dummy = new uint8_t[2];
+    mTicker.attach(callback(this, &MAX30101::requestTemperatureMeasure), 1);
+    tThread.start(callback(this, &MAX30101::updateTemperature));
+    startTemperatureMeasurement();
+    uint8_t dummy[2];
     read(INTERRUPT_STATUS, dummy, 2);
-    delete[] dummy;
-    dummy=0;
 }
 
 MAX30101::~MAX30101(){
+    if(mThread.get_state()!=Thread::Deleted){mThread.terminate();}
+    if(tThread.get_state()!=Thread::Deleted){tThread.terminate();}
     powerDown();
 }
 
@@ -67,6 +66,9 @@ MAX30101::uint8AndFloat MAX30101::getHR(uint32_t *values, uint16_t length){
     for(uint i=0;i<length;i++){
         fValues[i] = values[i];
     }
+    float32_t dcComponent;
+    arm_mean_f32(fValues, length, &dcComponent);
+    arm_offset_f32(fValues, dcComponent, fValues, length);
     arm_rfft_fast_instance_f32 transformStructure;
     arm_rfft_fast_init_f32(&transformStructure, length);
     float32_t *frequencies = new float32_t[2*length];
@@ -76,7 +78,6 @@ MAX30101::uint8AndFloat MAX30101::getHR(uint32_t *values, uint16_t length){
     // Only selecting the frequencies that have physical meaning, as defined in the header.
     uint32_t index = 0;
     delete[] frequencies;
-    frequencies=0;
     float32_t variance;
     arm_max_f32(fValues, length, &variance, &index);
     arm_var_f32(fValues, lround((( (float) (MAX_HEART_FREQUENCY - MIN_HEART_FREQUENCY)) * length)/(60 * 50 * 1<<mSampleRate)), &variance);
@@ -87,7 +88,6 @@ MAX30101::uint8AndFloat MAX30101::getHR(uint32_t *values, uint16_t length){
     // As for the hr, the variance needs to be scaled by a factor of length, and divided by the derivative of fValues due to uncertainty propagation.
     // We should also multiply it by the same factor as hr, but we will only use it as a weight, so that would be a common factor to all terms.
     delete[] fValues;
-    fValues=0;
     return result;
 }
 
@@ -128,11 +128,10 @@ MAX30101::mail_t *MAX30101::getData(uint8_t numberOfSamples){
             }
         }
         delete[] data;
-        data=0;
         return samples;
     }
     else{
-        return NULL; // TODO Might need to define some exceptions if there's no data
+        return NULL;
     }
 }
 
@@ -161,8 +160,7 @@ void MAX30101::setFIFOThreshold(uint8_t fifoThreshold){
     write(FIFO_CONFIG, &data);
 }
 
-void MAX30101::setMode(Mode mode, Led slot1, 
-    Led slot2, Led slot3, Led slot4){
+void MAX30101::setMode(Mode mode, Led slot1, Led slot2, Led slot3, Led slot4){
     uint8_t data;
     read(MODE_CONFIG, &data);
     data&=0xF8;
@@ -177,14 +175,12 @@ void MAX30101::setMode(Mode mode, Led slot1,
 
 void MAX30101::setPulseAmplitude(uint8_t redAmplitude, uint8_t irAmplitude, 
                                 uint8_t greenAmplitude, uint8_t pilotAmplitude){
-    uint8_t *data = new uint8_t[3];
+    uint8_t data[3];
     data[0] = redAmplitude;
     data[1] = irAmplitude;
     data[2] = greenAmplitude;
     write(LED_CONFIG, data, 3);
     write(P_LED_CONFIG, &pilotAmplitude);
-    delete[] data;
-    data = 0;
 }
 
 void MAX30101::setPulseWidth(Pulse_Width width){
@@ -218,22 +214,20 @@ void MAX30101::setProximityDelay(uint8_t delay){
 
 void MAX30101::setMultiLedTiming(Led slot1, Led slot2, Led slot3, Led slot4){
     setMode(MULTI_MODE);
-    uint8_t *data = new uint8_t[2];
+    uint8_t data[2];
     data[0] = slot1 + (slot2<<4);
     data[1] = slot3 + (slot4<<4);
     write(LED_TIMING, data, 2);
-    delete[] data;
-    data = 0;
     updateChannels(MULTI_MODE, slot1, slot2, slot3, slot4);
 }
 
 
 
 void MAX30101::setInterrupt(Interrupt interrupt, void (*function)(), uint8_t threshold, bool fifoRollover){
-    if(interrupt!=1){
-        uint8_t *data = new uint8_t[2];
+    if(interrupt!=I_POWER_UP){
+        uint8_t data[2];
         read(INTERRUPT_CONFIG, data, 2);
-        if(interrupt == 2){
+        if(interrupt == I_TEMPERATURE){
             data[1]|=interrupt;
         }
         else{
@@ -254,18 +248,16 @@ void MAX30101::setInterrupt(Interrupt interrupt, void (*function)(), uint8_t thr
                 break;
             }
         }
-        delete[] data;
-        data=0;
     }
     mInterrupt.fall(callback(this, &MAX30101::dispatchInterruptData));
     setInterruptFunction(function);
 }
 
 void MAX30101::removeInterrupt(Interrupt interrupt){
-    if(interrupt==1){return;}
-    uint8_t *data = new uint8_t[2];
+    if(interrupt==I_POWER_UP){return;}
+    uint8_t data[2];
     read(INTERRUPT_CONFIG, data, 2);
-    if(interrupt == 2){
+    if(interrupt == I_TEMPERATURE){
         data[1]&=~interrupt;
     }
     else{
@@ -277,8 +269,6 @@ void MAX30101::removeInterrupt(Interrupt interrupt){
         mInterruptFunction = NULL;
         mThread.terminate();
     }
-    delete[] data;
-    data=0;
 }
 
 uint8_t MAX30101::combineLeds(uint8AndFloat* leds, uint8_t length){
@@ -288,21 +278,7 @@ uint8_t MAX30101::combineLeds(uint8AndFloat* leds, uint8_t length){
         meanSum+=leds[i].hr*leds[i].weight;
         weightSum+=leds[i].weight;
     }
-    return roundl(meanSum/weightSum);
-}
-
-
-float MAX30101::getTemperature(){
-    uint8_t *data = new uint8_t[2];
-    read(TEMPERATURE, data, 2);
-    float result = (int8_t) data[0] + data[1] * 0.0625; 
-    //TODO This measures the average temperature, still need to add the correction
-    //due to the red led duty cycle.
-    //There is a component that is linear in (50<<(SPo2_rate))*pulse_width/10000      
-    //No idea about (1<<red_intensity)/10
-    delete[] data;
-    data = 0;
-    return result; 
+    return lround(meanSum/weightSum);
 }
 
 void MAX30101::startTemperatureMeasurement(){
@@ -310,17 +286,44 @@ void MAX30101::startTemperatureMeasurement(){
     write(TEMPERATURE_START, &data);
 }
 
+float MAX30101::getTemperature(){
+    uint8_t data[2];
+    read(TEMPERATURE, data, 2);
+    float result = (int8_t) data[0] + data[1] * 0.0625; 
+    //TODO This measures the average temperature, still need to add the correction
+    //due to the red led duty cycle.
+    //There is a component that is linear in (50<<(SPo2_rate))*pulse_width/10000      
+    //No idea about (1<<red_intensity)/10
+    mTemperature = result;
+    startTemperatureMeasurement();
+    return result; 
+}
+
+
+void MAX30101::requestTemperatureMeasure(){
+    tThread.signal_set(0x01);
+}
+
+void MAX30101::updateTemperature(){
+    while(1){
+        Thread::signal_wait(0x01);
+        getTemperature();
+    }
+}
+
 
 void MAX30101::setInterruptFunction(void (*function)()){
     mInterruptFunction = function;
-    mThread.start(callback(this, &MAX30101::interruptWrapper));
+    if(mThread.get_state()==Thread::Deleted){
+        mThread.start(callback(this, &MAX30101::interruptWrapper));
+        }
 }
 
 void MAX30101::interruptWrapper(){
     //TODO
     while(1){
         Thread::signal_wait(0x01);
-        uint8_t *data = new uint8_t[2];
+        uint8_t data[2];
         read(INTERRUPT_STATUS, data, 2);
         switch(data[0]){
             case I_FIFO_FULL:{//Falls into the next case
@@ -367,11 +370,9 @@ void MAX30101::interruptWrapper(){
                 break;
             }
             case 0:{
-                mTemperature = getTemperature();
+                getTemperature();
             }
         }
-        delete[] data;
-        data = 0;
         mInterruptFunction();
     }
 }
@@ -387,7 +388,6 @@ void MAX30101::updateChannels(Mode mode, Led slot1,
     //other leds than the red one.
     if(mSampleTemplate.ledSamples!=NULL){
         delete[] mSampleTemplate.ledSamples;
-        mSampleTemplate.ledSamples = 0;
     }
     switch(mode){
         case HR_MODE:{
@@ -447,6 +447,5 @@ int MAX30101::write(Address address, uint8_t* data, int length){
     }
     int result = mI2C.write(mAddress, (char*) bigData, length + 1);
     delete[] bigData;
-    bigData=0;
     return result;
 }
