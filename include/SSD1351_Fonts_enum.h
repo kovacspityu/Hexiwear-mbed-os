@@ -2,8 +2,10 @@
 #define _SSD1351_FONTS_ENUM_
 
 enum FontIndex{
-    ROBOTO11 =    0, 
-    ROBOTO15 =    1
+    LIMINAL7 =    0, 
+    LIMINAL9 =    1, 
+    ROBOTO11 =    2, 
+    ROBOTO15 =    3
 }; 
 
 

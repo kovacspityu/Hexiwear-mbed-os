@@ -12,7 +12,7 @@
 #define CRITICAL_ANGLE_MIN (30)
 #define CRITICAL_ANGLE_MAX (60)
 #define FLEXING_THRESHOLD (15) 
-#define THRESHOLD_RADIUS (20)
+#define THRESHOLD_RADIUS (15)
 #define DEFAULT_TEXT_INDEX (ROBOTO11)
 #define DEFAULT_TEXT_COLOUR (0x861)
 
@@ -65,9 +65,9 @@ class SSD1351{
         SSD::Error addLine(int16_t xPosition, int16_t yPosition, uint8_t length, int16_t angle, uint16_t internalColour, uint8_t internalThickness, bool topOrBottom, uint16_t externalColour = 0, uint8_t externalThickness = 0);
         SSD::Error addLineOnTop(int16_t xPosition, int16_t yPosition, uint8_t length, int16_t angle, uint16_t internalColour, uint8_t internalThickness, uint16_t externalColour, uint8_t externalThickness);
         SSD::Error addLineAtBottom(int16_t xPosition, int16_t yPosition, uint8_t length, int16_t angle, uint16_t internalColour, uint8_t internalThickness, uint16_t externalColour, uint8_t externalThickness);
-        SSD::Error addImage(uint16_t *image, uint8_t xPosition, uint8_t yPosition, uint8_t width, uint8_t height, bool topOrBottom);
-        SSD::Error addImageOnTop(uint16_t *image, uint8_t xPosition, uint8_t yPosition, uint8_t width, uint8_t height);
-        SSD::Error addImageAtBottom(uint16_t *image, uint8_t xPosition, uint8_t yPosition, uint8_t width, uint8_t height);
+        SSD::Error addImage(const uint16_t *image, uint8_t xPosition, uint8_t yPosition, uint8_t width, uint8_t height, bool topOrBottom);
+        SSD::Error addImageOnTop(const uint16_t *image, uint8_t xPosition, uint8_t yPosition, uint8_t width, uint8_t height);
+        SSD::Error addImageAtBottom(const uint16_t *image, uint8_t xPosition, uint8_t yPosition, uint8_t width, uint8_t height);
         SSD::Error fillArea(uint8_t xPosition, uint8_t yPosition, uint8_t width, uint8_t height, uint16_t colour, bool topOrBottom);
 
         void scrollingOn(bool direction, uint8_t startingRow, uint8_t numberOfRows, SSD::Scrolling_Period period);
@@ -101,7 +101,8 @@ class SSD1351{
 
         SSD::Error boundaryCheck(int16_t xPosition, int16_t yPosition, int16_t deltaX, int16_t deltaY);
         void clearBuffer();
-        void addLineInternal(int16_t coordinates, uint8_t length, int8_t transversalDelta, int8_t tangentialDelta, int8_t counter, int8_t counter2, uint16_t colour, bool topOrBottom);
+        SSD::Error addLineInternal(uint8_t xStarting, uint8_t yStarting, uint8_t xEnd, uint8_t yEnd, float coefficient, int8_t tangentialDelta, int8_t transversalDelta, int8_t counter, int8_t counter2, uint16_t internalColour, uint8_t internalThickness, bool topOrBottom, uint16_t externalColour=0, uint8_t externalThickness=0);
+        void drawLine(int16_t coordinates, uint8_t length, int8_t transversalDelta, int8_t tangentialDelta, int8_t counter, int8_t counter2, uint16_t colour, bool topOrBottom);
         SSD::Error addCircleInternal(uint8_t xCenter, uint8_t yCenter, uint8_t radius, uint16_t lineColour, uint8_t internalThickness, bool topOrBottom, bool fill, uint16_t otherColour, uint8_t externalThickness);
         void calculateLineParameters(int16_t xDelta, int16_t yDelta, uint16_t hypotenuseSquared, int8_t &tangentialDelta, int8_t &transversalDelta);
         void calculateLineParameters(uint8_t xStarting, uint8_t yStarting, uint8_t xEnd, uint8_t yEnd, int8_t &counter, int8_t &counter2, int8_t &tangentialDelta, int8_t &transversalDelta);

@@ -228,6 +228,8 @@ Error SSD1351::addBox(uint8_t xPosition, uint8_t yPosition, uint8_t width, uint8
 }
 
 Error SSD1351::addRoundedBox(uint8_t xPosition, uint8_t yPosition, uint8_t width, uint8_t height, float flexingRatio, uint16_t internalColour, uint8_t internalThickness, bool topOrBottom, uint16_t externalColour, uint8_t externalThickness){
+    //TODO As the lines are at pre-defined angles, it would be better to use just one/three calculateLineParameters
+    //TODO and then shrinkLine and addLineInternal for each different line.
     flexingRatio=fabs(flexingRatio);
     if(flexingRatio>0.5){flexingRatio=0.5;}
     uint8_t delta = lround(min(width, height)*flexingRatio/2);
@@ -302,14 +304,14 @@ Error SSD1351::addText(uint8_t xPosition, uint8_t yPosition, char* text, uint16_
 
 Error SSD1351::addTextInBox(char* text, uint16_t textLength, TextProperties_t textProperties, uint8_t xPosition, uint8_t yPosition, uint8_t width, uint8_t height, uint16_t internalColour, uint8_t internalThickness, bool topOrBottom, uint16_t externalColour, uint8_t externalThickness){
     Error error = addBox(xPosition, yPosition, width, height, internalColour, internalThickness, topOrBottom, externalColour, externalThickness);
-    error = (Error) (error|addText(xPosition + internalThickness + externalThickness, yPosition + internalThickness + externalThickness, text, textLength, topOrBottom, textProperties, width + xPosition, height + yPosition));
+    error = (Error) (error|addText(xPosition + internalThickness + externalThickness + 1, yPosition + internalThickness + externalThickness + 1, text, textLength, topOrBottom, textProperties, width + xPosition - internalThickness - externalThickness, height + yPosition - internalThickness - externalThickness));
     return error;
 }
 
 Error SSD1351::addTextInRoundedBox(char* text, uint16_t textLength, TextProperties_t textProperties, uint8_t xPosition, uint8_t yPosition, uint8_t width, uint8_t height, float flexingRatio, uint16_t internalColour, uint8_t internalThickness, bool topOrBottom, uint16_t externalColour, uint8_t externalThickness){
     Error error = addRoundedBox(xPosition, yPosition, width, height, flexingRatio, internalColour, internalThickness, topOrBottom, externalColour, externalThickness);
     uint8_t delta = lround(min(width, height)*min(fabs(flexingRatio), 0.125f));
-    error = (Error) (error|addText(xPosition + internalThickness + externalThickness + delta, yPosition + internalThickness + externalThickness + delta, text, textLength, topOrBottom, textProperties, width + xPosition, height + yPosition));
+    error = (Error) (error|addText(xPosition + internalThickness + externalThickness + delta, yPosition + internalThickness + externalThickness + delta, text, textLength, topOrBottom, textProperties, width + xPosition - internalThickness - externalThickness - delta, height + yPosition - internalThickness - externalThickness - delta));
     return error;
 }
 
@@ -352,19 +354,7 @@ Error SSD1351::addLineP2P(int16_t xStarting, int16_t yStarting, int16_t xEnd, in
     float scaleFactor = hypot(xEnd-xStarting, yEnd-yStarting)/(length - 1);
     internalThickness = lround(scaleFactor*internalThickness);
     externalThickness = lround(scaleFactor*externalThickness);
-    Error tempError;
-    int16_t coordinates;
-    for(uint8_t i=0;i<=internalThickness+externalThickness;i++){  
-        tempError = shrinkLine(xStarting + div(i*transversalDelta, SCREEN_SIZE).rem, yStarting + (i*transversalDelta)/SCREEN_SIZE, xEnd + div(i*transversalDelta, SCREEN_SIZE).rem, yEnd + (i*transversalDelta)/SCREEN_SIZE, coefficient, coordinates, internalLength);
-        error=(Error) (error|tempError);
-        addLineInternal(coordinates, internalLength, tangentialDelta, transversalDelta, counter, counter2, i>internalThickness ? externalColour : internalColour, topOrBottom);
-        if(i){
-            tempError = shrinkLine(xStarting - div(i*transversalDelta, SCREEN_SIZE).rem, yStarting - (i*transversalDelta)/SCREEN_SIZE, xEnd - div(i*transversalDelta, SCREEN_SIZE).rem, yEnd - (i*transversalDelta)/SCREEN_SIZE, coefficient, coordinates, internalLength);
-            error=(Error) (error|tempError);   
-            addLineInternal(coordinates, internalLength, tangentialDelta, transversalDelta, counter, counter2, i>internalThickness ? externalColour : internalColour, topOrBottom);
-        }
-    }
-    return error;
+    return (Error) ( error|addLineInternal(xStarting, yStarting, xEnd, yEnd, coefficient, tangentialDelta, transversalDelta, counter, counter2, internalColour, internalThickness, topOrBottom, externalColour, externalThickness) );
 }
 
 Error SSD1351::addLine(int16_t xPosition, int16_t yPosition, uint8_t length, int16_t angle, uint16_t internalColour, uint8_t internalThickness, bool topOrBottom, uint16_t externalColour, uint8_t externalThickness){
@@ -380,7 +370,7 @@ Error SSD1351::addLineAtBottom(int16_t xPosition, int16_t yPosition, uint8_t len
 }
 
 
-Error SSD1351::addImage(uint16_t *image, uint8_t xPosition, uint8_t yPosition, uint8_t width, uint8_t height, bool topOrBottom){
+Error SSD1351::addImage(const uint16_t *image, uint8_t xPosition, uint8_t yPosition, uint8_t width, uint8_t height, bool topOrBottom){
     uint8_t xStart, xEnd, yStart, yEnd;
     Error error = boundaryCheck(xPosition, yPosition, width, height);
     if(error&OUT_OF_LEFT_BORDER){
@@ -399,9 +389,9 @@ Error SSD1351::addImage(uint16_t *image, uint8_t xPosition, uint8_t yPosition, u
         yEnd=SCREEN_SIZE - yPosition;
     }
     else{yEnd=yPosition+height;}
-    for(uint j=yStart;j<=yEnd;j++){    
-        for(uint i=xStart;i<=xEnd;i++){ 
-            if(topOrBottom || (*activeScreenBuffer)[j*SCREEN_SIZE + i]){
+    for(uint j=yStart;j<yEnd;j++){    
+        for(uint i=xStart;i<xEnd;i++){ 
+            if(topOrBottom || !((*activeScreenBuffer)[j*SCREEN_SIZE + i])){
                 (*activeScreenBuffer)[j*SCREEN_SIZE + i] = image[(j - yPosition)*width + i - xPosition];
             }
         }
@@ -409,11 +399,11 @@ Error SSD1351::addImage(uint16_t *image, uint8_t xPosition, uint8_t yPosition, u
     return NO_ERROR;
 }
 
-Error SSD1351::addImageOnTop(uint16_t *image, uint8_t xPosition, uint8_t yPosition, uint8_t width, uint8_t height){
+Error SSD1351::addImageOnTop(const uint16_t *image, uint8_t xPosition, uint8_t yPosition, uint8_t width, uint8_t height){
     return addImage(image, xPosition, yPosition, width, height, true);
 }
 
-Error SSD1351::addImageAtBottom(uint16_t *image, uint8_t xPosition, uint8_t yPosition, uint8_t width, uint8_t height){
+Error SSD1351::addImageAtBottom(const uint16_t *image, uint8_t xPosition, uint8_t yPosition, uint8_t width, uint8_t height){
     return addImage(image, xPosition, yPosition, width, height, false);
 }
 
@@ -461,7 +451,9 @@ void SSD1351::scrollingOff(){
 }
 
 uint16_t SSD1351::getColour(uint8_t red, uint8_t green, uint8_t blue){
-    return green>>3 | (red>>2)<<5 | (blue>>3)<<11;
+    uint16_t result = ((green>>2)<<5) | ((red>>3)<<11) | (blue>>3);
+    uint8_t *dummy = (uint8_t*) &result;
+    return (dummy[1]<<8 | dummy[0]);
 }
 
 
@@ -763,7 +755,24 @@ void SSD1351::clearBuffer(){
     }
 }
 
-void SSD1351::addLineInternal(int16_t coordinates, uint8_t length, int8_t tangentialDelta, int8_t transversalDelta, int8_t counter, int8_t counter2, uint16_t colour,  bool topOrBottom){
+Error SSD1351::addLineInternal(uint8_t xStarting, uint8_t yStarting, uint8_t xEnd, uint8_t yEnd, float coefficient, int8_t tangentialDelta, int8_t transversalDelta, int8_t counter, int8_t counter2, uint16_t internalColour, uint8_t internalThickness, bool topOrBottom, uint16_t externalColour, uint8_t externalThickness){
+    Error error=NO_ERROR, tempError;
+    uint8_t internalLength;
+    int16_t coordinates;
+    for(uint8_t i=0;i<=internalThickness+externalThickness;i++){  
+        tempError = shrinkLine(xStarting + div(i*transversalDelta, SCREEN_SIZE).rem, yStarting + (i*transversalDelta)/SCREEN_SIZE, xEnd + div(i*transversalDelta, SCREEN_SIZE).rem, yEnd + (i*transversalDelta)/SCREEN_SIZE, coefficient, coordinates, internalLength);
+        error=(Error) (error|tempError);
+        drawLine(coordinates, internalLength, tangentialDelta, transversalDelta, counter, counter2, i>internalThickness ? externalColour : internalColour, topOrBottom);
+        if(i){
+            tempError = shrinkLine(xStarting - div(i*transversalDelta, SCREEN_SIZE).rem, yStarting - (i*transversalDelta)/SCREEN_SIZE, xEnd - div(i*transversalDelta, SCREEN_SIZE).rem, yEnd - (i*transversalDelta)/SCREEN_SIZE, coefficient, coordinates, internalLength);
+            error=(Error) (error|tempError);   
+            drawLine(coordinates, internalLength, tangentialDelta, transversalDelta, counter, counter2, i>internalThickness ? externalColour : internalColour, topOrBottom);
+        }
+    }
+    return error;
+}
+
+void SSD1351::drawLine(int16_t coordinates, uint8_t length, int8_t tangentialDelta, int8_t transversalDelta, int8_t counter, int8_t counter2, uint16_t colour,  bool topOrBottom){
     // The algorithm works by drawing a line that can be either horizontal, vertical or at 45°,
     // but with corrections every counter and counter2 pixels, 
     // to approximate the correct coordinates without calculating them exactly.
@@ -825,6 +834,7 @@ Error SSD1351::addCircleInternal(uint8_t xCenter, uint8_t yCenter, uint8_t radiu
     int16_t xSolution, xSolutionPrevious = xCenter - lround( sqrt( pow(radius, 2) - pow(y1 - yCenter, 2) ) ), xSolution2Previous=xSolutionPrevious;
     int16_t coordinates;
     uint8_t internalLength;
+    int8_t counter, counter2, tangentialDelta, transversalDelta;
     for(uint8_t j=max(x1 + 2, yCenter - radius + 2);j<=min(x2, (uint8_t) (yCenter-radius/2) );j++){
         xSolution= xCenter - lround( sqrt( pow(radius, 2) - pow(j - yCenter, 2) ) );
         // Only draws the line every two loop passes.
@@ -832,35 +842,92 @@ Error SSD1351::addCircleInternal(uint8_t xCenter, uint8_t yCenter, uint8_t radiu
             // Draws a line between two points of the circle in the top left, then between 
             // their mirror points across the y axis, then the mirrors of those two couples across the x axis,
             // then the mirrors of those four couples across the diagonals
-            addLineP2P(xSolution2Previous, j-2, xSolution, j, lineColour, internalThickness, topOrBottom, otherColour, externalThickness);
-            addLineP2P(2*xCenter - xSolution2Previous, 2*yCenter - j+2, 2*xCenter - xSolution, 2*yCenter - j, lineColour, internalThickness, topOrBottom, otherColour, externalThickness);
-            addLineP2P(2*xCenter - xSolution2Previous, j-2, 2*xCenter - xSolution, j, lineColour, internalThickness, topOrBottom, otherColour, externalThickness);
-            addLineP2P(xSolution2Previous, 2*yCenter - j+2, xSolution, 2*yCenter - j, lineColour, internalThickness, topOrBottom, otherColour, externalThickness);
-            addLineP2P(j-2 - yCenter + xCenter, xSolution2Previous - xCenter + yCenter, j - yCenter + xCenter, xSolution - xCenter + yCenter, lineColour, internalThickness, topOrBottom, otherColour, externalThickness);
-            addLineP2P(yCenter - j+2 + xCenter, xCenter - xSolution2Previous + yCenter, yCenter - j + xCenter, xCenter - xSolution + yCenter, lineColour, internalThickness, topOrBottom, otherColour, externalThickness);
-            addLineP2P(j-2 - yCenter + xCenter, xCenter - xSolution2Previous + yCenter, j - yCenter + xCenter, xCenter - xSolution + yCenter, lineColour, internalThickness, topOrBottom, otherColour, externalThickness);
-            addLineP2P(yCenter - j+2 + xCenter, xSolution2Previous - xCenter + yCenter, yCenter - j + xCenter, xSolution - xCenter + yCenter, lineColour, internalThickness, topOrBottom, otherColour, externalThickness);
+            float coefficient = 2.0/(xSolution-xSolution2Previous);
+            calculateLineParameters(xSolution2Previous, j-2, xSolution, j, counter, counter2, tangentialDelta, transversalDelta);
+            
+            shrinkLine(xSolution2Previous, j-2, xSolution, j, coefficient, coordinates, internalLength);
+            addLineInternal(xSolution2Previous, j-2, xSolution, j, coefficient, tangentialDelta, transversalDelta, counter, counter2, lineColour, internalThickness, topOrBottom, otherColour, externalThickness);
+
+            shrinkLine(2*xCenter - xSolution, 2*yCenter - j, 2*xCenter - xSolution2Previous, 2*yCenter - j+2, coefficient, coordinates, internalLength);
+            addLineInternal(2*xCenter - xSolution, 2*yCenter - j, 2*xCenter - xSolution2Previous, 2*yCenter - j+2, coefficient, tangentialDelta, transversalDelta, counter, counter2, lineColour, internalThickness, topOrBottom, otherColour, externalThickness);
+
+            if(tangentialDelta==95){
+                tangentialDelta=97;
+            }
+            else{
+                tangentialDelta=1;
+            }
+            coefficient=-coefficient;
+
+            shrinkLine(2*xCenter - xSolution2Previous, j-2, 2*xCenter - xSolution, j, coefficient, coordinates, internalLength);
+            addLineInternal(2*xCenter - xSolution2Previous, j-2, 2*xCenter - xSolution, j, coefficient, tangentialDelta, transversalDelta, counter, counter2, lineColour, internalThickness, topOrBottom, otherColour, externalThickness);
+
+            shrinkLine(xSolution, 2*yCenter - j, xSolution2Previous, 2*yCenter - j+2, coefficient, coordinates, internalLength);
+            addLineInternal(xSolution, 2*yCenter - j, xSolution2Previous, 2*yCenter - j+2, coefficient, tangentialDelta, transversalDelta, counter, counter2, lineColour, internalThickness, topOrBottom, otherColour, externalThickness);
+
+            if(tangentialDelta==97){
+                tangentialDelta=95;
+                transversalDelta=copysign(1, transversalDelta);
+            }
+            else{
+                tangentialDelta=-96;
+                transversalDelta=1;
+            }
+            coefficient=1.0/coefficient;
+
+            shrinkLine(j-2 - yCenter + xCenter, xSolution2Previous - xCenter + yCenter, j - yCenter + xCenter, xSolution - xCenter + yCenter, coefficient, coordinates, internalLength);
+            addLineInternal(j-2 - yCenter + xCenter, xSolution2Previous - xCenter + yCenter, j - yCenter + xCenter, xSolution - xCenter + yCenter, coefficient, tangentialDelta, transversalDelta, counter, counter2, lineColour, internalThickness, topOrBottom, otherColour, externalThickness);
+
+            shrinkLine(yCenter - j + xCenter, xCenter - xSolution + yCenter, yCenter - j+2 + xCenter, xCenter - xSolution2Previous + yCenter, coefficient, coordinates, internalLength);
+            addLineInternal(yCenter - j + xCenter, xCenter - xSolution + yCenter, yCenter - j+2 + xCenter, xCenter - xSolution2Previous + yCenter, coefficient, tangentialDelta, transversalDelta, counter, counter2, lineColour, internalThickness, topOrBottom, otherColour, externalThickness);
+
+            if(tangentialDelta==95){
+                tangentialDelta=97;
+                transversalDelta=-transversalDelta;
+                counter2=-counter2;
+            }
+            else{
+                tangentialDelta=96;
+            }
+                coefficient=-coefficient;
+
+            shrinkLine(j-2 - yCenter + xCenter, xCenter - xSolution2Previous + yCenter, j - yCenter + xCenter, xCenter - xSolution + yCenter, coefficient, coordinates, internalLength);
+            addLineInternal(j-2 - yCenter + xCenter, xCenter - xSolution2Previous + yCenter, j - yCenter + xCenter, xCenter - xSolution + yCenter, coefficient, tangentialDelta, transversalDelta, counter, counter2, lineColour, internalThickness, topOrBottom, otherColour, externalThickness);
+
+            shrinkLine(yCenter - j + xCenter, xSolution - xCenter + yCenter, yCenter - j+2 + xCenter, xSolution2Previous - xCenter + yCenter, coefficient, coordinates, internalLength);
+            addLineInternal(yCenter - j + xCenter, xSolution - xCenter + yCenter, yCenter - j+2 + xCenter, xSolution2Previous - xCenter + yCenter, coefficient, tangentialDelta, transversalDelta, counter, counter2, lineColour, internalThickness, topOrBottom, otherColour, externalThickness);
+
+
+//            addLineP2P(xSolution2Previous, j-2, xSolution, j, lineColour, internalThickness, topOrBottom, otherColour, externalThickness);
+//            addLineP2P(2*xCenter - xSolution2Previous, 2*yCenter - j+2, 2*xCenter - xSolution, 2*yCenter - j, lineColour, internalThickness, topOrBottom, otherColour, externalThickness);
+//            addLineP2P(2*xCenter - xSolution2Previous, j-2, 2*xCenter - xSolution, j, lineColour, internalThickness, topOrBottom, otherColour, externalThickness);
+//            addLineP2P(xSolution2Previous, 2*yCenter - j+2, xSolution, 2*yCenter - j, lineColour, internalThickness, topOrBottom, otherColour, externalThickness);
+//            
+//            addLineP2P(j-2 - yCenter + xCenter, xSolution2Previous - xCenter + yCenter, j - yCenter + xCenter, xSolution - xCenter + yCenter, lineColour, internalThickness, topOrBottom, otherColour, externalThickness);
+//            addLineP2P(yCenter - j+2 + xCenter, xCenter - xSolution2Previous + yCenter, yCenter - j + xCenter, xCenter - xSolution + yCenter, lineColour, internalThickness, topOrBottom, otherColour, externalThickness);
+//            addLineP2P(j-2 - yCenter + xCenter, xCenter - xSolution2Previous + yCenter, j - yCenter + xCenter, xCenter - xSolution + yCenter, lineColour, internalThickness, topOrBottom, otherColour, externalThickness);
+//            addLineP2P(yCenter - j+2 + xCenter, xSolution2Previous - xCenter + yCenter, yCenter - j + xCenter, xSolution - xCenter + yCenter, lineColour, internalThickness, topOrBottom, otherColour, externalThickness);
 
             xSolution2Previous = xSolution;
         }    
         if(fill){
-            if(j>yCenter - radius + thickness){
-                shrinkLine(xSolution + thickness+1, j, 2*xCenter - xSolution - thickness-1, j, 0, coordinates, internalLength);
-                addLineInternal(coordinates, internalLength, 1, SCREEN_SIZE, internalLength+1, internalLength+1, otherColour, topOrBottom);
+            //if(j>yCenter - radius + thickness){
+                shrinkLine(xSolution + thickness+1, j+thickness+1, 2*xCenter - xSolution - thickness-1, j+thickness+1, 0, coordinates, internalLength);
+                drawLine(coordinates, internalLength, 1, SCREEN_SIZE, internalLength+1, internalLength+1, otherColour, topOrBottom);
                 
-                shrinkLine(xSolution + thickness+1, 2*yCenter - j, 2*xCenter - xSolution - thickness-1, 2*yCenter - j, 0, coordinates, internalLength);
-                addLineInternal(coordinates, internalLength, 1, SCREEN_SIZE, internalLength+1, internalLength+1, otherColour, topOrBottom);
+                shrinkLine(xSolution + thickness+1, 2*yCenter - j-thickness-1, 2*xCenter - xSolution - thickness-1, 2*yCenter - j-thickness-1, 0, coordinates, internalLength);
+                drawLine(coordinates, internalLength, 1, SCREEN_SIZE, internalLength+1, internalLength+1, otherColour, topOrBottom);
                 
-            }
-            if(j<=yCenter - radius/2 - thickness){
+            //}
+            //if(j<=yCenter - radius/2 - thickness){
                 for(uint8_t i=xSolution;i<=xSolutionPrevious;i++){    
-                    shrinkLine(j-1 - yCenter + xCenter + thickness, i - xCenter + yCenter, yCenter - j+1 + xCenter - thickness, i - xCenter + yCenter, 0, coordinates, internalLength);
-                    addLineInternal(coordinates, internalLength, 1, SCREEN_SIZE, internalLength+1, internalLength+1, otherColour, topOrBottom);
+                    shrinkLine(j-1 - yCenter + xCenter + thickness+1, i - xCenter + yCenter, yCenter - j+1 + xCenter - thickness-1, i - xCenter + yCenter, 0, coordinates, internalLength);
+                    drawLine(coordinates, internalLength, 1, SCREEN_SIZE, internalLength+1, internalLength+1, otherColour, topOrBottom);
                 
-                    shrinkLine(j-1 - yCenter + xCenter + thickness, xCenter - i + yCenter, yCenter - j+1 + xCenter - thickness, xCenter - i + yCenter, 0, coordinates, internalLength);
-                    addLineInternal(coordinates, internalLength, 1, SCREEN_SIZE, internalLength+1, internalLength+1, otherColour, topOrBottom);
+                    shrinkLine(j-1 - yCenter + xCenter + thickness+1, xCenter - i + yCenter, yCenter - j+1 + xCenter - thickness-1, xCenter - i + yCenter, 0, coordinates, internalLength);
+                    drawLine(coordinates, internalLength, 1, SCREEN_SIZE, internalLength+1, internalLength+1, otherColour, topOrBottom);
                 }
-            }
+            //}
         }
         xSolutionPrevious=xSolution;
     }
@@ -1160,6 +1227,7 @@ uint16_t* SSD1351::calculateTextSpace(char *text, uint16_t textLength, TextPrope
         resultX+=(fnt::fontDatabase[textProperties.index]).width[currentIndex] + 1;
     }
     uint16_t *result = new uint16_t[2];
+    result[0] = resultX;
     result[1] = fnt::fontSizes[textProperties.index];
     return result; 
 }
