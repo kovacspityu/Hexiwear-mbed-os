@@ -6,12 +6,10 @@ using namespace MPL;
 
 bool MPL3115A2::visAltimeter = false;
 bool MPL3115A2::visFIFO = false;
-uint8_t MPL3115A2::activeInterruptsOne = 0;
-uint8_t MPL3115A2::activeInterruptsTwo = 0;
+uint8_t MPL3115A2::activeInterrupts = 0;
 
 MPL3115A2::MPL3115A2(Mode mode, Os_Ratio ratio, Time_Step timeStep) : 
-mI2C(I2C_SDA, I2C_SCL), mAddress(0xC0), mInterruptOne(PTD12), mInterruptTwo(PTD10)
-{
+mI2C(I2C_SDA, I2C_SCL), mAddress(0xC0), mInterruptOne(PTD12), mInterruptTwo(PTD10){
     fullReset();
     standby();
     uint8_t data = (1<<1) | (ratio<<3) | (mode<<7);
@@ -64,14 +62,6 @@ bool MPL3115A2::isDataAvailable(){
     uint8_t data;
     read(DR_STATUS, &data);
     return data&0b00001110;
-}
-
-uint8_t MPL3115A2::getActiveInterruptsOne(){
-    return activeInterruptsOne;
-}
-
-uint8_t MPL3115A2::getActiveInterruptsTwo(){
-    return activeInterruptsTwo;
 }
 
 uint8_t MPL3115A2::getStatus(){
@@ -247,7 +237,7 @@ void MPL3115A2::setInterrupt(Interrupt_Pin pin, Interrupt name, void (*function)
         }
 
         case I_PRESSURE_CHANGE : {
-            if(activeInterruptsOne&(1<<5)||activeInterruptsTwo&(1<<5)){removeInterrupt(I_PRESSURE_WINDOW);}
+            if(activeInterrupts&I_PRESSURE_WINDOW){removeInterrupt(I_PRESSURE_WINDOW);}
             uint8_t data[2];
             if(isAltimeter()){
                 if(target){
@@ -278,7 +268,7 @@ void MPL3115A2::setInterrupt(Interrupt_Pin pin, Interrupt name, void (*function)
         }
 
         case I_TEMPERATURE_CHANGE : {
-            if(activeInterruptsOne&(1<<4)||activeInterruptsTwo&(1<<4)){removeInterrupt(I_TEMPERATURE_WINDOW);}
+            if(activeInterrupts&I_TEMPERATURE_WINDOW){removeInterrupt(I_TEMPERATURE_WINDOW);}
             uint8_t data;
             if(target){
                 data = convertTemperatureD2I(target);
@@ -330,7 +320,7 @@ void MPL3115A2::setInterrupt(Interrupt_Pin pin, Interrupt name, void (*function)
             break;
         }
         case I_ALTITUDE_WINDOW : {
-            if(activeInterruptsOne&(1<<1)||activeInterruptsTwo&(1<<1)){removeInterrupt(I_ALTITUDE_CHANGE);}
+            if(activeInterrupts&I_ALTITUDE_CHANGE){removeInterrupt(I_ALTITUDE_CHANGE);}
             if(isAltimeter()){
                 if(target){
                     uint8_t data[2];
@@ -358,7 +348,7 @@ void MPL3115A2::setInterrupt(Interrupt_Pin pin, Interrupt name, void (*function)
             break;
         }
         case I_TEMPERATURE_WINDOW : {
-            if(activeInterruptsOne&1||activeInterruptsTwo&1){removeInterrupt(I_TEMPERATURE_CHANGE);}
+            if(activeInterrupts&1){removeInterrupt(I_TEMPERATURE_CHANGE);}
             if(target){
                 uint8_t data = convertTemperatureD2I(target);
                 write(TEMPERATURE_WINDOW, &data);
@@ -370,17 +360,19 @@ void MPL3115A2::setInterrupt(Interrupt_Pin pin, Interrupt name, void (*function)
                 }
             break;
         }
+        case I_NO_INTERRUPT: {break;}
     }
     read(CTRL_REG_4, &data);
     data |= name;
     write(CTRL_REG_4, &data);
-    if(pin==PIN_ONE){activeInterruptsOne |= name;
-        mInterruptOne.fall(callback(this, &MPL3115A2::dispatchInterruptDataOne));
+    activeInterrupts |= name;
+    if(pin==PIN_ONE){
+        mInterruptOne.fall(callback(this, &MPL3115A2::dispatchInterruptData));
     }
-    else{activeInterruptsTwo &= ~name;
-        mInterruptTwo.fall(callback(this, &MPL3115A2::dispatchInterruptDataTwo));
+    else{
+        mInterruptTwo.fall(callback(this, &MPL3115A2::dispatchInterruptData));
     }
-    setInterruptFunction(function, pin);
+    setInterruptFunction(function);
     setActive();
 }
 
@@ -408,134 +400,115 @@ void MPL3115A2::removeInterrupt(Interrupt name){
     read(CTRL_REG_4, &data);
     data &= ~name;
     write(CTRL_REG_4, &data);
-    if(activeInterruptsOne&name){activeInterruptsOne &= ~name;}
-    else{activeInterruptsTwo &=~ name;}
-    if(!activeInterruptsOne){
+    activeInterrupts &= ~name;
+    if(!activeInterrupts){
         mInterruptOne.fall(NULL);
-        threadOne.terminate();
-        MPL3115A2InterruptOne = NULL;
-    }
-    if(!activeInterruptsTwo){
+        mThread.terminate();
+        MPL3115A2Interrupt = NULL;
         mInterruptTwo.fall(NULL);
-        threadTwo.terminate();
-        MPL3115A2InterruptTwo = NULL;
     }
 }
 
-void MPL3115A2::setInterruptFunction(void (*function)(), Interrupt_Pin pin){
-    if(pin){
-        MPL3115A2InterruptOne = function;
-        if(threadOne.get_state()==Thread::Deleted){threadOne.start(callback(this, &MPL3115A2::interruptWrapperOne));}
-    }
-    else{
-        MPL3115A2InterruptTwo = function;
-        if(threadTwo.get_state()==Thread::Deleted){threadTwo.start(callback(this, &MPL3115A2::interruptWrapperTwo));}
-    }
+void MPL3115A2::setInterruptFunction(void (*function)()){
+    MPL3115A2Interrupt = function;
+    if(mThread.get_state()==Thread::Deleted){mThread.start(callback(this, &MPL3115A2::interruptWrapper));}
+
 }
 
-void MPL3115A2::interruptWrapperOne(){
-    interruptWrapper(PIN_ONE);
-}
-void MPL3115A2::interruptWrapperTwo(){
-    interruptWrapper(PIN_TWO);
-}
-void MPL3115A2::interruptWrapper(Interrupt_Pin pin){
+void MPL3115A2::interruptWrapper(){
     while(1){
         Thread::signal_wait(0x01);
         mail_t *mail = mailBox.alloc();
         uint8_t data = getStatus();
-        switch(identifyInterrupt(pin)){
-            case I_ALTITUDE_CHANGE : ;
-            case I_ALTITUDE_THRESHOLD : ;
-            case I_ALTITUDE_WINDOW : {
-                if(isAltimeter()){
-                    mail->type = TYPE_ALTITUDE;
-                    }
-                else{
-                    mail->type = TYPE_PRESSURE;
-                    }
-                mail->value = getData();
-                mailBox.put(mail);
-                break;
-            }
-            case I_TEMPERATURE_CHANGE : ;
-            case I_TEMPERATURE_THRESHOLD : ;
-            case I_TEMPERATURE_WINDOW : {
-                mail->type = TYPE_TEMPERATURE;
-                mail->value = getTemperature();
-                mailBox.put(mail);
-                break;
-            }
-            case I_FIFO : {
-                mailBox.free(mail);
-                uint8_t samplesNumber;
-                read(FIFO_STATUS, &samplesNumber);
-                samplesNumber&=0x3F;
-                mail_t **mailArray = new mail_t*[2*samplesNumber];
-                for(int i=0;i<2*samplesNumber;i++){
-                    *(mailArray+i)= mailBox.alloc();
-                }
-                uint8_t *samples = new uint8_t[5*samplesNumber];
-                read(FIFO_DATA, samples, 5*samplesNumber);
-                for(int i=0;i<samplesNumber-1;i++){
+        Interrupt name = identifyInterrupt();
+        while(name){
+            switch(name){
+                case I_ALTITUDE_CHANGE : ;
+                case I_ALTITUDE_THRESHOLD : ;
+                case I_ALTITUDE_WINDOW : {
                     if(isAltimeter()){
-                        (*(mailArray+2*i))->type = TYPE_ALTITUDE;
-                        (*(mailArray+2*i))->value = convertAltitudeI2D(samples+5*i);
-                    }
+                        mail->type = TYPE_ALTITUDE;
+                        }
                     else{
-                        (*(mailArray+2*i))->type = TYPE_PRESSURE;
-                        (*(mailArray+2*i))->value = convertPressureI2D(samples+5*i);
-                    }
-                    (*(mailArray+2*i+1))->type = TYPE_TEMPERATURE;
-                    (*(mailArray+2*i+1))->value = convertTemperatureI2D(samples+5*i+3);
-                    mailBox.put(*(mailArray+2*i));
-                    mailBox.put(*(mailArray+2*i+1));
+                        mail->type = TYPE_PRESSURE;
+                        }
+                    mail->value = getData();
+                    mailBox.put(mail);
+                    break;
                 }
-                delete[] samples;
-                break;
-            }
-            case I_NEW_DATA : {
-                switch(data&0xE){
-                    case 0xE: {
-                        mail_t *mail2 = mailBox.alloc();
-                        mail2->type = TYPE_TEMPERATURE;
-                        mail2->value = getTemperature();
-                        mailBox.put(mail2);
+                case I_TEMPERATURE_CHANGE : ;
+                case I_TEMPERATURE_THRESHOLD : ;
+                case I_TEMPERATURE_WINDOW : {
+                    mail->type = TYPE_TEMPERATURE;
+                    mail->value = getTemperature();
+                    mailBox.put(mail);
+                    break;
+                }
+                case I_FIFO : {
+                    mailBox.free(mail);
+                    uint8_t samplesNumber;
+                    read(FIFO_STATUS, &samplesNumber);
+                    samplesNumber&=0x3F;
+                    mail_t **mailArray = new mail_t*[2*samplesNumber];
+                    for(int i=0;i<2*samplesNumber;i++){
+                        *(mailArray+i)= mailBox.alloc();
                     }
-                    case 0x8:{
+                    uint8_t *samples = new uint8_t[5*samplesNumber];
+                    read(FIFO_DATA, samples, 5*samplesNumber);
+                    for(int i=0;i<samplesNumber-1;i++){
                         if(isAltimeter()){
-                            mail->type = TYPE_ALTITUDE;
-                            mail->value = getData();
-                            mailBox.put(mail);
+                            (*(mailArray+2*i))->type = TYPE_ALTITUDE;
+                            (*(mailArray+2*i))->value = convertAltitudeI2D(samples+5*i);
                         }
                         else{
-                            mail->type = TYPE_PRESSURE;
-                            mail->value = getData();
-                            mailBox.put(mail);
+                            (*(mailArray+2*i))->type = TYPE_PRESSURE;
+                            (*(mailArray+2*i))->value = convertPressureI2D(samples+5*i);
                         }
-                        break;
+                        (*(mailArray+2*i+1))->type = TYPE_TEMPERATURE;
+                        (*(mailArray+2*i+1))->value = convertTemperatureI2D(samples+5*i+3);
+                        mailBox.put(*(mailArray+2*i));
+                        mailBox.put(*(mailArray+2*i+1));
                     }
-                    case 0x2 : {
-                        mail->type = TYPE_TEMPERATURE;
-                        mail->value = getTemperature();
-                        mailBox.put(mail); 
-                    }
+                    delete[] samples;
+                    break;
                 }
-                break;
+                case I_NEW_DATA : {
+                    switch(data&0xE){
+                        case 0xE: {
+                            mail_t *mail2 = mailBox.alloc();
+                            mail2->type = TYPE_TEMPERATURE;
+                            mail2->value = getTemperature();
+                            mailBox.put(mail2);
+                        }
+                        case 0x8:{
+                            if(isAltimeter()){
+                                mail->type = TYPE_ALTITUDE;
+                                mail->value = getData();
+                                mailBox.put(mail);
+                            }
+                            else{
+                                mail->type = TYPE_PRESSURE;
+                                mail->value = getData();
+                                mailBox.put(mail);
+                            }
+                            break;
+                        }
+                        case 0x2 : {
+                            mail->type = TYPE_TEMPERATURE;
+                            mail->value = getTemperature();
+                            mailBox.put(mail); 
+                        }
+                    }
+                    break;
+                }
+                case I_NO_INTERRUPT: {break;}
             }
+            MPL3115A2Interrupt();
+            name = identifyInterrupt();
         }
-        if(pin){MPL3115A2InterruptOne();}
-        else{MPL3115A2InterruptTwo();}
     }
 }
 
-void MPL3115A2::dispatchInterruptDataOne(){
-    dispatchInterruptData(PIN_ONE);
-}
-
-void MPL3115A2::dispatchInterruptDataTwo(){
-    dispatchInterruptData(PIN_TWO);
-}
 
 void MPL3115A2::setMode(Mode mode){
     uint8_t data;
@@ -596,16 +569,17 @@ uint8_t MPL3115A2::convertTemperatureD2I(float temperature){
     return (~lround(temperature)) + 1;
 }
 
-Interrupt MPL3115A2::identifyInterrupt(Interrupt_Pin pin){
+Interrupt MPL3115A2::identifyInterrupt(){
     uint8_t data;
     read(INTERRUPT_STATUS, &data);
-    if(pin==PIN_ONE){return (Interrupt) (lround(activeInterruptsOne & data));}
-    else{return (Interrupt) (lround(activeInterruptsTwo & data));}
+    for(uint8_t i=0;i<8;i++){
+        if(data&(1<<i)){return (Interrupt) (1<<i);}
     }
+    return I_NO_INTERRUPT;
+}
 
-void MPL3115A2::dispatchInterruptData(Interrupt_Pin pin){
-    if(pin){threadOne.signal_set(0x01);}
-    else{threadTwo.signal_set(0x01);}
+void MPL3115A2::dispatchInterruptData(){
+    mThread.signal_set(0x01);
 }
 
 int MPL3115A2::write(Address address, uint8_t *data, int length){

@@ -72,14 +72,15 @@ namespace MPL{
 
     enum Interrupt
     {
-        I_NEW_DATA                  = 0x80,
-        I_FIFO                      = 0x40,
-        I_PRESSURE_THRESHOLD        = 0x20,     I_ALTITUDE_THRESHOLD    = 0x20,
-        I_TEMPERATURE_THRESHOLD     = 0x0F,
-        I_PRESSURE_WINDOW           = 0x08,     I_ALTITUDE_WINDOW       = 0x08,  
-        I_TEMPERATURE_WINDOW        = 0x04,
-        I_PRESSURE_CHANGE           = 0x02,     I_ALTITUDE_CHANGE       = 0x02,
-        I_TEMPERATURE_CHANGE        = 0x01
+        I_NEW_DATA                  = 1<<7,
+        I_FIFO                      = 1<<6,
+        I_PRESSURE_THRESHOLD        = 1<<5,     I_ALTITUDE_THRESHOLD    = 1<<5,
+        I_TEMPERATURE_THRESHOLD     = 1<<4,
+        I_PRESSURE_WINDOW           = 1<<3,     I_ALTITUDE_WINDOW       = 1<<3,  
+        I_TEMPERATURE_WINDOW        = 1<<2,
+        I_PRESSURE_CHANGE           = 1<<1,     I_ALTITUDE_CHANGE       = 1<<1,
+        I_TEMPERATURE_CHANGE        = 1<<0,
+        I_NO_INTERRUPT              = 0
     };
 
     enum Time_Step

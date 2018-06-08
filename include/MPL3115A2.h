@@ -144,31 +144,24 @@ class MPL3115A2
 
     I2C mI2C;
     uint8_t mAddress;
-    Thread threadOne;
-    Thread threadTwo;
+    Thread mThread;
     InterruptIn mInterruptOne, mInterruptTwo;
     /*! @var    visAltemeter Stores the mode of the MPL3115A2 sensor, shared among all class instances */
     static bool visAltimeter;
     /*! @var    visFifo Stores whether the MPL3115A2 sensor is in FIFO mode, shared among all class instances*/
     static bool visFIFO;
-    /*! @var    activeInterruptsOne, activeInterruptsTwo store the interrupts 
-                that have been configured on each pin of the MPL3115A2 sensor,
+    /*! @var    activeInterrupts stores the interrupts that have been configured,
                 shared among all class instances.*/
-    static uint8_t activeInterruptsOne, activeInterruptsTwo;
-    void interruptWrapper(MPL::Interrupt_Pin pin);
-    void interruptWrapperOne();
-    void interruptWrapperTwo();
-    void (*MPL3115A2InterruptOne)();
-    void (*MPL3115A2InterruptTwo)();
+    static uint8_t activeInterrupts;
+    void interruptWrapper();
+    void (*MPL3115A2Interrupt)();
     
     void read(MPL::Address address, uint8_t *data, int length = 1);
     int  write(MPL::Address address, uint8_t *data, int length = 1);
 
-    void dispatchInterruptData(MPL::Interrupt_Pin pin);
-    MPL::Interrupt identifyInterrupt(MPL::Interrupt_Pin pin);
-    void setInterruptFunction(void (*function)(), MPL::Interrupt_Pin pin);
-    void dispatchInterruptDataOne();
-    void dispatchInterruptDataTwo();
+    void dispatchInterruptData();
+    MPL::Interrupt identifyInterrupt();
+    void setInterruptFunction(void (*function)());
 
     void convertPressureD2I(float pressure, uint8_t* out);
     void convertAltitudeD2I(float altitude, uint8_t* out);
