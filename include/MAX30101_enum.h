@@ -28,8 +28,8 @@ namespace MAX{
         I_NEW_DATA      =   1<<6,
         I_LIGHT         =   1<<5,
         I_START         =   1<<4,
-        I_POWER_UP      =   1<<0,
-        I_TEMPERATURE   =   1<<1
+        I_TEMPERATURE   =   1<<1,
+        I_NO_INTERRUPT  =   0
     };
 
     enum Mode{

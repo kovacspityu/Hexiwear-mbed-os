@@ -224,29 +224,27 @@ void MAX30101::setMultiLedTiming(Led slot1, Led slot2, Led slot3, Led slot4){
 
 
 void MAX30101::setInterrupt(Interrupt interrupt, void (*function)(), uint8_t threshold, bool fifoRollover){
-    if(interrupt!=I_POWER_UP){
-        uint8_t data[2];
-        read(INTERRUPT_CONFIG, data, 2);
-        if(interrupt == I_TEMPERATURE){
-            data[1]|=interrupt;
+    uint8_t data[2];
+    read(INTERRUPT_CONFIG, data, 2);
+    if(interrupt == I_TEMPERATURE){
+        data[1]|=interrupt;
+    }
+    else{
+        data[0]|=interrupt;
+    }
+    write(INTERRUPT_CONFIG, data, 2);
+    switch(interrupt){
+        case I_FIFO_FULL: {
+            setFIFOThreshold(threshold);
+            setFIFORollover(fifoRollover);
+            break;
         }
-        else{
-            data[0]|=interrupt;
+        case I_START: {
+            setProximityDelay(threshold);
+            break;
         }
-        write(INTERRUPT_CONFIG, data, 2);
-        switch(interrupt){
-            case I_FIFO_FULL: {
-                setFIFOThreshold(threshold);
-                setFIFORollover(fifoRollover);
-                break;
-            }
-            case I_START: {
-                setProximityDelay(threshold);
-                break;
-            }
-            default:{
-                break;
-            }
+        default:{
+            break;
         }
     }
     mInterrupt.fall(callback(this, &MAX30101::dispatchInterruptData));
@@ -254,7 +252,6 @@ void MAX30101::setInterrupt(Interrupt interrupt, void (*function)(), uint8_t thr
 }
 
 void MAX30101::removeInterrupt(Interrupt interrupt){
-    if(interrupt==I_POWER_UP){return;}
     uint8_t data[2];
     read(INTERRUPT_CONFIG, data, 2);
     if(interrupt == I_TEMPERATURE){
@@ -323,63 +320,84 @@ void MAX30101::interruptWrapper(){
     //TODO
     while(1){
         Thread::signal_wait(0x01);
-        uint8_t data[2];
-        read(INTERRUPT_STATUS, data, 2);
-        switch(data[0]){
-            case I_FIFO_FULL:{//Falls into the next case
-            }
-            case I_NEW_DATA:{
-                uint8_t fifoOverflow, sampleNumber;
-                read(FIFO_OVERFLOW_CTR, &fifoOverflow);
-                if(fifoOverflow){
-                    sampleNumber = 32;
+        Interrupt name = identifyInterrupt();
+        while(name){
+            switch(name){
+                case I_FIFO_FULL:{//Falls into the next case
                 }
-                else{
-                    uint8_t fifoWrite, fifoRead;
-                    read(FIFO_WRITE_PTR, &fifoWrite);
-                    read(FIFO_READ_PTR, &fifoRead);
-                    sampleNumber = (32 + fifoWrite - fifoRead) % 32;
-                }
-                if(sampleNumber){
-                    mail_t *mailArray = getData(sampleNumber);
-                    for(uint i=0;i<sampleNumber;i++){
-                        mail_t *mail = mailBox.alloc();
-                        mail->ledSamples = new ledSample_t[mailArray[i].length];
-                        mail->length = mailArray[i].length;
-                        mail->temperature = mailArray[i].temperature;
-                        for(uint j=0;j<mailArray[i].length;j++){
-                            mail->ledSamples[j]=mailArray[i].ledSamples[j];
-                        } 
-                        mailBox.put(mail);
-                        delete[] mailArray[i].ledSamples;
+                case I_NEW_DATA:{
+                    uint8_t fifoOverflow, sampleNumber;
+                    read(FIFO_OVERFLOW_CTR, &fifoOverflow);
+                    if(fifoOverflow){
+                        sampleNumber = 32;
                     }
-                    delete[] mailArray;
+                    else{
+                        uint8_t fifoWrite, fifoRead;
+                        read(FIFO_WRITE_PTR, &fifoWrite);
+                        read(FIFO_READ_PTR, &fifoRead);
+                        sampleNumber = (32 + fifoWrite - fifoRead) % 32;
+                    }
+                    if(sampleNumber){
+                        mail_t *mailArray = getData(sampleNumber);
+                        for(uint i=0;i<sampleNumber;i++){
+                            mail_t *mail = mailBox.alloc();
+                            mail->ledSamples = new ledSample_t[mailArray[i].length];
+                            mail->length = mailArray[i].length;
+                            mail->temperature = mailArray[i].temperature;
+                            for(uint j=0;j<mailArray[i].length;j++){
+                                mail->ledSamples[j]=mailArray[i].ledSamples[j];
+                            } 
+                            mailBox.put(mail);
+                            delete[] mailArray[i].ledSamples;
+                        }
+                        delete[] mailArray;
+                    }
+                break;
                 }
-            break;
+                case I_LIGHT:{
+                    //TODO
+                    break;
+                }
+                case I_START:{
+                    //TODO 
+                    break;
+                }
+                case I_TEMPERATURE:{
+                    getTemperature();
+                    break;
+                }
+                case I_NO_INTERRUPT:{
+                    //Will never get here as I_NO_INTERRUPT==0
+                    break;
+                }
             }
-            case I_LIGHT:{
-                //TODO
-                break;
-            }
-            case I_POWER_UP:{
-                //TODO
-                break;
-            }
-            case I_START:{
-                //TODO 
-                break;
-            }
-            case 0:{
-                getTemperature();
-            }
+            mInterruptFunction();
+            name = identifyInterrupt();
         }
-        mInterruptFunction();
     }
 }
 
 void MAX30101::dispatchInterruptData(){
     mThread.signal_set(0x01);
 }
+
+
+Interrupt MAX30101::identifyInterrupt(){
+    uint8_t data[2];
+    read(INTERRUPT_STATUS, data, 2);
+    if(data[1]&I_TEMPERATURE){
+        return I_TEMPERATURE;
+    }
+    else{
+        for(uint8_t i=4;i<8;i++){
+            if(data[0]&(1<<i)){
+                return (Interrupt) (1<<i);
+            }
+        }
+    }
+    return I_NO_INTERRUPT;
+}
+
 
 
 void MAX30101::updateChannels(Mode mode, Led slot1, 

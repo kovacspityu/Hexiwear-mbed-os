@@ -89,6 +89,8 @@ MAX::Led slot3 = MAX::NONE_LED, MAX::Led slot4 = MAX::NONE_LED);
         void clearInterrupt();
         void dispatchInterruptData();
 
+        MAX::Interrupt identifyInterrupt();
+
         void clearFIFOCounters();
         void updateChannels(MAX::Mode mode, MAX::Led slot1 = MAX::NONE_LED, 
                             MAX::Led slot2 = MAX::NONE_LED, MAX::Led slot3 = MAX::NONE_LED, 
