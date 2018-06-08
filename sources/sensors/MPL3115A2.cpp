@@ -546,7 +546,7 @@ float MPL3115A2::convertPressureI2D(uint8_t *pressure){
             (((uint32_t) pressure[1]) << 8) | 
             ((uint32_t) pressure[2])
             )
-            ) / 64*100;
+            ) / (64*100);
 }
 
 float MPL3115A2::convertTemperatureI2D(uint8_t *temperature){
