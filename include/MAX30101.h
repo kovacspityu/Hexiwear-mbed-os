@@ -59,8 +59,8 @@ MAX::Led slot3 = MAX::NONE_LED, MAX::Led slot4 = MAX::NONE_LED);
         void setProximityDelay(uint8_t delay);
         void setMultiLedTiming(MAX::Led slot1, MAX::Led slot2, MAX::Led slot3, MAX::Led slot4);
 
-        void setInterrupt(MAX::Interrupt interrupt, void (*function)(), uint8_t threshold = 0, bool fifoRollover = false);
-        void removeInterrupt(MAX::Interrupt interrupt);
+        void setInterrupt(MAX::Interrupt name, void (*function)(), uint8_t threshold = 0, bool fifoRollover = false);
+        void removeInterrupt(MAX::Interrupt name);
 
         uint8_t combineLeds(uint8AndFloat* leds, uint8_t length);
 

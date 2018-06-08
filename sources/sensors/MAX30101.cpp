@@ -223,17 +223,18 @@ void MAX30101::setMultiLedTiming(Led slot1, Led slot2, Led slot3, Led slot4){
 
 
 
-void MAX30101::setInterrupt(Interrupt interrupt, void (*function)(), uint8_t threshold, bool fifoRollover){
+void MAX30101::setInterrupt(Interrupt name, void (*function)(), uint8_t threshold, bool fifoRollover){
+    if(name==I_NO_INTERRUPT){return;}
     uint8_t data[2];
     read(INTERRUPT_CONFIG, data, 2);
-    if(interrupt == I_TEMPERATURE){
-        data[1]|=interrupt;
+    if(name == I_TEMPERATURE){
+        data[1]|=name;
     }
     else{
-        data[0]|=interrupt;
+        data[0]|=name;
     }
     write(INTERRUPT_CONFIG, data, 2);
-    switch(interrupt){
+    switch(name){
         case I_FIFO_FULL: {
             setFIFOThreshold(threshold);
             setFIFORollover(fifoRollover);
@@ -251,14 +252,14 @@ void MAX30101::setInterrupt(Interrupt interrupt, void (*function)(), uint8_t thr
     setInterruptFunction(function);
 }
 
-void MAX30101::removeInterrupt(Interrupt interrupt){
+void MAX30101::removeInterrupt(Interrupt name){
     uint8_t data[2];
     read(INTERRUPT_CONFIG, data, 2);
-    if(interrupt == I_TEMPERATURE){
-        data[1]&=~interrupt;
+    if(name == I_TEMPERATURE){
+        data[1]&=~name;
     }
     else{
-        data[0]&=~interrupt;
+        data[0]&=~name;
     }
     write(INTERRUPT_CONFIG, data, 2);
     if(data[0]==0 && data[1]==2){

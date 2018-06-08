@@ -219,6 +219,7 @@ void MPL3115A2::setAltitudeOffset(int8_t altitude){
 }
 
 void MPL3115A2::setInterrupt(Interrupt_Pin pin, Interrupt name, void (*function)(), float target){
+    if(name==I_NO_INTERRUPT){return;}
     standby();
     uint8_t data;
     read(CTRL_REG_5, &data);

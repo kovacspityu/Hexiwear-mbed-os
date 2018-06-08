@@ -559,6 +559,7 @@ void FXOS8700CQ::removeInterrupt(Interrupt name){
 }
 
 void FXOS8700CQ::setInterrupt(Interrupt_Pin pin, Interrupt name, void (*function)()){
+    if(name==I_NO_INTERRUPT){return;}
     uint8_t data;
     Mode tempMode = mMode;
     // Even though the docs say that INT_CONFIG can be changed while the sensor is active, 
