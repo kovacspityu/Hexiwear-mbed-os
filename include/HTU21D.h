@@ -4,7 +4,7 @@
 #include "mbed.h"
 
 #define TEMPERATURE_COEFFICIENT     (-0.15f)
-#define HEAT_TRANSFER_COEFFICIENT   (0.3f)
+#define HEAT_TRANSFER_COEFFICIENT   (8.4f)
 
 class HTU21D{
 

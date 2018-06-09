@@ -78,7 +78,7 @@ void HTU21D::reset(){
 float HTU21D::convertHumidity(uint8_t *rawHumidity){
     float result = -6 + ((float) ((rawHumidity[0]<<8) | (rawHumidity[1]))*125) / 65536.0f;
     result+= (25.0 - mTemperature) * TEMPERATURE_COEFFICIENT; //Correction described in the docs
-    result *= mTemperature/((1+HEAT_TRANSFER_COEFFICIENT)*mTemperature - HEAT_TRANSFER_COEFFICIENT*auxTemperature);
+    if(auxTemperature>-200){result *= mTemperature/((1+HEAT_TRANSFER_COEFFICIENT)*mTemperature - HEAT_TRANSFER_COEFFICIENT*auxTemperature);}
     return result;
 }
 
