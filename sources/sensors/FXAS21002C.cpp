@@ -14,11 +14,29 @@ mI2C(I2C_SDA, I2C_SCL), mAddress(0x40), mInterruptOne(PTD1), mInterruptTwo(PTC18
     setReady();
 }
 
+void FXAS21002C::setMode(Mode mode){
+    switch(mode){
+        case STANDBY : {
+            standby();
+            break;
+        }
+        case READY : {
+            setReady();
+            break;
+        }
+        case ACTIVE : {
+            setActive();
+            break;
+        }
+    }
+}
+
 void FXAS21002C::standby(){
     uint8_t data;
     read(CTRL_REG_1, &data);
     data&=~3;
     write(CTRL_REG_1, &data);
+    mMode = STANDBY;
 }
 
 void FXAS21002C::setActive(){
@@ -44,6 +62,7 @@ void FXAS21002C::setActive(){
         write(CTRL_REG_1, &data);
         wait_ms(waitingTime);
     }
+    mMode = ACTIVE;
 }
 
 void FXAS21002C::setReady(){
@@ -52,13 +71,15 @@ void FXAS21002C::setReady(){
     data&=~3;
     data|=1;
     write(CTRL_REG_1, &data);
+    mMode = READY;
 }
 
 Mode FXAS21002C::getStatus(){
     uint8_t data;
     read(CTRL_REG_1, &data);
     data&=0b11;
-    return (Mode)data;
+    mMode = (Mode) data;
+    return mMode;
 }
 
 bool FXAS21002C::isDataAvailable(){
@@ -68,10 +89,8 @@ bool FXAS21002C::isDataAvailable(){
 }
 
 void FXAS21002C::setRange(Range range){
-    bool mActive = false;
-    if(getStatus()==ACTIVE){
-        setReady();
-        mActive = true;}
+    Mode tempMode = mMode;
+    setReady();
     uint8_t data;
     if(range==RANGE4000){
         read(CTRL_REG_3, &data);
@@ -88,56 +107,41 @@ void FXAS21002C::setRange(Range range){
     data&=~0b11;
     data|=range;
     write(CTRL_REG_0, &data); 
-    if(mActive){
-        setActive();
-    }
+    setMode(tempMode);
 }
 
 void FXAS21002C::setLowPass(Low threshold){
-    bool mActive = false;
-    if(getStatus()==ACTIVE){
-        setReady();
-        mActive = true;}
+    Mode tempMode = mMode;
+    setReady();
     uint8_t data;
     read(CTRL_REG_0, &data);
     data&=~0xC0;
     data|=threshold;
     write(CTRL_REG_0, &data);
-    if(mActive){
-        setActive();
-    }
+    setMode(tempMode);
 }
 
 void FXAS21002C::setHighPass(High threshold){
-    bool mActive = false;
-    if(getStatus()==ACTIVE){
-        setReady();
-        mActive = true;}
+    Mode tempMode = mMode;
+    setReady();
     uint8_t data;
     read(CTRL_REG_0, &data);
     data&=~0x18;
     data|=threshold;
     write(CTRL_REG_0, &data);
-    if(mActive){
-        setActive();
-    }
+    setMode(tempMode); 
 }
 
 void FXAS21002C::setODR(ODR dataRate){
-    bool mActive = false;
-    if(getStatus()==ACTIVE){
-        setReady();
-        mActive = true;
-    }
+    Mode tempMode = mMode;
+    setReady();
     uint8_t data;
     read(CTRL_REG_1, &data);
     data&=~0x1C;
     data|=dataRate;
     write(CTRL_REG_1, &data);
     mODR = 800/(1<<(dataRate>>2));
-    if(mActive){
-        setActive();
-    }
+    setMode(tempMode);
 }
 
 float *FXAS21002C::getAngles(){
@@ -152,7 +156,7 @@ float *FXAS21002C::getAngles(){
 }
 
 float *FXAS21002C::getRadians(){
-    int16_t *data = new int16_t[3];
+    int16_t *data;
     data = getRawData();
     float *result = new float[3];
     for(int i=0;i<3;i++){
@@ -175,11 +179,13 @@ int16_t *FXAS21002C::getRawData(){
     for(int i=0; i<3;i++){
         result[i] = (int16_t) (((uint16_t)(data[2*i])<<8) + data[2*i+1]);
     }
+    delete[] data;
     return result;
 }
 
-void FXAS21002C::setInterrupt(Interrupt_Pin pin, Interrupt name, void (*function)(), float threshold, int count, bool resetCount){
+void FXAS21002C::setInterrupt(Interrupt_Pin pin, Interrupt name, void (*function)(), uint8_t count, bool resetCount, float threshold, uint8_t config){
     if(name==I_NO_INTERRUPT){return;}
+    Mode tempMode = mMode;
     standby();
     uint8_t data;
     switch(name){
@@ -187,21 +193,24 @@ void FXAS21002C::setInterrupt(Interrupt_Pin pin, Interrupt name, void (*function
             break;
         }
         case I_FIFO: {
-            //TODO
+            // FIFO needs to be deactivated before changing its mode, as per docs.
+            data = 0;
+            write(FIFO_SETUP, &data);
+            data = (count&63) | (1<<(6 + ( (uint8_t) (!resetCount) ) ));
+            write(FIFO_SETUP, &data);
             read(CTRL_REG_3, &data);
             data|=1<<3;
             write(CTRL_REG_3, &data);
             break;
         }
         case I_THRESHOLD: {
-            uint8_t data = (count<256?count:255); 
-            write(THRESHOLD_COUNTER, &data);
-            if(count>127){count=127;}
-            data = (count/256)-1;
+            write(THRESHOLD_COUNTER, &count);
+            threshold = fabs(threshold);
+            data = (threshold/(256 * mSensitivity))-1;
+            if(data>127){data=127;}
             data|=resetCount<<7;
             write(THRESHOLD_CONFIG, &data);
-            data=7;
-            //TODO This register allows to select only certain axes for the interrupt, and to "latch" it.
+            data = config&15; 
             write(RT_INT_CONFIG, &data);
             break;
         }
@@ -220,13 +229,16 @@ void FXAS21002C::setInterrupt(Interrupt_Pin pin, Interrupt name, void (*function
         mInterruptTwo.fall(callback(this, &FXAS21002C::dispatchInterruptData));
     }
     setInterruptFunction(function);
-    setReady();
+    setMode(tempMode);
 }
 
 void FXAS21002C::removeInterrupt(Interrupt name){
+    Mode tempMode = mMode;
+    standby();
     uint8_t data;
     if(name==I_FIFO){
-//TODO
+        data = 0;
+        write(FIFO_SETUP, &data);
     }
     read(CTRL_REG_2, &data);
     data &= ~(1<<(2*name));
@@ -238,11 +250,12 @@ void FXAS21002C::removeInterrupt(Interrupt name){
         FXAS21002CInterrupt = NULL;
         mInterruptTwo.fall(NULL);
     }
+    setMode(tempMode);
 }
 
 void FXAS21002C::setInterruptFunction(void (*function)()){
     FXAS21002CInterrupt = function;
-    if(mThread.get_state()==Thread::Deleted)mThread.start(callback(this, &FXAS21002C::interruptWrapper));
+    if(mThread.get_state()==Thread::Deleted){mThread.start(callback(this, &FXAS21002C::interruptWrapper));}
 }
 
 void FXAS21002C::interruptWrapper(){
@@ -255,7 +268,7 @@ void FXAS21002C::interruptWrapper(){
                 case I_NEW_DATA: {
                     uint8_t data;
                     read(DR_STATUS, &data);
-                    float *samples = new float[3];
+                    float *samples;
                     samples=getAngles();
                     for(int i=0;i<3;i++){
                         if(data&(1<<i)){
@@ -287,6 +300,7 @@ void FXAS21002C::interruptWrapper(){
                     break;
                 }
                 case I_THRESHOLD: {
+                    //TODO
                     break;
                 }
             }

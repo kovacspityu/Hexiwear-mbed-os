@@ -16,6 +16,7 @@ class FXAS21002C{
         } mail_t;
         Mail<mail_t, 24> mailBox;
 
+        void setMode(FXA::Mode mode);
         void standby();
         void setActive();
         void setReady();
@@ -30,7 +31,7 @@ class FXAS21002C{
         float* getAngles();
         float* getRadians();
         int8_t* getTemperature();
-        void setInterrupt(FXA::Interrupt_Pin pin, FXA::Interrupt name, void (*function)(), float threshold = 0, int count = 0, bool resetCount = false);
+        void setInterrupt(FXA::Interrupt_Pin pin, FXA::Interrupt name, void (*function)(), uint8_t count=0, bool resetCount=false, float threshold=0, uint8_t config=0);
         void removeInterrupt(FXA::Interrupt name);
         
 
@@ -38,6 +39,7 @@ class FXAS21002C{
         I2C mI2C;
         uint8_t mAddress;
         static uint8_t activeInterrupts;
+        FXA::Mode mMode;
         float mSensitivity;
         float mODR;
         InterruptIn mInterruptOne;

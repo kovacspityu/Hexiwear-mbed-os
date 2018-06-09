@@ -46,6 +46,13 @@ namespace FXA{
         PIN_TWO = 0
     };
 
+    enum Threshold_Config{
+        ENABLE_LATCH    = 1<<3,
+        ENABLE_Z        = 1<<2,
+        ENABLE_Y        = 1<<1,
+        ENABLE_X        = 1
+    };
+
     enum Low{
                         //OSR=  800 Hz | 400 Hz | 200 Hz | 100 Hz | 50 Hz | 25 Hz | 12.5 Hz |
     LOW0 = 0b00<<6,    //      256    | 128    | 64     | 32     | 16    | 8     | 4       |                                            
@@ -66,12 +73,12 @@ namespace FXA{
 
     enum Range{
                                     //  Nominal Sensitivity (mdps/LSB)
-        RANGE2000   = 0b000,       //  62.5
-        RANGE1000   = 0b001,       //  31.25
-        RANGE500    = 0b010,       //  15.625
-        RANGE250    = 0b011,       //  7.8125
+        RANGE2000   = 0b000,        //  62.5
+        RANGE1000   = 0b001,        //  31.25
+        RANGE500    = 0b010,        //  15.625
+        RANGE250    = 0b011,        //  7.8125
         
-        RANGE4000   = 0b100,       //  125.0
+        RANGE4000   = 0b100,        //  125.0
     };
 
     enum Mode{
