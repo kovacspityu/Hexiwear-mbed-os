@@ -5,8 +5,9 @@
 #include "MAX30101_enum.h"
 
 
-#define MIN_HEART_FREQUENCY 50u
-#define MAX_HEART_FREQUENCY 200u
+#define MIN_HEART_FREQUENCY (50u)
+#define MAX_HEART_FREQUENCY (200u)
+
 
 
 class MAX30101{
@@ -45,6 +46,8 @@ MAX::Led slot3 = MAX::NONE_LED, MAX::Led slot4 = MAX::NONE_LED);
         mail_t getSampleTemplate();
         mail_t* getData(uint8_t numberOfSamples = 0);
 
+        float getWorstCaseTemperature();
+
         void setOversample(MAX::Oversample oversample);
         void setFIFORollover(bool fifoRollover);
         void setFIFOThreshold(uint8_t fifoThreshold);
@@ -74,8 +77,14 @@ MAX::Led slot3 = MAX::NONE_LED, MAX::Led slot4 = MAX::NONE_LED);
         uint8_t mResolution;
         float mTemperature;
         MAX::Oxygen_Rate mSampleRate;
+        MAX::Pulse_Width mPulseWidth;
         Ticker mTicker;
         mail_t mSampleTemplate;
+
+        float redCurrent, greenCurrent, irCurrent, pilotCurrent;
+
+        const static float temperatureDeltaCoeff1; 
+        const static float temperatureDeltaCoeff2; 
 
         void startTemperatureMeasurement();
         float getTemperature();

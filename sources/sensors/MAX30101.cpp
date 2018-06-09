@@ -7,10 +7,14 @@
 
 using namespace MAX;
 
+const float MAX30101::temperatureDeltaCoeff1 = 9373.0f/99600;
+const float MAX30101::temperatureDeltaCoeff2 = 71.0f/39840;
+
 MAX30101::MAX30101(Mode mode, Oversample oversample,
-    bool fifoRollover, uint8_t fifoThreshold, Led slot1, Led slot2,
-    Led slot3, Led slot4) : mPower(PTA29), mI2C(PTB1, PTB0),
-    mInterrupt(PTB18), mAddress(0xAE), mResolution(3), mTemperature(25){
+    bool fifoRollover, uint8_t fifoThreshold, Led slot1, Led slot2,Led slot3, Led slot4) : 
+    mPower(PTA29), mI2C(PTB1, PTB0), mInterrupt(PTB18), mAddress(0xAE), mResolution(3), 
+    mTemperature(-300), mSampleRate(OX_RATE_50), mPulseWidth(PULSE_WDT_69),  redCurrent(0), 
+    greenCurrent(0), irCurrent(0){
     mPower = 1;
     mI2C.frequency(400000);
     reset();
@@ -181,6 +185,10 @@ void MAX30101::setPulseAmplitude(uint8_t redAmplitude, uint8_t irAmplitude,
     data[2] = greenAmplitude;
     write(LED_CONFIG, data, 3);
     write(P_LED_CONFIG, &pilotAmplitude);
+    redCurrent = redAmplitude/5;
+    greenCurrent = greenAmplitude/5;
+    irCurrent = irAmplitude/5;
+    pilotCurrent = pilotAmplitude/5;
 }
 
 void MAX30101::setPulseWidth(Pulse_Width width){
@@ -188,7 +196,8 @@ void MAX30101::setPulseWidth(Pulse_Width width){
     read(OXYGEN_CONFIG, &data);
     data&=0xFC;
     data|=width;
-    write(OXYGEN_CONFIG, &data); 
+    write(OXYGEN_CONFIG, &data);
+    mPulseWidth = width; 
 }
 
 void MAX30101::setOxygenRate(Oxygen_Rate rate){
@@ -292,9 +301,49 @@ float MAX30101::getTemperature(){
     //due to the red led duty cycle.
     //There is a component that is linear in (50<<(SPo2_rate))*pulse_width/10000      
     //No idea about (1<<red_intensity)/10
-    mTemperature = result;
+    //Possibly ∆T = current * duty_cycle_percentage * parameter + constant
+    float pulseWidth;
+    switch(mPulseWidth){
+        case PULSE_WDT_69 : {pulseWidth = 68.95;}
+        case PULSE_WDT_118: {pulseWidth = 117.78;}
+        case PULSE_WDT_215: {pulseWidth = 215.44;}
+        case PULSE_WDT_411: {pulseWidth = 410.75;}
+    }
+    float sampleRate = 50*(1<<mSampleRate);
+    if(mSampleRate>OX_RATE_800){
+        if(mSampleRate==OX_RATE_1000){sampleRate=1000;}
+        else{sampleRate=50*(1<<(mSampleRate-1));}
+    }
+    mTemperature = result + sampleRate*pulseWidth/10000 * redCurrent*(temperatureDeltaCoeff1 - redCurrent*temperatureDeltaCoeff2);
     startTemperatureMeasurement();
-    return result; 
+    return mTemperature; 
+}
+
+float MAX30101::getWorstCaseTemperature(){
+    uint8_t data[2];
+    read(TEMPERATURE, data, 2);
+    float result = (int8_t) data[0] + data[1] * 0.0625; 
+    //TODO This measures the average temperature, still need to add the correction
+    //due to the red led duty cycle.
+    //There is a component that is linear in (50<<(SPo2_rate))*pulse_width/10000      
+    //No idea about (1<<red_intensity)/10
+    //Possibly ∆T = current * duty_cycle_percentage * parameter + constant
+    float pulseWidth;
+    switch(mPulseWidth){
+        case PULSE_WDT_69 : {pulseWidth = 68.95;}
+        case PULSE_WDT_118: {pulseWidth = 117.78;}
+        case PULSE_WDT_215: {pulseWidth = 215.44;}
+        case PULSE_WDT_411: {pulseWidth = 410.75;}
+    }
+    float sampleRate = 50*(1<<mSampleRate);
+    if(mSampleRate>OX_RATE_800){
+        if(mSampleRate==OX_RATE_1000){sampleRate=1000;}
+        else{sampleRate=50*(1<<(mSampleRate-1));}
+    }
+    float current = redCurrent + greenCurrent + irCurrent;
+    mTemperature = result + sampleRate*pulseWidth/10000 * current*(temperatureDeltaCoeff1 - current*temperatureDeltaCoeff2);
+    startTemperatureMeasurement();
+    return mTemperature;  
 }
 
 
