@@ -46,7 +46,7 @@ MAX::Led slot3 = MAX::NONE_LED, MAX::Led slot4 = MAX::NONE_LED);
         mail_t getSampleTemplate();
         mail_t* getData(uint8_t numberOfSamples = 0);
 
-        float getWorstCaseTemperature();
+        float getTemperatureDelta();
 
         void setOversample(MAX::Oversample oversample);
         void setFIFORollover(bool fifoRollover);
@@ -81,7 +81,7 @@ MAX::Led slot3 = MAX::NONE_LED, MAX::Led slot4 = MAX::NONE_LED);
         Ticker mTicker;
         mail_t mSampleTemplate;
 
-        float redCurrent, greenCurrent, irCurrent, pilotCurrent;
+        float current[4];
 
         const static float temperatureDeltaCoeff1; 
         const static float temperatureDeltaCoeff2; 

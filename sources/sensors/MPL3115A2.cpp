@@ -224,7 +224,7 @@ void MPL3115A2::setInterrupt(Interrupt_Pin pin, Interrupt name, void (*function)
     uint8_t data;
     read(CTRL_REG_5, &data);
     if(pin==PIN_ONE) {data |= name;}
-    else    {data &= ~name;}
+    else {data &= ~name;}
     write(CTRL_REG_5, &data);
     switch(name){
         case I_FIFO : {

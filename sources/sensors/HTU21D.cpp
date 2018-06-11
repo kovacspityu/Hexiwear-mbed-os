@@ -5,7 +5,7 @@
 using namespace HTU;
 
 HTU21D::HTU21D(Resolution resolution) : mPower(PTB12), mI2C(PTB1, PTB0),
-mAddress(0x80), mResolution(resolution), auxTemperature(-273) {
+mAddress(0x80), mResolution(resolution), temperatureDelta(-1) {
     mPower = 0;
     mI2C.frequency(400000);
     reset();
@@ -65,8 +65,8 @@ void HTU21D::setResolution(Resolution resolution){
     mResolution = resolution;
 }
 
-void HTU21D::setAuxTemperature(float temperature){
-    auxTemperature = temperature;
+void HTU21D::setTemperatureDelta(float temperature){
+    temperatureDelta = temperature;
 }
 
 void HTU21D::reset(){
@@ -78,14 +78,14 @@ void HTU21D::reset(){
 float HTU21D::convertHumidity(uint8_t *rawHumidity){
     float result = -6 + ((float) ((rawHumidity[0]<<8) | (rawHumidity[1]))*125) / 65536.0f;
     result+= (25.0 - mTemperature) * TEMPERATURE_COEFFICIENT; //Correction described in the docs
-    if(auxTemperature>-200){result *= mTemperature/((1+HEAT_TRANSFER_COEFFICIENT)*mTemperature - HEAT_TRANSFER_COEFFICIENT*auxTemperature);}
+    if(temperatureDelta>0){result -= temperatureDelta/(mTemperature - HEAT_TRANSFER_COEFFICIENT*temperatureDelta);}
     return result;
 }
 
 float HTU21D::convertTemperature(uint8_t *rawTemperature){
     float result = -46.85 + ( ((float) ((rawTemperature[0]<<8) | rawTemperature[1]))*175.72 ) / 65536;
     mTemperature = result;
-    if(auxTemperature>-200){result-= HEAT_TRANSFER_COEFFICIENT*(auxTemperature-result);} //Correction due to heat coming from other electronics, found experimentally
+    if(temperatureDelta>0){result-= HEAT_TRANSFER_COEFFICIENT*temperatureDelta;} //Correction due to heat coming from other electronics, found experimentally
     return result;
 }
 
