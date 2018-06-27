@@ -5,6 +5,7 @@
 namespace snsh{
 
     enum SensorType{
+        NO_SENSOR_T     = -1,
         FXAS21002C_T    = 0,
         FXOS8700CQ_T    = 1,
         HTU21D_T        = 2,

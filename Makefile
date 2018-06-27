@@ -56,6 +56,7 @@ OBJECTS += ./sources/IO/SSD1351.o
 OBJECTS += ./sources/IO/W25Q64FV.o
 OBJECTS += ./sources/Fonts.o
 OBJECTS += ./sources/gAssets.o
+OBJECTS += ./sources/SensorsHandler.o
 OBJECTS += ./mbed-os/features/unsupported/dsp/cmsis_dsp/BasicMathFunctions/arm_offset_f32.o
 OBJECTS += ./mbed-os/features/unsupported/dsp/cmsis_dsp/TransformFunctions/arm_rfft_fast_init_f32.o
 OBJECTS += ./mbed-os/features/unsupported/dsp/cmsis_dsp/TransformFunctions/arm_rfft_fast_f32.o
